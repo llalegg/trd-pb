@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLocation } from "wouter";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,133 +9,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import type { Program, Athlete } from "@shared/schema";
-
-const mockAthletes: Athlete[] = [
-  { id: "1", name: "Sarah Johnson" },
-  { id: "2", name: "Michael Chen" },
-  { id: "3", name: "Emma Rodriguez" },
-  { id: "4", name: "James Williams" },
-  { id: "5", name: "Olivia Martinez" },
-  { id: "6", name: "Daniel Anderson" },
-  { id: "7", name: "Sophia Taylor" },
-  { id: "8", name: "Liam Brown" },
-  { id: "9", name: "Ava Davis" },
-  { id: "10", name: "Noah Wilson" },
-];
-
-const initialPrograms: Program[] = [
-  {
-    id: "1",
-    athleteId: "1",
-    athleteName: "Sarah Johnson",
-    startDate: "2025-01-15",
-    endDate: "2025-03-15",
-  },
-  {
-    id: "2",
-    athleteId: "2",
-    athleteName: "Michael Chen",
-    startDate: "2025-02-01",
-    endDate: "2025-04-30",
-  },
-  {
-    id: "3",
-    athleteId: "3",
-    athleteName: "Emma Rodriguez",
-    startDate: "2025-01-20",
-    endDate: "2025-03-20",
-  },
-  {
-    id: "4",
-    athleteId: "4",
-    athleteName: "James Williams",
-    startDate: "2025-02-15",
-    endDate: "2025-05-15",
-  },
-];
-
-const programFormSchema = z.object({
-  athleteId: z.string().min(1, "Please select an athlete"),
-  startDate: z.date({
-    required_error: "Please select a start date",
-  }),
-  endDate: z.date({
-    required_error: "Please select an end date",
-  }),
-});
-
-type ProgramFormValues = z.infer<typeof programFormSchema>;
+import { useQuery } from "@tanstack/react-query";
+import type { Program } from "@shared/schema";
 
 export default function Programs() {
-  const [programs, setPrograms] = useState<Program[]>(initialPrograms);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [athleteComboboxOpen, setAthleteComboboxOpen] = useState(false);
-
-  const form = useForm<ProgramFormValues>({
-    resolver: zodResolver(programFormSchema),
-    defaultValues: {
-      athleteId: "",
-      startDate: undefined,
-      endDate: undefined,
-    },
+  const [, setLocation] = useLocation();
+  
+  const { data: programs = [], isLoading } = useQuery<Program[]>({
+    queryKey: ["/api/programs"],
   });
-
-  const handleAddProgram = (values: ProgramFormValues) => {
-    const athlete = mockAthletes.find((a) => a.id === values.athleteId);
-    if (!athlete) return;
-
-    const newProgram: Program = {
-      id: Date.now().toString(),
-      athleteId: values.athleteId,
-      athleteName: athlete.name,
-      startDate: format(values.startDate, "yyyy-MM-dd"),
-      endDate: format(values.endDate, "yyyy-MM-dd"),
-    };
-
-    setPrograms([...programs, newProgram]);
-    form.reset();
-    setIsDialogOpen(false);
-  };
-
-  const selectedAthleteId = form.watch("athleteId");
-  const selectedAthlete = mockAthletes.find((a) => a.id === selectedAthleteId);
 
   return (
     <div className="min-h-screen bg-background">
@@ -146,7 +30,7 @@ export default function Programs() {
               Program Builder
             </h1>
             <Button
-              onClick={() => setIsDialogOpen(true)}
+              onClick={() => setLocation("/add-program")}
               className="gap-2"
               data-testid="button-add-program"
             >
@@ -162,16 +46,23 @@ export default function Programs() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40%]">Athlete Name</TableHead>
+                <TableHead className="w-[15%]">Program ID</TableHead>
+                <TableHead className="w-[30%]">Athlete Name</TableHead>
                 <TableHead className="w-[20%]">Start Date</TableHead>
                 <TableHead className="w-[20%]">End Date</TableHead>
-                <TableHead className="w-[20%] text-right">Actions</TableHead>
+                <TableHead className="w-[15%] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {programs.length === 0 ? (
+              {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                    Loading programs...
+                  </TableCell>
+                </TableRow>
+              ) : programs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                     No programs found. Create your first program to get started.
                   </TableCell>
                 </TableRow>
@@ -185,6 +76,9 @@ export default function Programs() {
                     )}
                     data-testid={`row-program-${program.id}`}
                   >
+                    <TableCell className="font-mono text-sm" data-testid={`text-program-id-${program.id}`}>
+                      {program.programId}
+                    </TableCell>
                     <TableCell className="font-medium" data-testid={`text-athlete-${program.id}`}>
                       {program.athleteName}
                     </TableCell>
@@ -222,173 +116,6 @@ export default function Programs() {
           </Table>
         </div>
       </main>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-lg" data-testid="dialog-add-program">
-          <DialogHeader>
-            <DialogTitle>Add New Program</DialogTitle>
-            <DialogDescription>
-              Create a new training program for an athlete. Select the athlete and set the program duration.
-            </DialogDescription>
-          </DialogHeader>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleAddProgram)} className="space-y-6 py-4">
-              <FormField
-                control={form.control}
-                name="athleteId"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Athlete</FormLabel>
-                    <Popover open={athleteComboboxOpen} onOpenChange={setAthleteComboboxOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={athleteComboboxOpen}
-                            className="w-full justify-between"
-                            data-testid="button-athlete-select"
-                          >
-                            {selectedAthlete ? selectedAthlete.name : "Select athlete..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0" align="start">
-                        <Command>
-                          <CommandInput placeholder="Search athletes..." data-testid="input-athlete-search" />
-                          <CommandList>
-                            <CommandEmpty>No athlete found.</CommandEmpty>
-                            <CommandGroup>
-                              {mockAthletes.map((athlete) => (
-                                <CommandItem
-                                  key={athlete.id}
-                                  value={athlete.name}
-                                  onSelect={() => {
-                                    field.onChange(athlete.id);
-                                    setAthleteComboboxOpen(false);
-                                  }}
-                                  data-testid={`option-athlete-${athlete.id}`}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      selectedAthleteId === athlete.id ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {athlete.name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="space-y-4">
-                <FormLabel>Program Duration</FormLabel>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="text-sm text-muted-foreground">Start Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                                data-testid="button-start-date"
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(field.value, "MMM dd, yyyy") : "Pick a date"}
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              initialFocus
-                              data-testid="calendar-start-date"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="endDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="text-sm text-muted-foreground">End Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                                data-testid="button-end-date"
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(field.value, "MMM dd, yyyy") : "Pick a date"}
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              initialFocus
-                              data-testid="calendar-end-date"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    form.reset();
-                    setIsDialogOpen(false);
-                  }}
-                  data-testid="button-cancel"
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" data-testid="button-submit">
-                  Add Program
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
