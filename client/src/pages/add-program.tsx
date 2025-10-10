@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { CalendarIcon, X, ChevronDown, ChevronRight, ChevronLeft, EyeOff, Lock } from "lucide-react";
+import { CalendarIcon, X, ChevronDown, ChevronRight, ChevronLeft, EyeOff, Lock, Shuffle, Trash2, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
@@ -144,6 +144,32 @@ type SettingsOverride = {
   value: string;
 };
 
+type Exercise = {
+  id: string;
+  targetBodyGroup: string;
+  name: string;
+  sets: number;
+  reps: number;
+  restTime: string;
+  weight?: string;
+  tempo: string;
+};
+
+type LiftingCell = {
+  exercises: Exercise[];
+};
+
+type LiftingDayData = {
+  focus: string;
+  emphasis: string;
+  preparatory: {
+    p1: LiftingCell;
+    p2: LiftingCell;
+    p3: LiftingCell;
+    p4: LiftingCell;
+  };
+};
+
 // Generate a unique program ID
 const generateProgramId = () => {
   const prefix = "P";
@@ -192,6 +218,11 @@ export default function AddProgram() {
     blockIndex: null,
     affectedCount: 0,
   });
+  
+  // Step 3 (Review) state
+  const [reviewRoutineTab, setReviewRoutineTab] = useState<string>("lifting");
+  const [reviewWeekIndex, setReviewWeekIndex] = useState(0);
+  const [liftingData, setLiftingData] = useState<Map<string, LiftingDayData>>(new Map());
   
   const { toast } = useToast();
 
@@ -672,6 +703,148 @@ export default function AddProgram() {
       newValue: null,
       blockIndex: null,
       affectedCount: 0,
+    });
+  };
+
+  // Helper functions for Step 3 (Review)
+  const getLiftingDayKey = (weekIndex: number, dayIndex: number) => `w${weekIndex}-d${dayIndex}`;
+  
+  const getLiftingDayData = (weekIndex: number, dayIndex: number): LiftingDayData => {
+    const key = getLiftingDayKey(weekIndex, dayIndex);
+    return liftingData.get(key) || {
+      focus: "Non-specific",
+      emphasis: "Restorative",
+      preparatory: {
+        p1: { exercises: [] },
+        p2: { exercises: [] },
+        p3: { exercises: [] },
+        p4: { exercises: [] },
+      },
+    };
+  };
+  
+  const updateLiftingDayData = (weekIndex: number, dayIndex: number, data: Partial<LiftingDayData>) => {
+    const key = getLiftingDayKey(weekIndex, dayIndex);
+    const existing = getLiftingDayData(weekIndex, dayIndex);
+    setLiftingData(prev => {
+      const newMap = new Map(prev);
+      newMap.set(key, { ...existing, ...data });
+      return newMap;
+    });
+  };
+  
+  const shuffleExercise = (weekIndex: number, dayIndex: number, section: keyof LiftingDayData['preparatory'], exerciseIndex: number) => {
+    // Mock shuffle - in real app, this would fetch a new exercise from API
+    const mockExercises = [
+      { targetBodyGroup: "Upper Body [Pressing]", name: "Bench Press" },
+      { targetBodyGroup: "Upper Body [Pulling]", name: "Pull-ups" },
+      { targetBodyGroup: "Lower Body [Quad]", name: "Back Squat" },
+      { targetBodyGroup: "Core", name: "Plank" },
+    ];
+    
+    const randomExercise = mockExercises[Math.floor(Math.random() * mockExercises.length)];
+    const key = getLiftingDayKey(weekIndex, dayIndex);
+    const dayData = getLiftingDayData(weekIndex, dayIndex);
+    const cell = dayData.preparatory[section];
+    
+    if (cell.exercises[exerciseIndex]) {
+      const updatedExercises = [...cell.exercises];
+      updatedExercises[exerciseIndex] = {
+        ...updatedExercises[exerciseIndex],
+        targetBodyGroup: randomExercise.targetBodyGroup,
+        name: randomExercise.name,
+      };
+      
+      setLiftingData(prev => {
+        const newMap = new Map(prev);
+        newMap.set(key, {
+          ...dayData,
+          preparatory: {
+            ...dayData.preparatory,
+            [section]: { exercises: updatedExercises },
+          },
+        });
+        return newMap;
+      });
+    }
+  };
+  
+  const removeExercise = (weekIndex: number, dayIndex: number, section: keyof LiftingDayData['preparatory'], exerciseIndex: number) => {
+    const key = getLiftingDayKey(weekIndex, dayIndex);
+    const dayData = getLiftingDayData(weekIndex, dayIndex);
+    const updatedExercises = dayData.preparatory[section].exercises.filter((_, idx) => idx !== exerciseIndex);
+    
+    setLiftingData(prev => {
+      const newMap = new Map(prev);
+      newMap.set(key, {
+        ...dayData,
+        preparatory: {
+          ...dayData.preparatory,
+          [section]: { exercises: updatedExercises },
+        },
+      });
+      return newMap;
+    });
+  };
+  
+  const clearCell = (weekIndex: number, dayIndex: number, section: keyof LiftingDayData['preparatory']) => {
+    const key = getLiftingDayKey(weekIndex, dayIndex);
+    const dayData = getLiftingDayData(weekIndex, dayIndex);
+    
+    setLiftingData(prev => {
+      const newMap = new Map(prev);
+      newMap.set(key, {
+        ...dayData,
+        preparatory: {
+          ...dayData.preparatory,
+          [section]: { exercises: [] },
+        },
+      });
+      return newMap;
+    });
+  };
+  
+  // Initialize sample exercises for demo
+  const initializeSampleExercises = (weekIndex: number, dayIndex: number) => {
+    const key = getLiftingDayKey(weekIndex, dayIndex);
+    if (liftingData.has(key)) return; // Already initialized
+    
+    const sampleExercises: Exercise[] = [
+      {
+        id: `ex1-${key}`,
+        targetBodyGroup: "Upper Body [Pressing]",
+        name: "Barbell Bench Press",
+        sets: 4,
+        reps: 8,
+        restTime: "2:00",
+        weight: "185 lbs",
+        tempo: "3-0-1-0",
+      },
+      {
+        id: `ex2-${key}`,
+        targetBodyGroup: "Upper Body [Pulling]",
+        name: "Barbell Row",
+        sets: 4,
+        reps: 10,
+        restTime: "90s",
+        weight: "155 lbs",
+        tempo: "2-0-1-0",
+      },
+    ];
+    
+    setLiftingData(prev => {
+      const newMap = new Map(prev);
+      newMap.set(key, {
+        focus: "Non-specific",
+        emphasis: "Restorative",
+        preparatory: {
+          p1: { exercises: sampleExercises },
+          p2: { exercises: [] },
+          p3: { exercises: [] },
+          p4: { exercises: [] },
+        },
+      });
+      return newMap;
     });
   };
 
@@ -1995,13 +2168,278 @@ export default function AddProgram() {
 
             {/* Step 3: Review & Publish */}
             {currentStep === 3 && (
-              <div className="mx-auto">
-                <div className="rounded-lg border-2 border-dashed border-border p-12 text-center">
-                  <h3 className="text-lg font-semibold mb-2">Review & publish</h3>
-                  <p className="text-muted-foreground">
-                    Review your program details and publish when ready.
-                  </p>
-            </div>
+              <div className="w-full">
+                {/* Routine Tab Menu */}
+                <div className="sticky top-16 z-40 border-b bg-background">
+                  <div className="flex items-center justify-between px-5 h-14">
+                    <div className="flex items-center gap-2">
+                      {routineTypes.map((routineType) => {
+                        const routine = routineTypeOptions.find(r => r.id === routineType);
+                        if (!routine) return null;
+                        
+                        const isActive = reviewRoutineTab === routineType;
+                        return (
+                          <button
+                            key={routineType}
+                            type="button"
+                            onClick={() => setReviewRoutineTab(routineType)}
+                            className={cn(
+                              "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                              isActive 
+                                ? "bg-muted text-foreground" 
+                                : "text-muted-foreground hover:bg-muted/50"
+                            )}
+                          >
+                            {routine.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Week Navigation */}
+                    <div className="flex items-center gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setReviewWeekIndex(Math.max(0, reviewWeekIndex - 1))}
+                        disabled={reviewWeekIndex === 0}
+                        className="p-1.5 hover:bg-muted rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <span className="text-sm font-medium min-w-[80px] text-center">
+                        Week {reviewWeekIndex + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setReviewWeekIndex(Math.min(weeksCount - 1, reviewWeekIndex + 1))}
+                        disabled={reviewWeekIndex >= weeksCount - 1}
+                        className="p-1.5 hover:bg-muted rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lifting Routine Table */}
+                {reviewRoutineTab === "lifting" && (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[120px] sticky left-0 z-10 bg-background">Section</TableHead>
+                          {[1, 2, 3, 4, 5, 6, 7].map((dayNum) => {
+                            const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                            const isDayOff = calculatedDaysOff.has(dayNum === 7 ? 0 : dayNum);
+                            
+                            return (
+                              <TableHead key={dayNum} className="text-center min-w-[200px]">
+                                {isDayOff ? (
+                                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                                    <Moon className="h-4 w-4" />
+                                    <span>{dayNames[dayNum - 1]}</span>
+                                  </div>
+                                ) : (
+                                  dayNames[dayNum - 1]
+                                )}
+                              </TableHead>
+                            );
+                          })}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {/* Focus Row */}
+                        <TableRow>
+                          <TableCell className="font-medium sticky left-0 z-10 bg-background">Focus</TableCell>
+                          {[1, 2, 3, 4, 5, 6, 7].map((dayNum) => {
+                            const dayIndex = dayNum === 7 ? 0 : dayNum;
+                            const isDayOff = calculatedDaysOff.has(dayIndex);
+                            const dayData = getLiftingDayData(reviewWeekIndex, dayIndex);
+                            
+                            return (
+                              <TableCell key={dayNum} className="p-2">
+                                {!isDayOff && (
+                                  <Select
+                                    value={dayData.focus}
+                                    onValueChange={(value) => updateLiftingDayData(reviewWeekIndex, dayIndex, { focus: value })}
+                                  >
+                                    <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-orange-500/10 hover:bg-orange-500/20">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Non-specific">Non-specific</SelectItem>
+                                      <SelectItem value="Quad">Quad</SelectItem>
+                                      <SelectItem value="Hamstring">Hamstring</SelectItem>
+                                      <SelectItem value="Glute">Glute</SelectItem>
+                                      <SelectItem value="Upper Push">Upper Push</SelectItem>
+                                      <SelectItem value="Upper Pull">Upper Pull</SelectItem>
+                                      <SelectItem value="Core">Core</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+
+                        {/* Emphasis Row */}
+                        <TableRow>
+                          <TableCell className="font-medium sticky left-0 z-10 bg-background">Emphasis</TableCell>
+                          {[1, 2, 3, 4, 5, 6, 7].map((dayNum) => {
+                            const dayIndex = dayNum === 7 ? 0 : dayNum;
+                            const isDayOff = calculatedDaysOff.has(dayIndex);
+                            const dayData = getLiftingDayData(reviewWeekIndex, dayIndex);
+                            
+                            return (
+                              <TableCell key={dayNum} className="p-2">
+                                {!isDayOff && (
+                                  <Select
+                                    value={dayData.emphasis}
+                                    onValueChange={(value) => updateLiftingDayData(reviewWeekIndex, dayIndex, { emphasis: value })}
+                                  >
+                                    <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-orange-500/10 hover:bg-orange-500/20">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Minimal">Minimal</SelectItem>
+                                      <SelectItem value="Hybrid">Hybrid</SelectItem>
+                                      <SelectItem value="Restorative">Restorative</SelectItem>
+                                      <SelectItem value="Functional">Functional</SelectItem>
+                                      <SelectItem value="Strength">Strength</SelectItem>
+                                      <SelectItem value="Power">Power</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+
+                        {/* Section Header: Preparatory */}
+                        <TableRow>
+                          <TableCell colSpan={8} className="bg-orange-500/5 font-semibold text-sm py-3">
+                            Section: Preparatory (P)
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Preparatory Subsections: P1, P2, P3, P4 */}
+                        {(["p1", "p2", "p3", "p4"] as const).map((section, sectionIndex) => (
+                          <TableRow key={section}>
+                            <TableCell className="font-medium sticky left-0 z-10 bg-background">
+                              Preparatory (P{sectionIndex + 1})
+                            </TableCell>
+                            {[1, 2, 3, 4, 5, 6, 7].map((dayNum) => {
+                              const dayIndex = dayNum === 7 ? 0 : dayNum;
+                              const isDayOff = calculatedDaysOff.has(dayIndex);
+                              
+                              // Initialize sample data for training days on first render
+                              if (!isDayOff && section === "p1") {
+                                initializeSampleExercises(reviewWeekIndex, dayIndex);
+                              }
+                              
+                              const dayData = getLiftingDayData(reviewWeekIndex, dayIndex);
+                              const cell = dayData.preparatory[section];
+                              
+                              return (
+                                <TableCell key={dayNum} className="p-2 align-top">
+                                  {!isDayOff && (
+                                    <div className="space-y-3 bg-orange-500/5 p-3 rounded-md min-h-[120px]">
+                                      {cell.exercises.length === 0 ? (
+                                        <div className="text-xs text-muted-foreground text-center py-4">
+                                          Empty
+                                        </div>
+                                      ) : (
+                                        cell.exercises.slice(0, 2).map((exercise, exerciseIndex) => (
+                                          <div key={exercise.id || exerciseIndex} className="space-y-1.5 p-2 bg-background rounded border">
+                                            <div className="flex items-start justify-between gap-2">
+                                              <div className="flex-1 min-w-0">
+                                                <div className="text-xs font-medium text-orange-600 mb-0.5">
+                                                  {exercise.targetBodyGroup}
+                                                </div>
+                                                <div className="text-xs font-semibold truncate">
+                                                  {exercise.name}
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center gap-1">
+                                                <TooltipProvider>
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => shuffleExercise(reviewWeekIndex, dayIndex, section, exerciseIndex)}
+                                                        className="p-1 hover:bg-muted rounded"
+                                                      >
+                                                        <Shuffle className="h-3 w-3" />
+                                                      </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>Change exercise</TooltipContent>
+                                                  </Tooltip>
+                                                </TooltipProvider>
+                                                <TooltipProvider>
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => removeExercise(reviewWeekIndex, dayIndex, section, exerciseIndex)}
+                                                        className="p-1 hover:bg-destructive/10 rounded text-destructive"
+                                                      >
+                                                        <Trash2 className="h-3 w-3" />
+                                                      </button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>Remove exercise</TooltipContent>
+                                                  </Tooltip>
+                                                </TooltipProvider>
+                                              </div>
+                                            </div>
+                                            <div className="grid grid-cols-5 gap-1 text-[10px] text-muted-foreground">
+                                              <div>
+                                                <span className="font-medium">{exercise.sets}</span> sets
+                                              </div>
+                                              <div>
+                                                <span className="font-medium">{exercise.reps}</span> reps
+                                              </div>
+                                              <div>
+                                                <span className="font-medium">{exercise.restTime}</span>
+                                              </div>
+                                              {exercise.weight && (
+                                                <div>
+                                                  <span className="font-medium">{exercise.weight}</span>
+                                                </div>
+                                              )}
+                                              <div>
+                                                <span className="font-medium">{exercise.tempo}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))
+                                      )}
+                                      {cell.exercises.length > 0 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => clearCell(reviewWeekIndex, dayIndex, section)}
+                                          className="w-full text-xs text-muted-foreground hover:text-foreground py-1"
+                                        >
+                                          Clear cell
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Placeholder for other routine tabs */}
+                {reviewRoutineTab !== "lifting" && (
+                  <div className="p-12 text-center text-muted-foreground">
+                    {routineTypeOptions.find(r => r.id === reviewRoutineTab)?.label} routine view coming soon
+                  </div>
+                )}
               </div>
             )}
           </form>
