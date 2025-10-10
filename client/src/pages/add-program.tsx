@@ -397,18 +397,27 @@ export default function AddProgram() {
                     <CardTitle>Date Range Calendar</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="startDate"
-                      render={({ field }) => (
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          className="rounded-md border"
-                          data-testid="calendar-main"
-                        />
-                      )}
+                    <Calendar
+                      mode="range"
+                      selected={
+                        startDate && endDate
+                          ? { from: startDate, to: endDate }
+                          : startDate
+                          ? { from: startDate, to: startDate }
+                          : undefined
+                      }
+                      onSelect={(range) => {
+                        if (range?.from) {
+                          form.setValue("startDate", range.from);
+                        }
+                        if (range?.to) {
+                          form.setValue("endDate", range.to);
+                        } else if (range?.from && !range?.to) {
+                          form.setValue("endDate", range.from);
+                        }
+                      }}
+                      className="rounded-md border"
+                      data-testid="calendar-main"
                     />
 
                     {(startDate || endDate) && (
