@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, CalendarIcon } from "lucide-react";
+import { ArrowLeft, CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Form,
   FormControl,
@@ -73,6 +73,7 @@ type ProgramFormValues = z.infer<typeof programFormSchema>;
 export default function AddProgram() {
   const [, setLocation] = useLocation();
   const [athleteComboboxOpen, setAthleteComboboxOpen] = useState(false);
+  const [routineTypesOpen, setRoutineTypesOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<ProgramFormValues>({
@@ -231,50 +232,97 @@ export default function AddProgram() {
                 <FormField
                   control={form.control}
                   name="routineTypes"
-                  render={() => (
-                    <FormItem>
-                      <div className="mb-4">
-                        <FormLabel className="text-base">Routine Type</FormLabel>
-                      </div>
-                      <div className="space-y-3">
-                        {routineTypeOptions.map((option) => (
-                          <FormField
-                            key={option.id}
-                            control={form.control}
-                            name="routineTypes"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={option.id}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(option.id)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([
-                                              ...field.value,
-                                              option.id,
-                                            ])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== option.id
-                                              )
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Routine Type</FormLabel>
+                      <Popover open={routineTypesOpen} onOpenChange={setRoutineTypesOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between min-h-9 h-auto",
+                                field.value.length === 0 && "text-muted-foreground"
+                              )}
+                              data-testid="button-routine-types-select"
+                            >
+                              <div className="flex flex-wrap gap-1">
+                                {field.value.length > 0 ? (
+                                  field.value.map((typeId) => {
+                                    const option = routineTypeOptions.find(
+                                      (o) => o.id === typeId
+                                    );
+                                    return (
+                                      <Badge
+                                        key={typeId}
+                                        variant="secondary"
+                                        className="mr-1"
+                                        data-testid={`badge-selected-${typeId}`}
+                                      >
+                                        {option?.label}
+                                        <span
+                                          className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            field.onChange(
+                                              field.value.filter((val) => val !== typeId)
                                             );
-                                      }}
-                                      data-testid={`checkbox-routine-${option.id}`}
+                                          }}
+                                          data-testid={`button-remove-${typeId}`}
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </span>
+                                      </Badge>
+                                    );
+                                  })
+                                ) : (
+                                  <span>Select routine types...</span>
+                                )}
+                              </div>
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <Command>
+                            <CommandInput
+                              placeholder="Search routine types..."
+                              data-testid="input-routine-search"
+                            />
+                            <CommandList>
+                              <CommandEmpty>No routine type found.</CommandEmpty>
+                              <CommandGroup>
+                                {routineTypeOptions.map((option) => (
+                                  <CommandItem
+                                    key={option.id}
+                                    value={option.label}
+                                    onSelect={() => {
+                                      const isSelected = field.value.includes(option.id);
+                                      field.onChange(
+                                        isSelected
+                                          ? field.value.filter((val) => val !== option.id)
+                                          : [...field.value, option.id]
+                                      );
+                                    }}
+                                    data-testid={`option-routine-${option.id}`}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        field.value.includes(option.id)
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
                                     />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">
                                     {option.label}
-                                  </FormLabel>
-                                </FormItem>
-                              );
-                            }}
-                          />
-                        ))}
-                      </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
