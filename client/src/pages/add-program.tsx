@@ -139,28 +139,48 @@ export default function AddProgram() {
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="flex h-16 items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => setLocation("/")}
-              data-testid="button-back"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-            <h1
-              className="text-2xl font-semibold text-foreground"
-              data-testid="text-page-title"
-            >
-              Add New Program
-            </h1>
+          <div className="flex h-16 items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                onClick={() => setLocation("/")}
+                data-testid="button-back"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+              <h1
+                className="text-2xl font-semibold text-foreground"
+                data-testid="text-page-title"
+              >
+                Add New Program
+              </h1>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setLocation("/")}
+                data-testid="button-cancel"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="program-form"
+                disabled={createProgramMutation.isPending}
+                data-testid="button-submit"
+              >
+                {createProgramMutation.isPending ? "Creating..." : "Create Program"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
       <main className="mx-auto max-w-7xl px-6 py-8 lg:px-8 lg:py-12">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+          <form id="program-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
             <div className="grid gap-8 lg:grid-cols-2">
               <div className="space-y-6">
                 <FormField
@@ -241,6 +261,7 @@ export default function AddProgram() {
                             <Button
                               variant="outline"
                               role="combobox"
+                              aria-expanded={routineTypesOpen}
                               className={cn(
                                 "w-full justify-between min-h-9 h-auto",
                                 field.value.length === 0 && "text-muted-foreground"
@@ -261,18 +282,30 @@ export default function AddProgram() {
                                         data-testid={`badge-selected-${typeId}`}
                                       >
                                         {option?.label}
-                                        <span
-                                          className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer"
+                                        <button
+                                          type="button"
+                                          className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                           onClick={(e) => {
+                                            e.preventDefault();
                                             e.stopPropagation();
                                             field.onChange(
                                               field.value.filter((val) => val !== typeId)
                                             );
                                           }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              field.onChange(
+                                                field.value.filter((val) => val !== typeId)
+                                              );
+                                            }
+                                          }}
+                                          aria-label={`Remove ${option?.label}`}
                                           data-testid={`button-remove-${typeId}`}
                                         >
                                           <X className="h-3 w-3" />
-                                        </span>
+                                        </button>
                                       </Badge>
                                     );
                                   })
@@ -416,26 +449,6 @@ export default function AddProgram() {
                       </FormItem>
                     )}
                   />
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setLocation("/")}
-                    className="flex-1"
-                    data-testid="button-cancel"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1"
-                    disabled={createProgramMutation.isPending}
-                    data-testid="button-submit"
-                  >
-                    {createProgramMutation.isPending ? "Creating..." : "Create Program"}
-                  </Button>
                 </div>
               </div>
 
