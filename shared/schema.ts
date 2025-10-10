@@ -24,10 +24,12 @@ export interface Athlete {
 
 export interface Program {
   id: string;
+  programId: string;
   athleteId: string;
   athleteName: string;
   startDate: string;
   endDate: string;
+  routineTypes: string[];
 }
 
-export type InsertProgram = Omit<Program, "id">;
+export type InsertProgram = Omit<Program, "id" | "programId">;
