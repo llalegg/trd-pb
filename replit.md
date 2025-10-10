@@ -33,6 +33,7 @@ Preferred communication style: Simple, everyday language.
 **Design System:**
 - Fully black theme in both light and dark modes (all backgrounds set to pure black #000000)
 - High-contrast light foregrounds for readability on black backgrounds
+- Primary (accent) color: White (#FFFFFF) with black text for contrast
 - All buttons default to small ("sm") size
 - Custom color tokens defined in CSS variables
 - Consistent spacing using Tailwind's scale (2, 4, 6, 8 units)
