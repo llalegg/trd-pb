@@ -30,6 +30,7 @@ export interface Program {
   startDate: string;
   endDate: string;
   routineTypes: string[];
+  blockDuration: number;
 }
 
 export type InsertProgram = Omit<Program, "id" | "programId">;

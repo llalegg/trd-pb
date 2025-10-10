@@ -6,6 +6,7 @@ import { z } from "zod";
 const insertProgramSchema = z.object({
   athleteId: z.string(),
   athleteName: z.string(),
+  blockDuration: z.number(),
   startDate: z.string(),
   endDate: z.string(),
   routineTypes: z.array(z.string()),

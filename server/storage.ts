@@ -38,6 +38,7 @@ export class MemStorage implements IStorage {
         startDate: "2025-01-15",
         endDate: "2025-03-15",
         routineTypes: ["movement", "throwing"],
+        blockDuration: 8,
       },
       {
         id: "2",
@@ -47,6 +48,7 @@ export class MemStorage implements IStorage {
         startDate: "2025-02-01",
         endDate: "2025-04-30",
         routineTypes: ["lifting", "nutrition"],
+        blockDuration: 12,
       },
       {
         id: "3",
@@ -56,6 +58,7 @@ export class MemStorage implements IStorage {
         startDate: "2025-01-20",
         endDate: "2025-03-20",
         routineTypes: ["movement", "throwing", "lifting", "nutrition"],
+        blockDuration: 8,
       },
       {
         id: "4",
@@ -65,6 +68,7 @@ export class MemStorage implements IStorage {
         startDate: "2025-02-15",
         endDate: "2025-05-15",
         routineTypes: ["throwing", "lifting"],
+        blockDuration: 12,
       },
     ];
     
