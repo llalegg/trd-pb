@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { CalendarIcon, X, ChevronDown, ChevronRight, ChevronLeft, EyeOff, Lock, Shuffle, Trash2, Moon } from "lucide-react";
+import { CalendarIcon, X, ChevronDown, ChevronRight, ChevronLeft, EyeOff, Lock, Shuffle, Trash2, Moon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
@@ -798,6 +798,47 @@ export default function AddProgram() {
         preparatory: {
           ...dayData.preparatory,
           [section]: { exercises: [] },
+        },
+      });
+      return newMap;
+    });
+  };
+  
+  const addExercises = (weekIndex: number, dayIndex: number, section: keyof LiftingDayData['preparatory']) => {
+    const key = getLiftingDayKey(weekIndex, dayIndex);
+    const dayData = getLiftingDayData(weekIndex, dayIndex);
+    
+    // Generate sample exercises
+    const newExercises: Exercise[] = [
+      {
+        id: `ex1-${key}-${section}`,
+        targetBodyGroup: "Upper Body [Pressing]",
+        name: "Barbell Bench Press",
+        sets: 4,
+        reps: 8,
+        restTime: "2:00",
+        weight: "185 lbs",
+        tempo: "3-0-1-0",
+      },
+      {
+        id: `ex2-${key}-${section}`,
+        targetBodyGroup: "Upper Body [Pulling]",
+        name: "Barbell Row",
+        sets: 4,
+        reps: 10,
+        restTime: "90s",
+        weight: "155 lbs",
+        tempo: "2-0-1-0",
+      },
+    ];
+    
+    setLiftingData(prev => {
+      const newMap = new Map(prev);
+      newMap.set(key, {
+        ...dayData,
+        preparatory: {
+          ...dayData.preparatory,
+          [section]: { exercises: newExercises },
         },
       });
       return newMap;
@@ -2345,8 +2386,21 @@ export default function AddProgram() {
                                   {!isDayOff && (
                                     <div className="space-y-3 bg-orange-500/5 p-3 rounded-md min-h-[120px]">
                                       {cell.exercises.length === 0 ? (
-                                        <div className="text-xs text-muted-foreground text-center py-4">
-                                          Empty
+                                        <div className="flex items-center justify-center py-8">
+                                          <TooltipProvider>
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => addExercises(reviewWeekIndex, dayIndex, section)}
+                                                  className="p-3 hover:bg-orange-500/20 rounded-full transition-colors"
+                                                >
+                                                  <Plus className="h-5 w-5 text-orange-600" />
+                                                </button>
+                                              </TooltipTrigger>
+                                              <TooltipContent>Add exercises</TooltipContent>
+                                            </Tooltip>
+                                          </TooltipProvider>
                                         </div>
                                       ) : (
                                         cell.exercises.slice(0, 2).map((exercise, exerciseIndex) => (
