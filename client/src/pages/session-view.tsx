@@ -71,12 +71,6 @@ const routineTypeIcons = {
   lifting: Dumbbell,
 };
 
-const routineTypeColors = {
-  throwing: "bg-blue-500",
-  movement: "bg-green-500",
-  lifting: "bg-orange-500",
-};
-
 const routineTypeOrder = ["throwing", "movement", "lifting"];
 
 export default function SessionView() {
@@ -171,7 +165,6 @@ export default function SessionView() {
       <div className="px-4 pb-4 space-y-4">
         {sortedRoutines.map((routine) => {
           const IconComponent = routineTypeIcons[routine.type as keyof typeof routineTypeIcons];
-          const colorClass = routineTypeColors[routine.type as keyof typeof routineTypeColors];
           const isCompleted = routine.status === "completed";
           
           return (
@@ -187,11 +180,10 @@ export default function SessionView() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className={cn(
-                      "w-12 h-12 rounded-lg flex items-center justify-center",
-                      colorClass,
+                      "w-12 h-12 rounded-lg bg-muted flex items-center justify-center",
                       isCompleted && "opacity-60"
                     )}>
-                      <IconComponent className="h-6 w-6 text-white" />
+                      <IconComponent className="h-6 w-6 text-muted-foreground" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">{routine.name}</h3>

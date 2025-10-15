@@ -201,12 +201,6 @@ const routineTypeIcons = {
   lifting: Dumbbell,
 };
 
-const routineTypeColors = {
-  throwing: "bg-blue-500",
-  movement: "bg-green-500",
-  lifting: "bg-orange-500",
-};
-
 export default function ExecutionView() {
   const [, setLocation] = useLocation();
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(2); // Start at exercise 3 (in-progress)

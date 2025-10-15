@@ -29,11 +29,6 @@ const routineTypeIcons = {
   lifting: Dumbbell,
 };
 
-const routineTypeColors = {
-  throwing: "bg-blue-500",
-  movement: "bg-green-500",
-  lifting: "bg-orange-500",
-};
 
 export default function ExerciseDetailsSheet({ exercise, onClose }: ExerciseDetailsSheetProps) {
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(true);

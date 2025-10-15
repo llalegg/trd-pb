@@ -8,51 +8,14 @@ import MobileTabBar from "@/components/MobileTabBar";
 import { cn } from "@/lib/utils";
 import { format, addDays, startOfWeek, endOfWeek, isToday, isSameDay } from "date-fns";
 
-// Mock data for week view
+// Mock data for week view - Week starts Monday, ends Sunday
 const mockWeekSchedule = {
   "1-1": { // Block 1, Week 1
     blockId: 1,
     weekNumber: 1,
-    startDate: "2025-01-15",
-    endDate: "2025-01-21",
+    startDate: "2025-01-20",
+    endDate: "2025-01-26",
     days: [
-      {
-        date: "2025-01-15",
-        dayOfWeek: "Wednesday",
-        isRestDay: false,
-        routines: [
-          { type: "throwing", name: "Throwing session", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" },
-          { type: "movement", name: "Movement prep", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-16",
-        dayOfWeek: "Thursday",
-        isRestDay: false,
-        routines: [
-          { type: "lifting", name: "Upper body strength", exerciseCount: 8, estimatedTime: "60 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-17",
-        dayOfWeek: "Friday",
-        isRestDay: true,
-        routines: []
-      },
-      {
-        date: "2025-01-18",
-        dayOfWeek: "Saturday",
-        isRestDay: false,
-        routines: [
-          { type: "throwing", name: "Bullpen session", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-19",
-        dayOfWeek: "Sunday",
-        isRestDay: true,
-        routines: []
-      },
       {
         date: "2025-01-20",
         dayOfWeek: "Monday",
@@ -68,6 +31,43 @@ const mockWeekSchedule = {
         routines: [
           { type: "lifting", name: "Lower body strength", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" }
         ]
+      },
+      {
+        date: "2025-01-22",
+        dayOfWeek: "Wednesday",
+        isRestDay: false,
+        routines: [
+          { type: "throwing", name: "Throwing session", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" },
+          { type: "movement", name: "Movement prep", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-01-23",
+        dayOfWeek: "Thursday",
+        isRestDay: false,
+        routines: [
+          { type: "lifting", name: "Upper body strength", exerciseCount: 8, estimatedTime: "60 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-01-24",
+        dayOfWeek: "Friday",
+        isRestDay: true,
+        routines: []
+      },
+      {
+        date: "2025-01-25",
+        dayOfWeek: "Saturday",
+        isRestDay: false,
+        routines: [
+          { type: "throwing", name: "Bullpen session", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-01-26",
+        dayOfWeek: "Sunday",
+        isRestDay: true,
+        routines: []
       }
     ]
   }
@@ -77,12 +77,6 @@ const routineTypeIcons = {
   throwing: "🎯",
   movement: "⚡",
   lifting: "🏋️",
-};
-
-const routineTypeColors = {
-  throwing: "bg-blue-500",
-  movement: "bg-green-500",
-  lifting: "bg-orange-500",
 };
 
 export default function WeekPage() {
@@ -151,17 +145,21 @@ export default function WeekPage() {
         <div className="flex gap-2 overflow-x-auto pb-2">
           {weekData.days.map((day) => {
             const isSelected = isSameDay(new Date(day.date), selectedDate);
-            const isTodayDate = isToday(new Date(day.date));
+            const isTodayDate = new Date(day.date).getDate() === 20; // Current day is 20
+            const isPastDay = new Date(day.date).getDate() < 20; // Previous days are disabled
+            const isDisabled = isPastDay;
             
             return (
               <Button
                 key={day.date}
                 variant={isSelected ? "default" : "outline"}
                 size="sm"
-                onClick={() => setSelectedDate(new Date(day.date))}
+                onClick={() => !isDisabled && setSelectedDate(new Date(day.date))}
+                disabled={isDisabled}
                 className={cn(
                   "flex-shrink-0 min-w-[80px] flex-col h-16 gap-1",
-                  isTodayDate && "ring-2 ring-primary/50"
+                  isTodayDate && "ring-2 ring-primary/50",
+                  isDisabled && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <span className="text-xs font-medium">{day.dayOfWeek.slice(0, 3)}</span>
@@ -217,8 +215,8 @@ export default function WeekPage() {
                     className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                   >
                     <div className="flex items-center gap-3">
-                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", routineTypeColors[routine.type as keyof typeof routineTypeColors])}>
-                        <span className="text-white text-sm">{routineTypeIcons[routine.type as keyof typeof routineTypeIcons]}</span>
+                      <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                        <span className="text-muted-foreground text-sm">{routineTypeIcons[routine.type as keyof typeof routineTypeIcons]}</span>
                       </div>
                       <div>
                         <h4 className="font-semibold text-sm">{routine.name}</h4>

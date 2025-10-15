@@ -83,11 +83,6 @@ const routineTypeIcons = {
   lifting: Dumbbell,
 };
 
-const routineTypeColors = {
-  throwing: "bg-blue-500",
-  movement: "bg-green-500",
-  lifting: "bg-orange-500",
-};
 
 export default function CalendarViewModal({ onClose, onDateSelect, selectedDate }: CalendarViewModalProps) {
   const [currentMonth, setCurrentMonth] = useState(selectedDate);
@@ -120,9 +115,8 @@ export default function CalendarViewModal({ onClose, onDateSelect, selectedDate 
 
   const getRoutineIcon = (routineType: string) => {
     const IconComponent = routineTypeIcons[routineType as keyof typeof routineTypeIcons];
-    const colorClass = routineTypeColors[routineType as keyof typeof routineTypeColors];
     return (
-      <div key={routineType} className={cn("w-2 h-2 rounded-full", colorClass)} />
+      <div key={routineType} className="w-2 h-2 rounded-full bg-muted" />
     );
   };
 
@@ -192,7 +186,7 @@ export default function CalendarViewModal({ onClose, onDateSelect, selectedDate 
                     "h-12 flex-col gap-1 p-1",
                     !isCurrentMonth && "text-muted-foreground/50",
                     isSelected && "bg-primary text-primary-foreground",
-                    dayData.isComplete && "bg-green-500/20",
+                    dayData.isComplete && "bg-muted/20",
                     dayData.isRestDay && !isSelected && "bg-muted"
                   )}
                 >
@@ -213,7 +207,7 @@ export default function CalendarViewModal({ onClose, onDateSelect, selectedDate 
                   
                   {/* Completion Indicator */}
                   {dayData.isComplete && (
-                    <div className="w-1 h-1 rounded-full bg-green-500" />
+                      <div className="w-1 h-1 rounded-full bg-muted" />
                   )}
                 </Button>
               );
@@ -225,15 +219,15 @@ export default function CalendarViewModal({ onClose, onDateSelect, selectedDate 
             <h4 className="font-semibold text-sm">Legend</h4>
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                <div className="w-3 h-3 rounded-full bg-muted" />
                 <span>Throwing</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <div className="w-3 h-3 rounded-full bg-muted" />
                 <span>Movement</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-orange-500" />
+                <div className="w-3 h-3 rounded-full bg-muted" />
                 <span>Lifting</span>
               </div>
               <div className="flex items-center gap-2">
@@ -241,7 +235,7 @@ export default function CalendarViewModal({ onClose, onDateSelect, selectedDate 
                 <span>Rest Day</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500/20" />
+                <div className="w-3 h-3 rounded-full bg-muted/20" />
                 <span>Completed Day</span>
               </div>
             </div>

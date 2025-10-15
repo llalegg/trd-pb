@@ -83,12 +83,6 @@ const routineTypeIcons = {
   lifting: Dumbbell,
 };
 
-const routineTypeColors = {
-  throwing: "bg-blue-500",
-  movement: "bg-green-500", 
-  lifting: "bg-orange-500",
-};
-
 export default function AthleteView() {
   const [, setLocation] = useLocation();
   const [selectedDate, setSelectedDate] = useState(new Date("2025-01-20"));
@@ -108,9 +102,9 @@ export default function AthleteView() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "complete":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-muted-foreground" />;
       case "in-progress":
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
       default:
         return <Play className="h-4 w-4 text-muted-foreground" />;
     }
@@ -136,17 +130,21 @@ export default function AthleteView() {
         <div className="flex gap-2 overflow-x-auto pb-2">
           {currentWeekSchedule.map((day) => {
             const isSelected = isSameDay(day.dateObj, selectedDate);
-            const isTodayDate = isToday(day.dateObj);
+            const isTodayDate = day.dateObj.getDate() === 20; // Current day is 20
+            const isPastDay = day.dateObj.getDate() < 20; // Previous days are disabled
+            const isDisabled = isPastDay;
             
             return (
               <Button
                 key={day.date}
                 variant={isSelected ? "default" : "outline"}
                 size="sm"
-                onClick={() => setSelectedDate(day.dateObj)}
+                onClick={() => !isDisabled && setSelectedDate(day.dateObj)}
+                disabled={isDisabled}
                 className={cn(
                   "flex-shrink-0 min-w-[80px] flex-col h-16 gap-1",
-                  isTodayDate && "ring-2 ring-primary/50"
+                  isTodayDate && "ring-2 ring-primary/50",
+                  isDisabled && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <span className="text-xs font-medium">{day.dayOfWeek.slice(0, 3)}</span>
@@ -198,7 +196,6 @@ export default function AthleteView() {
               <div className="space-y-3">
                 {selectedDaySchedule?.routines.map((routine) => {
                   const IconComponent = routineTypeIcons[routine.type as keyof typeof routineTypeIcons];
-                  const colorClass = routineTypeColors[routine.type as keyof typeof routineTypeColors];
                   
                   return (
                     <div 
@@ -206,8 +203,8 @@ export default function AthleteView() {
                       className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", colorClass)}>
-                          <IconComponent className="h-4 w-4 text-white" />
+                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                          <IconComponent className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
                           <h4 className="font-semibold text-sm">{routine.name}</h4>
