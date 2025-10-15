@@ -84,10 +84,9 @@ const routineTypeOptions = [
   { id: "movement", label: "Movement" },
   { id: "throwing", label: "Throwing" },
   { id: "lifting", label: "Lifting" },
-  { id: "nutrition", label: "Nutrition" },
 ];
 
-const blockDurationOptions = [2, 4, 6, 8] as const;
+const DEFAULT_BLOCK_DURATION = 4;
 
 const programFormSchema = z.object({
   athleteId: z.string().min(1, "Please select an athlete"),
@@ -97,10 +96,7 @@ const programFormSchema = z.object({
   endDate: z.date({
     required_error: "Please select an end date",
   }),
-  blockDuration: z.coerce.number().int().refine(
-    (val) => blockDurationOptions.includes(val as typeof blockDurationOptions[number]),
-    "Please select a valid block duration"
-  ),
+  blockDuration: z.coerce.number().int().default(DEFAULT_BLOCK_DURATION),
   routineTypes: z.array(z.string()).min(1, "Please select at least one routine type"),
 });
 
@@ -129,6 +125,9 @@ type RoutineSettings = {
     rate: string;
     macrosHigh: string;
     macrosRest: string;
+  };
+  "training-split": {
+    type: string;
   };
 };
 
@@ -196,6 +195,9 @@ export default function AddProgram() {
   // Block training splits state
   const [blockTrainingSplits, setBlockTrainingSplits] = useState<Map<number, string>>(new Map());
   
+  // Block durations state
+  const [blockDurations, setBlockDurations] = useState<Map<number, number>>(new Map());
+  
   // Routine settings state - stores settings at block level by default
   const [blockSettings, setBlockSettings] = useState<Map<number, Partial<RoutineSettings>>>(new Map());
   
@@ -230,10 +232,10 @@ export default function AddProgram() {
     resolver: zodResolver(programFormSchema),
     defaultValues: {
       athleteId: "",
-      blockDuration: 0,
+      blockDuration: DEFAULT_BLOCK_DURATION,
       startDate: new Date(),
       endDate: undefined,
-      routineTypes: ["movement", "throwing", "lifting", "nutrition"],
+      routineTypes: ["movement", "throwing", "lifting"],
     },
   });
 
@@ -324,6 +326,21 @@ export default function AddProgram() {
 
     return generatedBlocks;
   }, [startDate, endDate, blockDuration]);
+
+  // Function to recalculate blocks when duration changes
+  const recalculateBlocks = (changedBlockIndex: number, newDuration: number) => {
+    if (!startDate || !endDate) return;
+    
+    // Update the duration for the changed block
+    setBlockDurations(prev => {
+      const newMap = new Map(prev);
+      newMap.set(changedBlockIndex, newDuration);
+      return newMap;
+    });
+    
+    // Note: The actual block recalculation will happen in the next render
+    // when the blocks useMemo runs with the updated blockDurations
+  };
 
   // Check if step 1 is complete (all required fields filled)
   const isStep1Complete = useMemo(() => {
@@ -1401,37 +1418,6 @@ export default function AddProgram() {
                 </div>
               </div>
 
-              <FormField
-                control={form.control}
-                name="blockDuration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Block duration</FormLabel>
-                    <Select 
-                      onValueChange={(value) => field.onChange(parseInt(value))} 
-                      value={field.value?.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger data-testid="select-block-duration">
-                          <SelectValue placeholder="Select block duration..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {blockDurationOptions.map((weeks) => (
-                          <SelectItem 
-                            key={weeks} 
-                            value={weeks.toString()} 
-                            data-testid={`option-block-duration-${weeks}`}
-                          >
-                            {weeks} weeks
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {blocks.length > 0 && (
                 <div className="space-y-4">
@@ -1442,8 +1428,8 @@ export default function AddProgram() {
                         <TableRow>
                           <TableHead>Block</TableHead>
                           <TableHead>Date range</TableHead>
+                          <TableHead>Duration (weeks)</TableHead>
                           <TableHead>Phase</TableHead>
-                          <TableHead>Training split</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1454,6 +1440,30 @@ export default function AddProgram() {
                             </TableCell>
                             <TableCell data-testid={`block-dates-${index + 1}`}>
                               {format(block.startDate, "MM/dd/yy")} - {format(block.endDate, "MM/dd/yy")}
+                            </TableCell>
+                            <TableCell data-testid={`block-duration-${index + 1}`}>
+                              <Select 
+                                value={(blockDurations.get(index) || DEFAULT_BLOCK_DURATION).toString()}
+                                onValueChange={(value) => {
+                                  setBlockDurations(prev => {
+                                    const newMap = new Map(prev);
+                                    newMap.set(index, parseInt(value));
+                                    return newMap;
+                                  });
+                                  // Recalculate subsequent blocks with locked dates
+                                  recalculateBlocks(index, parseInt(value));
+                                }}
+                              >
+                                <SelectTrigger className="h-8 text-xs font-normal border-0 shadow-none focus:ring-0 focus:ring-offset-0">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="2">2 weeks</SelectItem>
+                                  <SelectItem value="4">4 weeks</SelectItem>
+                                  <SelectItem value="6">6 weeks</SelectItem>
+                                  <SelectItem value="8">8 weeks</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </TableCell>
                             <TableCell data-testid={`block-phase-${index + 1}`}>
                               <Select 
@@ -1477,27 +1487,6 @@ export default function AddProgram() {
                                   <SelectItem value="immediate-post-season">Immediate Post-Season</SelectItem>
                                   <SelectItem value="return-to-training">Return-to-Training</SelectItem>
                                   <SelectItem value="transition-phase">Transition Phase</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell data-testid={`block-training-split-${index + 1}`}>
-                              <Select 
-                                value={blockTrainingSplits.get(index) || "4-day"}
-                                onValueChange={(value) => {
-                                  setBlockTrainingSplits(prev => {
-                                    const newMap = new Map(prev);
-                                    newMap.set(index, value);
-                                    return newMap;
-                                  });
-                                }}
-                              >
-                                <SelectTrigger className="h-8 text-xs font-normal border-0 shadow-none focus:ring-0 focus:ring-offset-0">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="4-day">4-day split</SelectItem>
-                                  <SelectItem value="3-day">3-day split</SelectItem>
-                                  <SelectItem value="2-day">2-day split</SelectItem>
                                 </SelectContent>
                               </Select>
                             </TableCell>
@@ -1599,6 +1588,71 @@ export default function AddProgram() {
                           )}
                             </div>
                       </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Training Split Section */}
+                    <div className="flex min-w-max px-0 my-2 relative">
+                      {/* Category Label (Rotated) */}
+                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
+                        <div className="flex items-center justify-center h-20 w-10 border-r bg-purple-500/10">
+                          <div className="-rotate-90 whitespace-nowrap">
+                            <span className="text-xs font-medium text-purple-700">Training Split</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Row Header */}
+                      <div className="flex flex-col shrink-0 w-32 sticky left-10 z-20 bg-background">
+                        <div className="flex items-center justify-center h-20 border-r border-b">
+                          <span className="text-sm font-medium text-foreground">Split Type</span>
+                        </div>
+                      </div>
+
+                      {/* Training Split Content */}
+                      {displayColumns.map((column, columnIndex) => {
+                        const isDayOff = column.type === "day" && calculatedDaysOff.has((column as any).index);
+                        const blockIndex = column.type === "block" ? column.index : undefined;
+                        const weekIndex = column.type === "week" ? (column as any).weekIndex : undefined;
+                        const dayIndex = column.type === "day" ? (column as any).index : undefined;
+                        
+                        return (
+                          <div key={`training-split-${columnIndex}`} className="flex flex-col shrink-0 w-[236px] border-l mx-1">
+                            {/* Training Split Selection */}
+                            <div className={cn(
+                              "h-20 flex items-center border-b relative",
+                              isDayOff ? "bg-muted/30" : "hover:bg-muted/50"
+                            )}>
+                              {!isDayOff && (
+                                <>
+                                  <Select 
+                                    value={getCellValue("training-split", "type", blockIndex || 0, weekIndex || 0, dayIndex || 0) || "4-day"}
+                                    onValueChange={(value) => {
+                                      if (blockIndex !== undefined) {
+                                        handleValueChange("training-split", "type", value, blockIndex, weekIndex || 0, dayIndex || 0, "block");
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="2-day">2-day split</SelectItem>
+                                      <SelectItem value="3-day">3-day split</SelectItem>
+                                      <SelectItem value="4-day">4-day split</SelectItem>
+                                      <SelectItem value="5-day">5-day split</SelectItem>
+                                      <SelectItem value="6-day">6-day split</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {blockIndex !== undefined && hasOverrides("training-split", "type", blockIndex, "block") && (
+                                    <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-500" 
+                                         title="Customized at lower level" />
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -2039,169 +2093,6 @@ export default function AddProgram() {
                         </div>
                     )}
 
-                    {/* Nutrition Section */}
-                    {routineTypes.includes("nutrition") && (
-                    <div className="flex min-w-max px-0 my-2 relative">
-                      {/* Category Label (Rotated) */}
-                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
-                        <div className="flex items-center justify-center h-40 w-10 border-r bg-green-500/10">
-                          <div className="-rotate-90 whitespace-nowrap">
-                            <p className="text-sm font-medium text-foreground">Nutrition</p>
-                      </div>
-                        </div>
-                      </div>
-
-                      {/* Row Headers */}
-                      <div className="flex flex-col shrink-0 w-32 sticky left-10 z-20 bg-background border-r">
-                        <div className="h-10 flex items-center px-3 border-b">
-                          <p className="text-xs font-medium text-muted-foreground">Focus</p>
-                        </div>
-                        <div className="h-10 flex items-center px-3 border-b">
-                          <p className="text-xs font-medium text-muted-foreground">Rate (Weekly)</p>
-                        </div>
-                        <div className="h-10 flex items-center px-3 border-b">
-                          <p className="text-xs font-medium text-muted-foreground">Macros (High)</p>
-                        </div>
-                        <div className="h-10 flex items-center px-3">
-                          <p className="text-xs font-medium text-muted-foreground">Macros (Rest)</p>
-                        </div>
-                      </div>
-
-                      {/* Columns (Blocks/Weeks/Days) */}
-                      {displayColumns.map((column, columnIndex) => {
-                        const isDayOff = column.type === "day" && calculatedDaysOff.has(column.index);
-                        
-                        // Determine level and indices based on column type
-                        const level: SettingsLevel = column.type === "block" ? "block" : column.type === "week" ? "week" : "day";
-                        const blockIndex = column.type === "block" ? column.index : 
-                                          column.type === "week" ? column.blockIndex : 
-                                          columnIndex; // For day, we'll use columnIndex as blockIndex (simplified)
-                        const weekIndex = column.type === "week" ? column.weekIndex : 
-                                         column.type === "day" ? 0 : undefined; // Simplified for now
-                        const dayIndex = column.type === "day" ? column.index : undefined;
-                        
-                        return (
-                        <div key={`nutrition-${columnIndex}`} className="flex flex-col shrink-0 w-[236px] border-l mx-1">
-                          {/* Focus Dropdown */}
-                          <div className={cn(
-                            "h-10 flex items-center border-b relative",
-                            isDayOff ? "bg-muted/20" : "bg-green-500/10 hover:bg-green-500/20 transition-colors"
-                          )}>
-                            {!isDayOff && (
-                            <>
-                              <Select 
-                                value={getCellValue("nutrition", "focus", blockIndex, weekIndex, dayIndex) || "performance"}
-                                onValueChange={(value) => handleValueChange("nutrition", "focus", value, blockIndex, weekIndex, dayIndex, level)}
-                              >
-                                <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="performance">Performance</SelectItem>
-                                  <SelectItem value="recovery">Recovery</SelectItem>
-                                  <SelectItem value="body-comp">Body Composition</SelectItem>
-                                  <SelectItem value="health">Health</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {hasOverrides("nutrition", "focus", blockIndex, level) && (
-                                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-500" 
-                                     title="Customized at lower level" />
-                              )}
-                            </>
-                            )}
-              </div>
-
-                          {/* Rate (Weekly) Dropdown */}
-                          <div className={cn(
-                            "h-10 flex items-center border-b relative",
-                            isDayOff ? "bg-muted/20" : "bg-green-500/10 hover:bg-green-500/20 transition-colors"
-                          )}>
-                            {!isDayOff && (
-                            <>
-                              <Select 
-                                value={getCellValue("nutrition", "rate", blockIndex, weekIndex, dayIndex) || "moderate"}
-                                onValueChange={(value) => handleValueChange("nutrition", "rate", value, blockIndex, weekIndex, dayIndex, level)}
-                              >
-                                <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="slow">Slow</SelectItem>
-                                  <SelectItem value="moderate">Moderate</SelectItem>
-                                  <SelectItem value="fast">Fast</SelectItem>
-                                  <SelectItem value="aggressive">Aggressive</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {hasOverrides("nutrition", "rate", blockIndex, level) && (
-                                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-500" 
-                                     title="Customized at lower level" />
-                              )}
-                            </>
-                            )}
-            </div>
-
-                          {/* Macros (High) Dropdown */}
-                          <div className={cn(
-                            "h-10 flex items-center border-b relative",
-                            isDayOff ? "bg-muted/20" : "bg-green-500/10 hover:bg-green-500/20 transition-colors"
-                          )}>
-                            {!isDayOff && (
-                            <>
-                              <Select 
-                                value={getCellValue("nutrition", "macrosHigh", blockIndex, weekIndex, dayIndex) || "high-carb"}
-                                onValueChange={(value) => handleValueChange("nutrition", "macrosHigh", value, blockIndex, weekIndex, dayIndex, level)}
-                              >
-                                <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="high-carb">High Carb</SelectItem>
-                                  <SelectItem value="moderate-carb">Moderate Carb</SelectItem>
-                                  <SelectItem value="low-carb">Low Carb</SelectItem>
-                                  <SelectItem value="high-fat">High Fat</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {hasOverrides("nutrition", "macrosHigh", blockIndex, level) && (
-                                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-500" 
-                                     title="Customized at lower level" />
-                              )}
-                            </>
-                            )}
-                          </div>
-
-                          {/* Macros (Rest) Dropdown */}
-                          <div className={cn(
-                            "h-10 flex items-center relative",
-                            isDayOff ? "bg-muted/20" : "bg-green-500/10 hover:bg-green-500/20 transition-colors"
-                          )}>
-                            {!isDayOff && (
-                            <>
-                              <Select 
-                                value={getCellValue("nutrition", "macrosRest", blockIndex, weekIndex, dayIndex) || "low-carb"}
-                                onValueChange={(value) => handleValueChange("nutrition", "macrosRest", value, blockIndex, weekIndex, dayIndex, level)}
-                              >
-                                <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="low-carb">Low Carb</SelectItem>
-                                  <SelectItem value="moderate-carb">Moderate Carb</SelectItem>
-                                  <SelectItem value="high-fat">High Fat</SelectItem>
-                                  <SelectItem value="balanced">Balanced</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {hasOverrides("nutrition", "macrosRest", blockIndex, level) && (
-                                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-500" 
-                                     title="Customized at lower level" />
-                              )}
-                            </>
-                            )}
-                          </div>
-                        </div>
-                        );
-                      })}
-                        </div>
-                    )}
                   </div>
                 )}
               </div>
