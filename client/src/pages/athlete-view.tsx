@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronRight, ChevronLeft, Moon, Calendar, FileText } from "lucide-react";
 import MobileTabBar from "@/components/MobileTabBar";
+import CalendarBottomSheet from "@/components/CalendarBottomSheet";
 import { getExercisesForDay } from "@/lib/sessionData";
 
 // Image assets from Figma
@@ -81,11 +82,7 @@ export default function AthleteView() {
   const [, setLocation] = useLocation();
   const [selectedMonth, setSelectedMonth] = useState("Jul");
   const [selectedDay, setSelectedDay] = useState(17);
-  const [showMonthDropdown, setShowMonthDropdown] = useState(false);
-  const [showFullCalendar, setShowFullCalendar] = useState(false);
-  const [currentMonthIndex, setCurrentMonthIndex] = useState(6); // July is index 6
-
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const [showCalendarBottomSheet, setShowCalendarBottomSheet] = useState(false);
 
   // Enhanced week days with routine counts and rest day indicators
   const weekDays = [
@@ -102,105 +99,23 @@ export default function AthleteView() {
 
   return (
     <div className="bg-zinc-950 relative min-h-screen w-full">
-      <div className="flex flex-col gap-4 items-start px-4 pt-10 pb-20 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl mx-auto">
+      <div className="flex flex-col gap-4 items-start px-0 pt-10 pb-20 w-full">
         {/* Calendar Header */}
-        <div className="flex gap-2 items-center w-full">
+        <div className="flex gap-2 items-center w-full px-4">
           <button
-            onClick={() => setShowFullCalendar(!showFullCalendar)}
+            onClick={() => setShowCalendarBottomSheet(true)}
             className="flex gap-2 items-center hover:opacity-80 transition-opacity"
           >
-            <FileText className="h-5 w-5 text-white" />
+            <Calendar className="h-5 w-5 text-white" />
             <p className="font-medium text-2xl leading-none text-white">
               {selectedMonth}
             </p>
           </button>
 
-          {showFullCalendar && (
-            <div className="absolute top-16 left-4 right-4 sm:left-auto sm:right-auto sm:w-auto bg-neutral-800 border border-neutral-700 rounded-2xl p-4 z-10">
-              {/* Month Navigation */}
-              <div className="flex items-center justify-between mb-4">
-                <button
-                  onClick={() => {
-                    const newIndex = currentMonthIndex > 0 ? currentMonthIndex - 1 : 11;
-                    setCurrentMonthIndex(newIndex);
-                    setSelectedMonth(months[newIndex]);
-                  }}
-                  className="p-2 hover:bg-neutral-700 rounded-xl transition-colors"
-                >
-                  <ChevronLeft className="h-4 w-4 text-white" />
-                </button>
-                <h3 className="text-lg font-semibold text-white">{months[currentMonthIndex]} 2024</h3>
-                <button
-                  onClick={() => {
-                    const newIndex = currentMonthIndex < 11 ? currentMonthIndex + 1 : 0;
-                    setCurrentMonthIndex(newIndex);
-                    setSelectedMonth(months[newIndex]);
-                  }}
-                  className="p-2 hover:bg-neutral-700 rounded-xl transition-colors"
-                >
-                  <ChevronRight className="h-4 w-4 text-white" />
-                </button>
-              </div>
-              
-              {/* Full Calendar Grid */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {["S", "M", "T", "W", "T", "F", "S"].map((day) => (
-                  <div key={day} className="text-center text-xs text-muted-foreground p-2">
-                    {day}
-                  </div>
-                ))}
-              </div>
-              
-              {/* Calendar Days */}
-              <div className="grid grid-cols-7 gap-1">
-                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                  <button
-                    key={day}
-                    onClick={() => {
-                      setSelectedDay(day);
-                      setShowFullCalendar(false);
-                    }}
-                    className={`p-2 text-sm rounded-xl transition-colors ${
-                      day === selectedDay
-                        ? "bg-primary text-primary-foreground"
-                        : day === 17
-                        ? "bg-accent-foreground/10 text-accent-foreground border border-accent-foreground"
-                        : "text-white hover:bg-neutral-700"
-                    }`}
-                  >
-                    {day}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {showMonthDropdown && !showFullCalendar && (
-            <div className="absolute top-16 left-4 right-4 sm:left-auto sm:right-auto sm:w-auto bg-neutral-800 border border-neutral-700 rounded-2xl p-2 z-10">
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1">
-                {months.map((month) => (
-                  <button
-                    key={month}
-                    onClick={() => {
-                      setSelectedMonth(month);
-                      setShowMonthDropdown(false);
-                    }}
-                    className={`px-3 py-2 text-sm rounded-xl transition-colors ${
-                      month === selectedMonth
-                        ? "bg-primary text-primary-foreground"
-                        : "text-white hover:bg-neutral-700"
-                    }`}
-                  >
-                    {month}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Calendar Week View */}
-        <div className="flex gap-2 items-center w-full overflow-x-auto pb-2 -mx-4 pl-4 pr-0">
+        <div className="flex gap-2 items-center w-full overflow-x-auto pb-2 pl-4 pr-4">
           {weekDays.map((dayData, index) => (
             <button
               key={index}
@@ -240,7 +155,7 @@ export default function AthleteView() {
         </div>
 
         {/* Stats Cards */}
-        <div className="flex gap-3 w-full overflow-x-auto pb-2 -mx-4">
+        <div className="flex gap-3 w-full overflow-x-auto pb-2 px-4">
           <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl min-w-[140px] shrink-0">
             <p className="text-sm text-muted-foreground">
               Weight lifted (lbs)
@@ -284,7 +199,7 @@ export default function AthleteView() {
         </div>
 
         {/* Training Session */}
-        <div className="flex flex-col gap-3 items-start w-full">
+        <div className="flex flex-col gap-3 items-start w-full px-4">
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between w-full">
             <p className="font-medium text-base text-muted-foreground">
               Training session
@@ -334,7 +249,7 @@ export default function AthleteView() {
               <div className="flex flex-col gap-4 items-center justify-center w-full py-12">
                 <Moon className="h-16 w-16 text-muted-foreground" />
                 <div className="text-center">
-                  <p className="font-medium text-lg text-muted-foreground mb-3">Rest Day</p>
+                  <p className="font-medium text-lg text-muted-foreground">Rest Day</p>
                   <p className="text-base text-muted-foreground">No training scheduled for this day</p>
                 </div>
               </div>
@@ -342,23 +257,34 @@ export default function AthleteView() {
 
             {/* Continue Button - only show if there are routines */}
             {currentRoutines.length > 0 && (
-              <Button
-                className="bg-primary text-primary-foreground flex gap-2 h-12 items-center justify-center px-6 py-3 rounded-full w-full"
-                onClick={() => setLocation(`/session-view?day=${selectedDay}`)}
-              >
-                <div className="w-5 h-5 relative shrink-0">
-                  <div className="absolute bottom-[12.5%] left-1/4 right-[16.67%] top-[12.5%]">
-                    <div className="absolute inset-[-5.54%_-7.13%]" style={{ "--stroke-0": "rgba(24, 24, 27, 1)" } as React.CSSProperties}>
-                      <img alt="" className="block max-w-none size-full" src={imgPlay} />
+              <div className="w-full p-2">
+                <Button
+                  className="bg-primary text-primary-foreground flex gap-2 h-12 items-center justify-center px-6 py-3 rounded-full w-full"
+                  onClick={() => setLocation(`/session-view?day=${selectedDay}`)}
+                >
+                  <div className="w-5 h-5 relative shrink-0">
+                    <div className="absolute bottom-[12.5%] left-1/4 right-[16.67%] top-[12.5%]">
+                      <div className="absolute inset-[-5.54%_-7.13%]" style={{ "--stroke-0": "rgba(24, 24, 27, 1)" } as React.CSSProperties}>
+                        <img alt="" className="block max-w-none size-full" src={imgPlay} />
+                      </div>
                     </div>
                   </div>
-                </div>
-                <p className="font-medium text-base">Continue</p>
-              </Button>
+                  <p className="font-medium text-base">Continue</p>
+                </Button>
+              </div>
             )}
           </div>
         </div>
       </div>
+
+      <CalendarBottomSheet
+        isOpen={showCalendarBottomSheet}
+        onClose={() => setShowCalendarBottomSheet(false)}
+        selectedMonth={selectedMonth}
+        selectedDay={selectedDay}
+        onDaySelect={setSelectedDay}
+        onMonthChange={setSelectedMonth}
+      />
 
       <MobileTabBar />
     </div>

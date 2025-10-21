@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Play, CheckCircle, Clock, ChevronLeft, ChevronRight, Camera, FileText, Info } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle, Clock, ChevronLeft, ChevronRight, Camera, FileText, Info, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import EnterResultsBottomSheet from "@/components/EnterResultsBottomSheet";
 import ExerciseDetailsSheet from "@/components/ExerciseDetailsSheet";
+import FullScreenTimer from "@/components/FullScreenTimer";
 
 // For now reuse mock from execution-view idea
 const mockExercise = {
@@ -35,6 +36,7 @@ export default function FocusView() {
   const [, setLocation] = useLocation();
   const [showEnterResults, setShowEnterResults] = useState(false);
   const [showExerciseDetails, setShowExerciseDetails] = useState(false);
+  const [showFullScreenTimer, setShowFullScreenTimer] = useState(false);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(120);
@@ -182,6 +184,15 @@ export default function FocusView() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setShowFullScreenTimer(true)}
+            className="flex items-center gap-2"
+          >
+            <Timer className="h-4 w-4" />
+            HIIT Timer
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setTimerRunning(v => !v)}
           >
             {timerRunning ? <Clock className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -276,6 +287,18 @@ export default function FocusView() {
           onClose={() => setShowExerciseDetails(false)}
         />
       )}
+
+      {/* Full Screen Timer */}
+      <FullScreenTimer
+        isOpen={showFullScreenTimer}
+        onClose={() => setShowFullScreenTimer(false)}
+        exerciseName={mockExercise.name}
+        exerciseDetails={{
+          sets: mockExercise.sets,
+          reps: mockExercise.reps,
+          restTime: mockExercise.restTime
+        }}
+      />
     </div>
   );
 }
