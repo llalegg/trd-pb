@@ -106,7 +106,7 @@ export default function AthleteView() {
             onClick={() => setShowCalendarBottomSheet(true)}
             className="flex gap-2 items-center hover:opacity-80 transition-opacity"
           >
-            <FileText className="h-5 w-5 text-white" />
+            <Calendar className="h-5 w-5 text-white" />
             <p className="font-medium text-2xl leading-none text-white">
               {selectedMonth}
             </p>
@@ -115,7 +115,7 @@ export default function AthleteView() {
         </div>
 
         {/* Calendar Week View */}
-        <div className="flex gap-2 items-center w-full overflow-x-auto pb-2 -mx-4 pl-4 pr-0">
+        <div className="flex gap-2 items-center w-full overflow-x-auto pb-2 pl-4 pr-4">
           {weekDays.map((dayData, index) => (
             <button
               key={index}
@@ -155,7 +155,7 @@ export default function AthleteView() {
         </div>
 
         {/* Stats Cards */}
-        <div className="flex gap-3 w-full overflow-x-auto pb-2 -mx-4 pl-4">
+        <div className="flex gap-3 w-full overflow-x-auto pb-2 pl-4 pr-4">
           <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl min-w-[140px] shrink-0">
             <p className="text-sm text-muted-foreground">
               Weight lifted (lbs)
@@ -200,83 +200,83 @@ export default function AthleteView() {
 
         {/* Training Session */}
         <div className="flex flex-col gap-3 items-start w-full px-4">
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between w-full">
+          <div className="flex items-center justify-between w-full">
             <p className="font-medium text-xs text-muted-foreground uppercase">
               TRAINING SESSION
             </p>
             <div className="flex gap-2">
-              <Badge variant="outline" className="bg-background border-border rounded-full px-3 py-1">
+              <Badge variant="secondary" className="rounded-full px-3 py-1">
                 Week 1
+              </Badge>
+              <Badge variant="secondary" className="rounded-full px-3 py-1">
+                Block 1
               </Badge>
             </div>
           </div>
 
-          {/* Training Session Card */}
-          <div className="flex flex-col gap-6 items-end w-full">
-            {currentRoutines.length > 0 ? (
-              <div className="flex flex-col gap-4 items-start w-full">
-                {currentRoutines.map((routine, index) => {
-                  // Get current day's completion status
-                  const currentDayData = weekDays.find(day => day.date === selectedDay);
-                  const isDayCompleted = currentDayData?.isCompleted || false;
-                  
-                  // If day is completed, show full progress (100%), otherwise show actual progress
-                  const progress = isDayCompleted 
-                    ? 100 
-                    : routine.exercises.length > 0 
-                      ? Math.round((routine.exercises.reduce((sum, ex) => sum + ex.completedSets, 0) / routine.exercises.reduce((sum, ex) => sum + ex.sets, 0)) * 100)
-                      : 0;
-                  
-                  return (
-                    <button
-                      key={index}
-                      className="flex gap-4 sm:gap-5 items-center w-full hover:bg-neutral-800/50 p-3 rounded-2xl transition-colors"
-                      onClick={() => setLocation(`/session-view?day=${selectedDay}`)}
-                    >
-                      <CircularProgress progress={progress} size={32} />
-                      <div className="flex flex-col gap-1 grow items-start">
-                        <p className="font-medium text-base sm:text-lg text-white">
-                          {routine.name}
-                        </p>
-                        <div className="flex gap-3 items-start text-sm text-muted-foreground">
-                          <p>{routine.exerciseCount} exercises</p>
-                          <p>{routine.estimatedTime}</p>
-                          <p>{routine.exercises.reduce((sum, ex) => sum + ex.completedSets, 0)}/{routine.exercises.reduce((sum, ex) => sum + ex.sets, 0)} sets</p>
-                        </div>
-                      </div>
-                      <IconChevronRight className="w-6 h-6 sm:w-7 sm:h-7 relative shrink-0" />
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4 items-center justify-center w-full py-12">
-                <Moon className="h-16 w-16 text-muted-foreground" />
-                <div className="text-center">
-                  <p className="font-medium text-lg text-muted-foreground">Rest Day</p>
-                  <p className="text-base text-muted-foreground">No training scheduled for this day</p>
+          {/* Throwing Movement & Strength Card */}
+          <div className="bg-neutral-900 flex flex-col gap-6 items-end p-2 rounded-2xl w-full">
+            <div className="flex flex-col gap-4 items-start w-full">
+              <button className="flex gap-4 sm:gap-5 items-center w-full hover:bg-neutral-800/50 p-3 rounded-2xl transition-colors">
+                <CircularProgress progress={24} size={32} />
+                <div className="flex flex-col gap-1 grow items-start">
+                  <p className="font-medium text-base sm:text-lg text-white">
+                    Throwing
+                  </p>
+                  <div className="flex gap-3 items-start text-sm text-muted-foreground">
+                    <p>6 exercises</p>
+                    <p>45 min</p>
+                    <p>4/17 sets</p>
+                  </div>
                 </div>
-              </div>
-            )}
+                <IconChevronRight className="w-6 h-6 sm:w-7 sm:h-7 relative shrink-0" />
+              </button>
+              <button className="flex gap-4 sm:gap-5 items-center w-full hover:bg-neutral-800/50 p-3 rounded-2xl transition-colors">
+                <CircularProgress progress={0} size={32} />
+                <div className="flex flex-col gap-1 grow items-start">
+                  <p className="font-medium text-base sm:text-lg text-white">
+                    Movement
+                  </p>
+                  <div className="flex gap-3 items-start text-sm text-muted-foreground">
+                    <p>6 exercises</p>
+                    <p>45 min</p>
+                    <p>0/15 sets</p>
+                  </div>
+                </div>
+                <IconChevronRight className="w-6 h-6 sm:w-7 sm:h-7 relative shrink-0" />
+              </button>
+              <button className="flex gap-4 sm:gap-5 items-center w-full hover:bg-neutral-800/50 p-3 rounded-2xl transition-colors">
+                <CircularProgress progress={6} size={32} />
+                <div className="flex flex-col gap-1 grow items-start">
+                  <p className="font-medium text-base sm:text-lg text-white">
+                    Strength
+                  </p>
+                  <div className="flex gap-3 items-start text-sm text-muted-foreground">
+                    <p>4 exercises</p>
+                    <p>30 min</p>
+                    <p>1/16 sets</p>
+                  </div>
+                </div>
+                <IconChevronRight className="w-6 h-6 sm:w-7 sm:h-7 relative shrink-0" />
+              </button>
+            </div>
 
-            {/* Continue Button - only show if there are routines */}
-            {currentRoutines.length > 0 && (
-              <div className="w-full">
-                <Button
-                  className="bg-primary text-primary-foreground flex gap-2 h-12 items-center justify-center px-6 py-3 rounded-full w-full"
-                  onClick={() => setLocation(`/session-view?day=${selectedDay}`)}
-                >
-                  <div className="w-5 h-5 relative shrink-0">
-                    <div className="absolute bottom-[12.5%] left-1/4 right-[16.67%] top-[12.5%]">
-                      <div className="absolute inset-[-5.54%_-7.13%]" style={{ "--stroke-0": "rgba(24, 24, 27, 1)" } as React.CSSProperties}>
-                        <img alt="" className="block max-w-none size-full" src={imgPlay} />
-                      </div>
+            {/* Continue Button */}
+            <div className="w-full p-2">
+              <Button
+                className="bg-primary text-primary-foreground flex gap-2 h-12 items-center justify-center px-6 py-3 rounded-full w-full"
+                onClick={() => setLocation(`/session-view?day=${selectedDay}`)}
+              >
+                <div className="w-5 h-5 relative shrink-0">
+                  <div className="absolute bottom-[12.5%] left-1/4 right-[16.67%] top-[12.5%]">
+                    <div className="absolute inset-[-5.54%_-7.13%]" style={{ "--stroke-0": "rgba(24, 24, 27, 1)" } as React.CSSProperties}>
+                      <img alt="" className="block max-w-none size-full" src={imgPlay} />
                     </div>
                   </div>
-                  <p className="font-medium text-base">Continue</p>
-                </Button>
-              </div>
-            )}
+                </div>
+                <p className="font-medium text-base">Continue</p>
+              </Button>
+            </div>
           </div>
         </div>
 
