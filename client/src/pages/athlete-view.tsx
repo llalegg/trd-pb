@@ -155,7 +155,7 @@ export default function AthleteView() {
         </div>
 
         {/* Stats Cards */}
-        <div className="flex gap-3 w-full overflow-x-auto pb-2 -mx-4">
+        <div className="flex gap-3 w-full overflow-x-auto pb-2 -mx-4 pl-4">
           <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl min-w-[140px] shrink-0">
             <p className="text-sm text-muted-foreground">
               Weight lifted (lbs)
