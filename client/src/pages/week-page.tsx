@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useRoute } from "wouter";
+import { useLocation } from "wouter";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,28 +13,28 @@ const mockWeekSchedule = {
   "1-1": { // Block 1, Week 1
     blockId: 1,
     weekNumber: 1,
-    startDate: "2025-01-20",
-    endDate: "2025-01-26",
+    startDate: "2025-01-15",
+    endDate: "2025-01-21",
     days: [
       {
-        date: "2025-01-20",
-        dayOfWeek: "Monday",
+        date: "2025-01-15",
+        dayOfWeek: "Wednesday",
         isRestDay: false,
         routines: [
           { type: "movement", name: "Recovery session", exerciseCount: 3, estimatedTime: "20 min", status: "not-started" }
         ]
       },
       {
-        date: "2025-01-21",
-        dayOfWeek: "Tuesday",
+        date: "2025-01-16",
+        dayOfWeek: "Thursday",
         isRestDay: false,
         routines: [
           { type: "lifting", name: "Lower body strength", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" }
         ]
       },
       {
-        date: "2025-01-22",
-        dayOfWeek: "Wednesday",
+        date: "2025-01-17",
+        dayOfWeek: "Friday",
         isRestDay: false,
         routines: [
           { type: "throwing", name: "Throwing session", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" },
@@ -42,30 +42,270 @@ const mockWeekSchedule = {
         ]
       },
       {
-        date: "2025-01-23",
-        dayOfWeek: "Thursday",
+        date: "2025-01-18",
+        dayOfWeek: "Saturday",
         isRestDay: false,
         routines: [
           { type: "lifting", name: "Upper body strength", exerciseCount: 8, estimatedTime: "60 min", status: "not-started" }
         ]
       },
       {
-        date: "2025-01-24",
-        dayOfWeek: "Friday",
+        date: "2025-01-19",
+        dayOfWeek: "Sunday",
         isRestDay: true,
         routines: []
       },
       {
-        date: "2025-01-25",
-        dayOfWeek: "Saturday",
+        date: "2025-01-20",
+        dayOfWeek: "Monday",
         isRestDay: false,
         routines: [
           { type: "throwing", name: "Bullpen session", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" }
         ]
       },
       {
+        date: "2025-01-21",
+        dayOfWeek: "Tuesday",
+        isRestDay: true,
+        routines: []
+      }
+    ]
+  },
+  "1-2": { // Block 1, Week 2
+    blockId: 1,
+    weekNumber: 2,
+    startDate: "2025-01-22",
+    endDate: "2025-01-28",
+    days: [
+      {
+        date: "2025-01-22",
+        dayOfWeek: "Wednesday",
+        isRestDay: false,
+        routines: [
+          { type: "lifting", name: "Lower body power", exerciseCount: 5, estimatedTime: "40 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-01-23",
+        dayOfWeek: "Thursday",
+        isRestDay: false,
+        routines: [
+          { type: "throwing", name: "Bullpen session", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-01-24",
+        dayOfWeek: "Friday",
+        isRestDay: false,
+        routines: [
+          { type: "lifting", name: "Upper body power", exerciseCount: 6, estimatedTime: "50 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-01-25",
+        dayOfWeek: "Saturday",
+        isRestDay: false,
+        routines: [
+          { type: "movement", name: "Recovery session", exerciseCount: 3, estimatedTime: "20 min", status: "not-started" }
+        ]
+      },
+      {
         date: "2025-01-26",
         dayOfWeek: "Sunday",
+        isRestDay: true,
+        routines: []
+      },
+      {
+        date: "2025-01-27",
+        dayOfWeek: "Monday",
+        isRestDay: false,
+        routines: [
+          { type: "throwing", name: "Throwing session", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-01-28",
+        dayOfWeek: "Tuesday",
+        isRestDay: true,
+        routines: []
+      }
+    ]
+  },
+  "1-3": { // Block 1, Week 3
+    blockId: 1,
+    weekNumber: 3,
+    startDate: "2025-01-29",
+    endDate: "2025-02-04",
+    days: [
+      {
+        date: "2025-01-29",
+        dayOfWeek: "Wednesday",
+        isRestDay: false,
+        routines: [
+          { type: "lifting", name: "Lower body strength", exerciseCount: 7, estimatedTime: "55 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-01-30",
+        dayOfWeek: "Thursday",
+        isRestDay: false,
+        routines: [
+          { type: "throwing", name: "Bullpen session", exerciseCount: 5, estimatedTime: "35 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-01-31",
+        dayOfWeek: "Friday",
+        isRestDay: false,
+        routines: [
+          { type: "lifting", name: "Upper body strength", exerciseCount: 8, estimatedTime: "60 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-01",
+        dayOfWeek: "Saturday",
+        isRestDay: false,
+        routines: [
+          { type: "movement", name: "Recovery session", exerciseCount: 4, estimatedTime: "25 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-02",
+        dayOfWeek: "Sunday",
+        isRestDay: true,
+        routines: []
+      },
+      {
+        date: "2025-02-03",
+        dayOfWeek: "Monday",
+        isRestDay: false,
+        routines: [
+          { type: "throwing", name: "Throwing session", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-04",
+        dayOfWeek: "Tuesday",
+        isRestDay: true,
+        routines: []
+      }
+    ]
+  },
+  "1-4": { // Block 1, Week 4
+    blockId: 1,
+    weekNumber: 4,
+    startDate: "2025-02-05",
+    endDate: "2025-02-11",
+    days: [
+      {
+        date: "2025-02-05",
+        dayOfWeek: "Wednesday",
+        isRestDay: false,
+        routines: [
+          { type: "lifting", name: "Lower body power", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-06",
+        dayOfWeek: "Thursday",
+        isRestDay: false,
+        routines: [
+          { type: "throwing", name: "Bullpen session", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-07",
+        dayOfWeek: "Friday",
+        isRestDay: false,
+        routines: [
+          { type: "lifting", name: "Upper body power", exerciseCount: 7, estimatedTime: "55 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-08",
+        dayOfWeek: "Saturday",
+        isRestDay: false,
+        routines: [
+          { type: "movement", name: "Recovery session", exerciseCount: 3, estimatedTime: "20 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-09",
+        dayOfWeek: "Sunday",
+        isRestDay: true,
+        routines: []
+      },
+      {
+        date: "2025-02-10",
+        dayOfWeek: "Monday",
+        isRestDay: false,
+        routines: [
+          { type: "throwing", name: "Throwing session", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-11",
+        dayOfWeek: "Tuesday",
+        isRestDay: true,
+        routines: []
+      }
+    ]
+  },
+  "2-1": { // Block 2, Week 1
+    blockId: 2,
+    weekNumber: 1,
+    startDate: "2025-02-12",
+    endDate: "2025-02-18",
+    days: [
+      {
+        date: "2025-02-12",
+        dayOfWeek: "Wednesday",
+        isRestDay: false,
+        routines: [
+          { type: "lifting", name: "Lower body strength", exerciseCount: 8, estimatedTime: "60 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-13",
+        dayOfWeek: "Thursday",
+        isRestDay: false,
+        routines: [
+          { type: "throwing", name: "Bullpen session", exerciseCount: 5, estimatedTime: "35 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-14",
+        dayOfWeek: "Friday",
+        isRestDay: false,
+        routines: [
+          { type: "lifting", name: "Upper body strength", exerciseCount: 9, estimatedTime: "65 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-15",
+        dayOfWeek: "Saturday",
+        isRestDay: false,
+        routines: [
+          { type: "movement", name: "Recovery session", exerciseCount: 4, estimatedTime: "25 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-16",
+        dayOfWeek: "Sunday",
+        isRestDay: true,
+        routines: []
+      },
+      {
+        date: "2025-02-17",
+        dayOfWeek: "Monday",
+        isRestDay: false,
+        routines: [
+          { type: "throwing", name: "Throwing session", exerciseCount: 7, estimatedTime: "50 min", status: "not-started" }
+        ]
+      },
+      {
+        date: "2025-02-18",
+        dayOfWeek: "Tuesday",
         isRestDay: true,
         routines: []
       }
@@ -81,13 +321,13 @@ const routineTypeIcons = {
 
 export default function WeekPage() {
   const [, setLocation] = useLocation();
-  const [, params] = useRoute("/week-page");
-  const [selectedDate, setSelectedDate] = useState(new Date("2025-01-20"));
+  const [selectedDate, setSelectedDate] = useState(new Date("2025-01-15"));
   const [showCalendar, setShowCalendar] = useState(false);
 
-  // Parse URL parameters
-  const blockId = parseInt(params?.block || "1");
-  const weekNumber = parseInt(params?.week || "1");
+  // Parse URL query parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const blockId = parseInt(urlParams.get("block") || "1");
+  const weekNumber = parseInt(urlParams.get("week") || "1");
   const weekKey = `${blockId}-${weekNumber}`;
   
   const weekData = mockWeekSchedule[weekKey as keyof typeof mockWeekSchedule];
@@ -145,8 +385,8 @@ export default function WeekPage() {
         <div className="flex gap-2 overflow-x-auto pb-2">
           {weekData.days.map((day) => {
             const isSelected = isSameDay(new Date(day.date), selectedDate);
-            const isTodayDate = new Date(day.date).getDate() === 20; // Current day is 20
-            const isPastDay = new Date(day.date).getDate() < 20; // Previous days are disabled
+            const isTodayDate = new Date(day.date).getDate() === 15; // Current day is 15
+            const isPastDay = new Date(day.date).getDate() < 15; // Previous days are disabled
             const isDisabled = isPastDay;
             
             return (
