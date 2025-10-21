@@ -214,14 +214,11 @@ export default function ProgramPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-12 h-12 rounded-lg flex items-center justify-center",
-                      block.status === "active" ? "bg-primary" : "bg-muted"
-                    )}>
+                    <div className="flex items-center justify-center">
                       {block.status === "locked" ? (
                         <Lock className="h-6 w-6 text-muted-foreground" />
                       ) : (
-                        <span className="text-lg font-bold text-primary-foreground">
+                        <span className="text-lg font-bold text-foreground">
                           {block.id}
                         </span>
                       )}
