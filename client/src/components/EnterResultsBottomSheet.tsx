@@ -71,7 +71,7 @@ export default function EnterResultsBottomSheet({
 
   return (
     <Sheet open={true} onOpenChange={onCancel}>
-      <SheetContent side="bottom" className="h-[85vh]">
+      <SheetContent side="bottom" className="h-auto max-h-[85vh]">
         <SheetHeader>
           <SheetTitle className="text-lg">Log results</SheetTitle>
           <SheetDescription>
@@ -79,7 +79,7 @@ export default function EnterResultsBottomSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto py-6 space-y-4">
+        <div className="overflow-y-auto py-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor={`reps`}>Reps</Label>
