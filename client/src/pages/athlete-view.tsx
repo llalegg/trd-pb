@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronRight, ChevronLeft, Moon, Calendar } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronLeft, Moon, Calendar, FileText } from "lucide-react";
 import MobileTabBar from "@/components/MobileTabBar";
 import { getExercisesForDay } from "@/lib/sessionData";
 
@@ -109,7 +109,7 @@ export default function AthleteView() {
             onClick={() => setShowFullCalendar(!showFullCalendar)}
             className="flex gap-2 items-center hover:opacity-80 transition-opacity"
           >
-            <Calendar className="h-5 w-5 text-white" />
+            <FileText className="h-5 w-5 text-white" />
             <p className="font-medium text-2xl leading-none text-white">
               {selectedMonth}
             </p>
@@ -200,7 +200,7 @@ export default function AthleteView() {
         </div>
 
         {/* Calendar Week View */}
-        <div className="flex gap-2 items-center w-full overflow-x-auto pb-2 -mx-4 pl-4">
+        <div className="flex gap-2 items-center w-full overflow-x-auto pb-2 -mx-4 pl-4 pr-0">
           {weekDays.map((dayData, index) => (
             <button
               key={index}
@@ -213,8 +213,8 @@ export default function AthleteView() {
                   : "border border-border hover:border-accent-foreground/50"
               }`}
             >
-              <p className="text-xs sm:text-sm text-muted-foreground">{dayData.day}</p>
-              <p className="text-xs sm:text-sm text-foreground">{dayData.date}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{dayData.day}</p>
+                  <p className="text-base sm:text-lg text-foreground font-semibold">{dayData.date}</p>
               
               {/* Rest day moon icon or routine dots */}
               {dayData.isRestDay ? (
@@ -240,7 +240,7 @@ export default function AthleteView() {
         </div>
 
         {/* Stats Cards */}
-        <div className="flex gap-3 w-full overflow-x-auto pb-2 -mx-4 pl-4">
+        <div className="flex gap-3 w-full overflow-x-auto pb-2 -mx-4">
           <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl min-w-[140px] shrink-0">
             <p className="text-sm text-muted-foreground">
               Weight lifted (lbs)
