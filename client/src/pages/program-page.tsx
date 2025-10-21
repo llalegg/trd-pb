@@ -204,14 +204,14 @@ export default function ProgramPage() {
         {/* Blocks List */}
         <div className="space-y-6">
           {mockProgram.blocks.map((block) => (
-            <Card 
+            <div 
               key={block.id}
               className={cn(
                 "transition-all duration-200",
                 block.status === "locked" && "opacity-60"
               )}
             >
-              <CardHeader className="pb-3">
+              <div className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center">
@@ -237,8 +237,8 @@ export default function ProgramPage() {
                     <Badge variant="secondary">Locked</Badge>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
+              </div>
+              <div className="pt-0">
                 <p className="text-sm text-muted-foreground mb-4">{block.description}</p>
                 
                 {/* Weeks List */}
@@ -292,8 +292,8 @@ export default function ProgramPage() {
                     })}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
 
