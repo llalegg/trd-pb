@@ -296,29 +296,6 @@ export default function ProgramPage() {
             </div>
           ))}
         </div>
-
-        {/* Program Stats */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Program progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span>Current block</span>
-                <span>Block 1 of 4</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Total duration</span>
-                <span>16 weeks</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Completion</span>
-                <span>6%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Calendar Modal */}
