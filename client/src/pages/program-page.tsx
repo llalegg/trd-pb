@@ -264,16 +264,6 @@ export default function ProgramPage() {
                           onClick={() => isClickable && handleWeekClick(block.id, weekData.week)}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-                              block.status === "locked" 
-                                ? "bg-muted text-muted-foreground" 
-                                : isCurrent 
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-primary text-primary-foreground"
-                            )}>
-                              {weekData.week}
-                            </div>
                             <div>
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium text-foreground">
