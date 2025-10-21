@@ -106,6 +106,25 @@ export default function ProgramPage() {
     setShowCalendar(true);
   };
 
+  // Calculate program progress
+  const totalBlocks = mockProgram.blocks.length;
+  const completedBlocks = mockProgram.blocks.filter(block => block.status === "completed").length;
+  const programProgress = totalBlocks > 0 ? Math.round((completedBlocks / totalBlocks) * 100) : 0;
+
+  // Calculate total duration and completion stats
+  const totalDuration = mockProgram.blocks.reduce((sum, block) => {
+    const duration = parseInt(block.duration.replace(' weeks', ''));
+    return sum + duration;
+  }, 0);
+
+  const totalWeeks = totalDuration;
+  const completedWeeks = mockProgram.blocks.reduce((sum, block) => {
+    if (block.status === "completed") {
+      return sum + parseInt(block.duration.replace(' weeks', ''));
+    }
+    return sum;
+  }, 0);
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -119,7 +138,12 @@ export default function ProgramPage() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-lg font-semibold">Program</h1>
+          <div className="text-center">
+            <h1 className="text-lg font-semibold">Program</h1>
+            <p className="text-sm text-muted-foreground">
+              {formatDate(mockProgram.startDate).replace(/, \d{4}/, '')} - {formatDate(mockProgram.endDate).replace(/, \d{4}/, '')}
+            </p>
+          </div>
           <Button
             variant="ghost"
             size="sm"
@@ -131,18 +155,45 @@ export default function ProgramPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-4 space-y-6">
-        {/* Program Header */}
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-foreground mb-2">{mockProgram.name}</h2>
-          <p className="text-sm text-muted-foreground">
-            {formatDate(mockProgram.startDate)} - {formatDate(mockProgram.endDate)}
+      {/* Program Progress and Stats */}
+      <div className="px-4 py-4">
+        {/* Segmented Progress Bar */}
+        <div className="mb-6">
+          <div className="flex gap-1 mb-2">
+            {Array.from({ length: totalBlocks }, (_, index) => (
+              <div
+                key={index}
+                className={`flex-1 h-2 rounded-sm transition-all duration-300 ${
+                  index < completedBlocks 
+                    ? 'bg-primary' 
+                    : 'bg-muted'
+                }`}
+              />
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground text-center">
+            {completedBlocks}/{totalBlocks} blocks completed ({programProgress}%)
           </p>
         </div>
 
+        {/* Summary Stats */}
+        <div className="flex gap-3">
+          <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl flex-1">
+            <p className="text-sm text-muted-foreground">Duration</p>
+            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">{totalWeeks} weeks</p>
+          </div>
+          <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl flex-1">
+            <p className="text-sm text-muted-foreground">Completion</p>
+            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">{completedWeeks}/{totalWeeks}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-4 pb-[100px] space-y-6">
+
         {/* Blocks List */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           {mockProgram.blocks.map((block) => (
             <Card 
               key={block.id}

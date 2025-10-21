@@ -80,19 +80,19 @@ function CircularProgress({ progress, size = 32 }: { progress: number; size?: nu
 
 export default function AthleteView() {
   const [, setLocation] = useLocation();
-  const [selectedMonth, setSelectedMonth] = useState("Jul");
+  const [selectedMonth, setSelectedMonth] = useState("Oct");
   const [selectedDay, setSelectedDay] = useState(17);
   const [showCalendarBottomSheet, setShowCalendarBottomSheet] = useState(false);
 
   // Enhanced week days with routine counts and rest day indicators
   const weekDays = [
-    { day: "M", date: 16, isCurrent: false, routineCount: 2, isRestDay: false },
-    { day: "T", date: 17, isCurrent: true, routineCount: 3, isRestDay: false },
-    { day: "W", date: 18, isCurrent: false, routineCount: 0, isRestDay: true },
-    { day: "T", date: 19, isCurrent: false, routineCount: 2, isRestDay: false },
-    { day: "F", date: 20, isCurrent: false, routineCount: 1, isRestDay: false },
-    { day: "S", date: 21, isCurrent: false, routineCount: 0, isRestDay: true },
-    { day: "S", date: 22, isCurrent: false, routineCount: 1, isRestDay: false },
+    { day: "M", date: 16, isCurrent: false, routineCount: 2, isRestDay: false, isCompleted: true },
+    { day: "T", date: 17, isCurrent: true, routineCount: 3, isRestDay: false, isCompleted: false },
+    { day: "W", date: 18, isCurrent: false, routineCount: 0, isRestDay: true, isCompleted: false },
+    { day: "T", date: 19, isCurrent: false, routineCount: 2, isRestDay: false, isCompleted: false },
+    { day: "F", date: 20, isCurrent: false, routineCount: 1, isRestDay: false, isCompleted: false },
+    { day: "S", date: 21, isCurrent: false, routineCount: 0, isRestDay: true, isCompleted: false },
+    { day: "S", date: 22, isCurrent: false, routineCount: 1, isRestDay: false, isCompleted: false },
   ];
 
   const currentRoutines = getExercisesForDay(selectedDay);
@@ -106,7 +106,7 @@ export default function AthleteView() {
             onClick={() => setShowCalendarBottomSheet(true)}
             className="flex gap-2 items-center hover:opacity-80 transition-opacity"
           >
-            <Calendar className="h-5 w-5 text-white" />
+            <FileText className="h-5 w-5 text-white" />
             <p className="font-medium text-2xl leading-none text-white">
               {selectedMonth}
             </p>
@@ -115,7 +115,7 @@ export default function AthleteView() {
         </div>
 
         {/* Calendar Week View */}
-        <div className="flex gap-2 items-center w-full overflow-x-auto pb-2 pl-4 pr-4">
+        <div className="flex gap-2 items-center w-full overflow-x-auto pb-2 -mx-4 pl-4 pr-0">
           {weekDays.map((dayData, index) => (
             <button
               key={index}
@@ -155,7 +155,7 @@ export default function AthleteView() {
         </div>
 
         {/* Stats Cards */}
-        <div className="flex gap-3 w-full overflow-x-auto pb-2 px-4">
+        <div className="flex gap-3 w-full overflow-x-auto pb-2 -mx-4">
           <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl min-w-[140px] shrink-0">
             <p className="text-sm text-muted-foreground">
               Weight lifted (lbs)
@@ -201,8 +201,8 @@ export default function AthleteView() {
         {/* Training Session */}
         <div className="flex flex-col gap-3 items-start w-full px-4">
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between w-full">
-            <p className="font-medium text-base text-muted-foreground">
-              Training session
+            <p className="font-medium text-xs text-muted-foreground uppercase">
+              TRAINING SESSION
             </p>
             <div className="flex gap-2">
               <Badge variant="secondary" className="bg-secondary text-secondary-foreground rounded-full px-3 py-1">
@@ -219,9 +219,16 @@ export default function AthleteView() {
             {currentRoutines.length > 0 ? (
               <div className="flex flex-col gap-4 items-start w-full">
                 {currentRoutines.map((routine, index) => {
-                  const progress = routine.exercises.length > 0 
-                    ? Math.round((routine.exercises.reduce((sum, ex) => sum + ex.completedSets, 0) / routine.exercises.reduce((sum, ex) => sum + ex.sets, 0)) * 100)
-                    : 0;
+                  // Get current day's completion status
+                  const currentDayData = weekDays.find(day => day.date === selectedDay);
+                  const isDayCompleted = currentDayData?.isCompleted || false;
+                  
+                  // If day is completed, show full progress (100%), otherwise show actual progress
+                  const progress = isDayCompleted 
+                    ? 100 
+                    : routine.exercises.length > 0 
+                      ? Math.round((routine.exercises.reduce((sum, ex) => sum + ex.completedSets, 0) / routine.exercises.reduce((sum, ex) => sum + ex.sets, 0)) * 100)
+                      : 0;
                   
                   return (
                     <button
@@ -273,6 +280,15 @@ export default function AthleteView() {
                 </Button>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Events */}
+        <div className="flex flex-col gap-3 items-start w-full px-4">
+          <p className="font-medium text-xs text-muted-foreground uppercase">
+            EVENTS
+          </p>
+          <div className="bg-neutral-900 flex flex-col gap-4 items-center justify-center p-6 rounded-2xl w-full">
           </div>
         </div>
       </div>

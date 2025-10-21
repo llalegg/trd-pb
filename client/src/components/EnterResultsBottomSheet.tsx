@@ -79,86 +79,79 @@ export default function EnterResultsBottomSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto py-6 space-y-3">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Set {currentSetIndex + 1}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor={`reps`}>Reps</Label>
-                  <Input
-                    id={`reps`}
-                    type="text"
-                    placeholder="e.g., 10"
-                    value={row.reps}
-                    onChange={(e) => updateField("reps", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor={`weight`}>Weight (lbs)</Label>
-                  <Input
-                    id={`weight`}
-                    type="text"
-                    placeholder="e.g., 135"
-                    value={row.weight || ""}
-                    onChange={(e) => updateField("weight", e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor={`time`}>Time (seconds)</Label>
-                  <Input
-                    id={`time`}
-                    type="text"
-                    placeholder="e.g., 60"
-                    value={row.time || ""}
-                    onChange={(e) => updateField("time", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor={`rpe`}>RPE</Label>
-                  <Select value={row.rpe || ""} onValueChange={(val) => updateField("rpe", val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select RPE" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 - Very Light</SelectItem>
-                      <SelectItem value="2">2 - Light</SelectItem>
-                      <SelectItem value="3">3 - Moderate</SelectItem>
-                      <SelectItem value="4">4 - Somewhat Hard</SelectItem>
-                      <SelectItem value="5">5 - Hard</SelectItem>
-                      <SelectItem value="6">6 - Very Hard</SelectItem>
-                      <SelectItem value="7">7 - Extremely Hard</SelectItem>
-                      <SelectItem value="8">8 - Max Effort</SelectItem>
-                      <SelectItem value="9">9 - Max Effort (with spot)</SelectItem>
-                      <SelectItem value="10">10 - Max Effort (no spot)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label htmlFor={`notes`}>Notes</Label>
-                <Textarea
-                  id={`notes`}
-                  placeholder="Notes for this set..."
-                  value={row.notes || ""}
-                  onChange={(e) => updateField("notes", e.target.value)}
-                  rows={2}
-                />
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex-1 overflow-y-auto py-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor={`reps`}>Reps</Label>
+              <Input
+                id={`reps`}
+                type="text"
+                placeholder="e.g., 10"
+                value={row.reps}
+                onChange={(e) => updateField("reps", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor={`weight`}>Weight (lbs)</Label>
+              <Input
+                id={`weight`}
+                type="text"
+                placeholder="e.g., 135"
+                value={row.weight || ""}
+                onChange={(e) => updateField("weight", e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor={`time`}>Time (seconds)</Label>
+              <Input
+                id={`time`}
+                type="text"
+                placeholder="e.g., 60"
+                value={row.time || ""}
+                onChange={(e) => updateField("time", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor={`rpe`}>RPE</Label>
+              <Select value={row.rpe || ""} onValueChange={(val) => updateField("rpe", val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select RPE" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 - Very Light</SelectItem>
+                  <SelectItem value="2">2 - Light</SelectItem>
+                  <SelectItem value="3">3 - Moderate</SelectItem>
+                  <SelectItem value="4">4 - Somewhat Hard</SelectItem>
+                  <SelectItem value="5">5 - Hard</SelectItem>
+                  <SelectItem value="6">6 - Very Hard</SelectItem>
+                  <SelectItem value="7">7 - Extremely Hard</SelectItem>
+                  <SelectItem value="8">8 - Max Effort</SelectItem>
+                  <SelectItem value="9">9 - Max Effort (with spot)</SelectItem>
+                  <SelectItem value="10">10 - Max Effort (no spot)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label htmlFor={`notes`}>Notes</Label>
+            <Textarea
+              id={`notes`}
+              placeholder="Notes for this set..."
+              value={row.notes || ""}
+              onChange={(e) => updateField("notes", e.target.value)}
+              rows={2}
+            />
+          </div>
         </div>
 
-        <div className="flex gap-2 pt-4 border-t">
-          <Button variant="outline" className="flex-1" onClick={onCancel}>
+        <div className="flex gap-4 pt-6 border-t">
+          <Button variant="outline" className="flex-1 h-14 text-lg font-medium" onClick={onCancel}>
             Cancel
           </Button>
-          <Button className="flex-1" onClick={handleSave}>
-            Save results
+          <Button className="flex-1 h-14 text-lg font-medium" onClick={handleSave}>
+            Save Results
           </Button>
         </div>
       </SheetContent>
