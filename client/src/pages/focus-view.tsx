@@ -200,9 +200,9 @@ export default function FocusView() {
               onClick={handleTimerToggle}
             >
               {timerRunning ? (
-                <Pause className="w-6 h-6 text-primary" />
+                <Pause className="w-8 h-8 text-primary" />
               ) : (
-                <Play className="w-6 h-6 text-primary" />
+                <Play className="w-8 h-8 text-primary" />
               )}
             </Button>
             <Button 
@@ -211,7 +211,7 @@ export default function FocusView() {
               className="w-10 h-10 bg-muted/10 hover:bg-muted/20"
               onClick={handleTimerReset}
             >
-              <RotateCcw className="w-5 h-5 text-muted-foreground" />
+              <RotateCcw className="w-8 h-8 text-muted-foreground" />
             </Button>
             <div>
               <p className="text-4xl font-bold text-foreground">
@@ -262,6 +262,27 @@ export default function FocusView() {
                 <div className="text-center">
                   <p className="text-lg font-bold text-foreground">2:00</p>
                   <p className="text-sm text-muted-foreground">Rest after</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Results Card */}
+          <Card className="p-4">
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-muted-foreground">Results</p>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <p className="text-lg font-bold text-foreground">—</p>
+                  <p className="text-sm text-muted-foreground">Reps</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold text-foreground">—</p>
+                  <p className="text-sm text-muted-foreground">Weight</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold text-foreground">—</p>
+                  <p className="text-sm text-muted-foreground">Time</p>
                 </div>
               </div>
             </div>
