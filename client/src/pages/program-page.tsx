@@ -125,6 +125,18 @@ export default function ProgramPage() {
     return sum;
   }, 0);
 
+  // Calculate training days
+  const totalTrainingDays = mockProgram.blocks.reduce((sum, block) => {
+    return sum + block.weeks.reduce((weekSum, week) => weekSum + week.trainingDays, 0);
+  }, 0);
+  
+  const completedTrainingDays = mockProgram.blocks.reduce((sum, block) => {
+    if (block.status === "completed") {
+      return sum + block.weeks.reduce((weekSum, week) => weekSum + week.trainingDays, 0);
+    }
+    return sum;
+  }, 0);
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -160,20 +172,17 @@ export default function ProgramPage() {
         {/* Segmented Progress Bar */}
         <div className="mb-6">
           <div className="flex gap-1 mb-2">
-            {Array.from({ length: totalBlocks }, (_, index) => (
+            {Array.from({ length: totalWeeks }, (_, index) => (
               <div
                 key={index}
                 className={`flex-1 h-2 rounded-sm transition-all duration-300 ${
-                  index < completedBlocks 
+                  index < completedWeeks 
                     ? 'bg-primary' 
                     : 'bg-muted'
                 }`}
               />
             ))}
           </div>
-          <p className="text-sm text-muted-foreground text-center">
-            {completedBlocks}/{totalBlocks} blocks completed ({programProgress}%)
-          </p>
         </div>
 
         {/* Summary Stats */}
@@ -183,8 +192,8 @@ export default function ProgramPage() {
             <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">{totalWeeks} weeks</p>
           </div>
           <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl flex-1">
-            <p className="text-sm text-muted-foreground">Completion</p>
-            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">{completedWeeks}/{totalWeeks}</p>
+            <p className="text-sm text-muted-foreground">Training days</p>
+            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">{completedTrainingDays}/{totalTrainingDays}</p>
           </div>
         </div>
       </div>
