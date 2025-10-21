@@ -205,9 +205,6 @@ export default function AthleteView() {
               TRAINING SESSION
             </p>
             <div className="flex gap-2">
-              <Badge variant="secondary" className="bg-secondary text-secondary-foreground rounded-full px-3 py-1">
-                Block 1
-              </Badge>
               <Badge variant="outline" className="bg-background border-border rounded-full px-3 py-1">
                 Week 1
               </Badge>
@@ -215,7 +212,7 @@ export default function AthleteView() {
           </div>
 
           {/* Training Session Card */}
-          <div className="bg-neutral-900 flex flex-col gap-6 items-end p-2 rounded-2xl w-full">
+          <div className="flex flex-col gap-6 items-end w-full">
             {currentRoutines.length > 0 ? (
               <div className="flex flex-col gap-4 items-start w-full">
                 {currentRoutines.map((routine, index) => {
@@ -264,7 +261,7 @@ export default function AthleteView() {
 
             {/* Continue Button - only show if there are routines */}
             {currentRoutines.length > 0 && (
-              <div className="w-full p-2">
+              <div className="w-full">
                 <Button
                   className="bg-primary text-primary-foreground flex gap-2 h-12 items-center justify-center px-6 py-3 rounded-full w-full"
                   onClick={() => setLocation(`/session-view?day=${selectedDay}`)}
