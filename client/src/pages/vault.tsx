@@ -9,7 +9,7 @@ export default function VaultPage() {
     <div className="min-h-screen bg-background pb-20">
       <div className="sticky top-0 z-50 bg-background border-b border-border">
         <div className="flex items-center justify-between p-4">
-          <Button variant="ghost" size="sm" onClick={() => setLocation("/athlete-view")} className="p-2">
+          <Button variant="ghost" size="sm" onClick={() => setLocation("/home")} className="p-2">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-lg font-semibold">Vault</h1>

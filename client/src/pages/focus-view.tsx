@@ -1,0 +1,283 @@
+import React, { useMemo, useState } from "react";
+import { useLocation } from "wouter";
+import { ArrowLeft, Play, CheckCircle, Clock, ChevronLeft, ChevronRight, Camera, FileText, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import EnterResultsBottomSheet from "@/components/EnterResultsBottomSheet";
+import ExerciseDetailsSheet from "@/components/ExerciseDetailsSheet";
+
+// For now reuse mock from execution-view idea
+const mockExercise = {
+  id: "3",
+  name: "Velocity Development",
+  sets: 4,
+  reps: "5-6",
+  restTime: "2 minutes",
+  equipment: ["Baseball", "Radar Gun"],
+  instructions: [
+    "Throw with maximum intent",
+    "Focus on velocity over accuracy",
+    "Use full throwing motion",
+    "Record each throw"
+  ],
+  formCues: [
+    "Explosive leg drive",
+    "Quick arm action",
+    "Full follow-through",
+    "Stay relaxed but powerful"
+  ],
+  loggedResults: [] as any[]
+};
+
+export default function FocusView() {
+  const [, setLocation] = useLocation();
+  const [showEnterResults, setShowEnterResults] = useState(false);
+  const [showExerciseDetails, setShowExerciseDetails] = useState(false);
+  const [currentSetIndex, setCurrentSetIndex] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(120);
+  const [setResults, setSetResults] = useState<any[]>(Array.from({ length: mockExercise.sets }, () => ({ reps: "" })));
+
+  const progressPercentage = useMemo(() => ((currentSetIndex) / mockExercise.sets) * 100, [currentSetIndex]);
+
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (timerRunning && timerSeconds > 0) {
+      interval = setInterval(() => {
+        setTimerSeconds(seconds => seconds - 1);
+      }, 1000);
+    } else if (timerSeconds === 0) {
+      setTimerRunning(false);
+    }
+    return () => clearInterval(interval);
+  }, [timerRunning, timerSeconds]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleSaveResults = (setIndex: number, result: any) => {
+    const next = [...setResults];
+    next[setIndex] = result;
+    setSetResults(next);
+    setShowEnterResults(false);
+  };
+
+  const goPrevSet = () => setCurrentSetIndex(i => Math.max(0, i - 1));
+  const goNextSet = () => setCurrentSetIndex(i => Math.min(mockExercise.sets - 1, i + 1));
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-background border-b border-border">
+        <div className="flex items-center justify-between p-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocation("/session-view")}
+            className="p-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="text-center">
+            <h1 className="text-lg font-semibold">{mockExercise.name}</h1>
+            <p className="text-sm text-muted-foreground">Set {currentSetIndex + 1} of {mockExercise.sets}</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setShowExerciseDetails(true)} className="p-2">
+            <Info className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Set navigation */}
+      <div className="px-4 py-3">
+        <div className="flex items-center justify-between">
+          <Button variant="outline" size="sm" onClick={goPrevSet} disabled={currentSetIndex === 0}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-2">
+            {Array.from({ length: mockExercise.sets }).map((_, idx) => (
+              <div key={idx} className={cn("w-2 h-2 rounded-full", idx === currentSetIndex ? "bg-primary" : "bg-muted-foreground/40")} />
+            ))}
+          </div>
+          <Button variant="outline" size="sm" onClick={goNextSet} disabled={currentSetIndex === mockExercise.sets - 1}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="mt-3">
+          <Progress value={progressPercentage} className="h-2" />
+        </div>
+      </div>
+
+      {/* Video and details area */}
+      <div className="px-4">
+        <div className="relative w-full rounded-2xl bg-muted overflow-hidden" style={{ aspectRatio: "16/9" }}>
+          {/* Placeholder video area */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Play className="h-10 w-10 text-muted-foreground" />
+          </div>
+        </div>
+      </div>
+
+      {/* Parameters and actions */}
+      <div className="px-4 py-4 space-y-3">
+        <Card>
+          <CardContent className="p-4 text-sm text-muted-foreground">
+            <div className="flex justify-between">
+              <span>Target</span>
+              <span>{mockExercise.reps}</span>
+            </div>
+            <div className="flex justify-between mt-1">
+              <span>Rest</span>
+              <span>{mockExercise.restTime}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Show saved result for current set */}
+        {(() => {
+          const r = setResults[currentSetIndex] || {};
+          const hasAny = (r.reps && r.reps.trim()) || r.weight || r.time || r.rpe || r.notes;
+          if (!hasAny) return null;
+          return (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Saved result • Set {currentSetIndex + 1}</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 text-sm">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-muted-foreground">Reps</div>
+                  <div className="text-foreground font-medium">{r.reps || "—"}</div>
+                  <div className="text-muted-foreground">Weight</div>
+                  <div className="text-foreground font-medium">{r.weight || "—"}</div>
+                  <div className="text-muted-foreground">Time</div>
+                  <div className="text-foreground font-medium">{r.time || "—"}</div>
+                  <div className="text-muted-foreground">RPE</div>
+                  <div className="text-foreground font-medium">{r.rpe || "—"}</div>
+                </div>
+                {r.notes && (
+                  <div className="mt-3">
+                    <div className="text-muted-foreground mb-1">Notes</div>
+                    <div className="text-foreground">{r.notes}</div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        <div className="flex gap-2">
+          <Button className="flex-1" onClick={() => setShowEnterResults(true)}>Add results</Button>
+          <Button variant="outline" onClick={goNextSet}>Next set</Button>
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4">
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setTimerRunning(v => !v)}
+          >
+            {timerRunning ? <Clock className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => {/* TODO: open camera */}}>
+            <Camera className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => {/* TODO: open notes */}}>
+            <FileText className="h-4 w-4" />
+          </Button>
+          <Button className="ml-auto" onClick={() => setLocation("/session-view")}>Finish exercise</Button>
+        </div>
+      </div>
+
+      {/* Floating timer */}
+      {timerRunning && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-40">
+          <Card className="shadow-lg border-2 border-primary">
+            <CardContent className="p-3">
+              <div className="text-center">
+                <div className="text-2xl font-mono font-bold text-primary mb-1">
+                  {formatTime(timerSeconds)}
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="outline" size="sm" onClick={() => setTimerRunning(false)} className="h-6 px-2 text-xs">Pause</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Review results (final step) */}
+      {(() => {
+        const allSetsHaveData = setResults.every(r => (r.reps && r.reps.trim()) || r.weight || r.time || r.rpe || r.notes);
+        if (!allSetsHaveData || currentSetIndex !== mockExercise.sets - 1) return null;
+        return (
+          <div className="px-4 pb-24">{/* keep space above bottom bar */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Review results</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                {setResults.map((r, idx) => (
+                  <div key={idx} className="p-3 rounded-lg bg-muted/50">
+                    <div className="text-sm font-medium mb-1">Set {idx + 1}</div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="text-muted-foreground">Reps</div>
+                      <div className="text-foreground">{r.reps || "—"}</div>
+                      <div className="text-muted-foreground">Weight</div>
+                      <div className="text-foreground">{r.weight || "—"}</div>
+                      <div className="text-muted-foreground">Time</div>
+                      <div className="text-foreground">{r.time || "—"}</div>
+                      <div className="text-muted-foreground">RPE</div>
+                      <div className="text-foreground">{r.rpe || "—"}</div>
+                    </div>
+                    {r.notes && <div className="text-xs text-muted-foreground mt-2">Notes: <span className="text-foreground">{r.notes}</span></div>}
+                  </div>
+                ))}
+                <Button className="w-full" onClick={() => setLocation("/session-view")}>Next exercise</Button>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })()}
+
+      {/* Bottom sheet for results */}
+      {showEnterResults && (
+        <EnterResultsBottomSheet
+          exerciseName={mockExercise.name}
+          sets={mockExercise.sets}
+          reps={mockExercise.reps}
+          currentSetIndex={currentSetIndex}
+          onSave={handleSaveResults}
+          onCancel={() => setShowEnterResults(false)}
+          existingResults={setResults}
+        />
+      )}
+
+      {/* Exercise details sheet */}
+      {showExerciseDetails && (
+        <ExerciseDetailsSheet
+          exercise={{
+            id: mockExercise.id,
+            name: mockExercise.name,
+            sets: mockExercise.sets,
+            reps: mockExercise.reps,
+            description: "Focus on velocity development",
+            instructions: mockExercise.instructions,
+            formCues: mockExercise.formCues,
+          } as any}
+          onClose={() => setShowExerciseDetails(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+

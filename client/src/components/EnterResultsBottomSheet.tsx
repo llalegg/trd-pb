@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-interface LoggedResult {
+interface SetResult {
   reps: string;
   weight?: string;
   time?: string;
@@ -32,9 +32,10 @@ interface EnterResultsBottomSheetProps {
   exerciseName: string;
   sets: number;
   reps: string;
-  onSave: (result: LoggedResult) => void;
+  currentSetIndex: number;
+  onSave: (setIndex: number, result: SetResult) => void;
   onCancel: () => void;
-  existingResult?: LoggedResult;
+  existingResults?: SetResult[];
 }
 
 export default function EnterResultsBottomSheet({
@@ -43,35 +44,29 @@ export default function EnterResultsBottomSheet({
   reps,
   onSave,
   onCancel,
-  existingResult,
+  existingResults,
+  currentSetIndex,
 }: EnterResultsBottomSheetProps) {
-  const [currentReps, setCurrentReps] = useState(existingResult?.reps || "");
-  const [currentWeight, setCurrentWeight] = useState(existingResult?.weight || "");
-  const [currentTime, setCurrentTime] = useState(existingResult?.time || "");
-  const [currentRPE, setCurrentRPE] = useState(existingResult?.rpe || "");
-  const [currentNotes, setCurrentNotes] = useState(existingResult?.notes || "");
+  const initialForSet: SetResult = useMemo(() => {
+    const empty: SetResult = { reps: "" };
+    if (existingResults && existingResults[currentSetIndex]) return existingResults[currentSetIndex];
+    return empty;
+  }, [existingResults, currentSetIndex]);
 
-  const hasChanges =
-    currentReps !== (existingResult?.reps || "") ||
-    currentWeight !== (existingResult?.weight || "") ||
-    currentTime !== (existingResult?.time || "") ||
-    currentRPE !== (existingResult?.rpe || "") ||
-    currentNotes !== (existingResult?.notes || "");
+  const [row, setRow] = useState<SetResult>(initialForSet);
+
+  const updateField = (field: keyof SetResult, value: string) => {
+    setRow(prev => ({ ...prev, [field]: value }));
+  };
+
+  const hasData = useMemo(() => (row.reps && row.reps.trim()) || row.weight || row.time || row.rpe || row.notes, [row]);
 
   const handleSave = () => {
-    if (!hasChanges && !currentReps && !currentWeight && !currentTime && !currentRPE && !currentNotes) {
-      onCancel(); // If no changes and no new data, just close
+    if (!hasData) {
+      onCancel();
       return;
     }
-
-    const result: LoggedResult = {
-      reps: currentReps,
-      ...(currentWeight && { weight: currentWeight }),
-      ...(currentTime && { time: currentTime }),
-      ...(currentRPE && { rpe: currentRPE }),
-      ...(currentNotes && { notes: currentNotes }),
-    };
-    onSave(result);
+    onSave(currentSetIndex, row);
   };
 
   return (
@@ -80,71 +75,78 @@ export default function EnterResultsBottomSheet({
         <SheetHeader>
           <SheetTitle className="text-lg">Log results</SheetTitle>
           <SheetDescription>
-            {exerciseName} • {sets} sets x {reps} reps
+            {exerciseName} • Set {currentSetIndex + 1} of {sets} • Target {reps}
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto py-6 space-y-6">
+        <div className="flex-1 overflow-y-auto py-6 space-y-3">
           <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Set {currentSetIndex + 1}</CardTitle>
+            </CardHeader>
             <CardContent className="p-4 space-y-4">
-              <div>
-                <Label htmlFor="reps">Reps</Label>
-                <Input
-                  id="reps"
-                  type="text"
-                  placeholder="e.g., 10, 8, 6"
-                  value={currentReps}
-                  onChange={(e) => setCurrentReps(e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor={`reps`}>Reps</Label>
+                  <Input
+                    id={`reps`}
+                    type="text"
+                    placeholder="e.g., 10"
+                    value={row.reps}
+                    onChange={(e) => updateField("reps", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor={`weight`}>Weight (lbs)</Label>
+                  <Input
+                    id={`weight`}
+                    type="text"
+                    placeholder="e.g., 135"
+                    value={row.weight || ""}
+                    onChange={(e) => updateField("weight", e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor={`time`}>Time (seconds)</Label>
+                  <Input
+                    id={`time`}
+                    type="text"
+                    placeholder="e.g., 60"
+                    value={row.time || ""}
+                    onChange={(e) => updateField("time", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor={`rpe`}>RPE</Label>
+                  <Select value={row.rpe || ""} onValueChange={(val) => updateField("rpe", val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select RPE" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 - Very Light</SelectItem>
+                      <SelectItem value="2">2 - Light</SelectItem>
+                      <SelectItem value="3">3 - Moderate</SelectItem>
+                      <SelectItem value="4">4 - Somewhat Hard</SelectItem>
+                      <SelectItem value="5">5 - Hard</SelectItem>
+                      <SelectItem value="6">6 - Very Hard</SelectItem>
+                      <SelectItem value="7">7 - Extremely Hard</SelectItem>
+                      <SelectItem value="8">8 - Max Effort</SelectItem>
+                      <SelectItem value="9">9 - Max Effort (with spot)</SelectItem>
+                      <SelectItem value="10">10 - Max Effort (no spot)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div>
-                <Label htmlFor="weight">Weight (lbs)</Label>
-                <Input
-                  id="weight"
-                  type="text"
-                  placeholder="e.g., 135, 140"
-                  value={currentWeight}
-                  onChange={(e) => setCurrentWeight(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="time">Time (seconds)</Label>
-                <Input
-                  id="time"
-                  type="text"
-                  placeholder="e.g., 60, 45"
-                  value={currentTime}
-                  onChange={(e) => setCurrentTime(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="rpe">RPE (Rate of Perceived Exertion)</Label>
-                <Select value={currentRPE} onValueChange={setCurrentRPE}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select RPE" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 - Very Light</SelectItem>
-                    <SelectItem value="2">2 - Light</SelectItem>
-                    <SelectItem value="3">3 - Moderate</SelectItem>
-                    <SelectItem value="4">4 - Somewhat Hard</SelectItem>
-                    <SelectItem value="5">5 - Hard</SelectItem>
-                    <SelectItem value="6">6 - Very Hard</SelectItem>
-                    <SelectItem value="7">7 - Extremely Hard</SelectItem>
-                    <SelectItem value="8">8 - Max Effort</SelectItem>
-                    <SelectItem value="9">9 - Max Effort (with spot)</SelectItem>
-                    <SelectItem value="10">10 - Max Effort (no spot)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor={`notes`}>Notes</Label>
                 <Textarea
-                  id="notes"
-                  placeholder="Add any additional notes about this exercise..."
-                  value={currentNotes}
-                  onChange={(e) => setCurrentNotes(e.target.value)}
-                  rows={3}
+                  id={`notes`}
+                  placeholder="Notes for this set..."
+                  value={row.notes || ""}
+                  onChange={(e) => updateField("notes", e.target.value)}
+                  rows={2}
                 />
               </div>
             </CardContent>

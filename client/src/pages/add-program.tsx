@@ -86,6 +86,12 @@ const routineTypeOptions = [
   { id: "lifting", label: "Lifting" },
 ];
 
+const splitTypeOptions = [
+  { id: "2", label: "2-day split", days: ["Monday", "Thursday"] },
+  { id: "3", label: "3-day split", days: ["Monday", "Wednesday", "Friday"] },
+  { id: "4", label: "4-day split", days: ["Monday", "Tuesday", "Thursday", "Friday"] },
+];
+
 const DEFAULT_BLOCK_DURATION = 4;
 
 const programFormSchema = z.object({
@@ -197,6 +203,10 @@ export default function AddProgram() {
   
   // Block durations state
   const [blockDurations, setBlockDurations] = useState<Map<number, number>>(new Map());
+  
+  // Block start/end dates state for individual block date control
+  const [blockStartDates, setBlockStartDates] = useState<Map<number, Date>>(new Map());
+  const [blockEndDates, setBlockEndDates] = useState<Map<number, Date>>(new Map());
   
   // Routine settings state - stores settings at block level by default
   const [blockSettings, setBlockSettings] = useState<Map<number, Partial<RoutineSettings>>>(new Map());
@@ -365,14 +375,14 @@ export default function AddProgram() {
   // Returns day indices that should be ACTIVE (not hidden)
   const getTrainingDays = (split: string): number[] => {
     switch (split) {
-      case "4-day":
-        return [1, 3, 5, 6]; // Mon, Wed, Fri, Sat
-      case "3-day":
+      case "4":
+        return [1, 2, 4, 5]; // Mon, Tue, Thu, Fri
+      case "3":
         return [1, 3, 5]; // Mon, Wed, Fri
-      case "2-day":
+      case "2":
         return [1, 4]; // Mon, Thu
       default:
-        return [1, 3, 5, 6]; // Default to 4-day
+        return [1, 2, 4, 5]; // Default to 4-day split
     }
   };
 
@@ -385,7 +395,7 @@ export default function AddProgram() {
     
     // If we're viewing a specific block in days view, use that block's training split
     if (viewMode === "days" && blocks.length > 0 && blocks[selectedBlockIndex]) {
-      const trainingSplit = blockTrainingSplits.get(selectedBlockIndex) || "4-day";
+      const trainingSplit = blockTrainingSplits.get(selectedBlockIndex) || "4";
       const activeDays = getTrainingDays(trainingSplit);
       
       // Hide all days except the active training days
@@ -406,14 +416,16 @@ export default function AddProgram() {
         // Calculate total days in block
         const totalDays = Math.ceil((block.endDate.getTime() - block.startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
         
-        // Count training days (excluding days off - Sunday by default is in daysOff)
+        // Count training days based on split type
+        const splitType = blockTrainingSplits.get(index) || "4";
+        const activeTrainingDays = getTrainingDays(splitType);
         let trainingDays = 0;
         let currentDate = new Date(block.startDate);
         
         for (let i = 0; i < totalDays; i++) {
           const dayOfWeek = currentDate.getDay();
-          // Count day if it's not in daysOff (Sunday = 0 is in daysOff by default)
-          if (!daysOff.has(dayOfWeek)) {
+          // Count day if it's in the active training days for this split
+          if (activeTrainingDays.includes(dayOfWeek)) {
             trainingDays++;
           }
           currentDate = addDays(currentDate, 1);
@@ -1137,7 +1149,7 @@ export default function AddProgram() {
           <form id="program-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
             {/* Step 1: General Settings */}
             {currentStep === 1 && (
-              <div className="max-w-[560px] space-y-6 py-[20px]">
+              <div className="max-w-[720px] space-y-6 py-[20px]">
                 <FormField
                   control={form.control}
                   name="athleteId"
@@ -1427,8 +1439,10 @@ export default function AddProgram() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Block</TableHead>
-                          <TableHead>Date range</TableHead>
+                          <TableHead>Start Date</TableHead>
+                          <TableHead>End Date</TableHead>
                           <TableHead>Duration (weeks)</TableHead>
+                          <TableHead>Split Type</TableHead>
                           <TableHead>Phase</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1438,30 +1452,87 @@ export default function AddProgram() {
                             <TableCell className="font-medium" data-testid={`block-name-${index + 1}`}>
                               {block.name}
                             </TableCell>
-                            <TableCell data-testid={`block-dates-${index + 1}`}>
-                              {format(block.startDate, "MM/dd/yy")} - {format(block.endDate, "MM/dd/yy")}
+                            <TableCell data-testid={`block-start-date-${index + 1}`}>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className="h-8 text-xs font-normal border-0 shadow-none focus:ring-0 focus:ring-offset-0 justify-start"
+                                  >
+                                    {format(blockStartDates.get(index) || block.startDate, "MM/dd/yy")}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={blockStartDates.get(index) || block.startDate}
+                                    onSelect={(date) => {
+                                      if (date) {
+                                        setBlockStartDates(prev => {
+                                          const newMap = new Map(prev);
+                                          newMap.set(index, date);
+                                          return newMap;
+                                        });
+                                      }
+                                    }}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            </TableCell>
+                            <TableCell data-testid={`block-end-date-${index + 1}`}>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className="h-8 text-xs font-normal border-0 shadow-none focus:ring-0 focus:ring-offset-0 justify-start"
+                                  >
+                                    {format(blockEndDates.get(index) || block.endDate, "MM/dd/yy")}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={blockEndDates.get(index) || block.endDate}
+                                    onSelect={(date) => {
+                                      if (date) {
+                                        setBlockEndDates(prev => {
+                                          const newMap = new Map(prev);
+                                          newMap.set(index, date);
+                                          return newMap;
+                                        });
+                                      }
+                                    }}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
                             </TableCell>
                             <TableCell data-testid={`block-duration-${index + 1}`}>
+                              <div className="text-xs text-muted-foreground">
+                                {differenceInWeeks(blockEndDates.get(index) || block.endDate, blockStartDates.get(index) || block.startDate)} weeks
+                              </div>
+                            </TableCell>
+                            <TableCell data-testid={`block-split-${index + 1}`}>
                               <Select 
-                                value={(blockDurations.get(index) || DEFAULT_BLOCK_DURATION).toString()}
+                                value={blockTrainingSplits.get(index) || "4"}
                                 onValueChange={(value) => {
-                                  setBlockDurations(prev => {
+                                  setBlockTrainingSplits(prev => {
                                     const newMap = new Map(prev);
-                                    newMap.set(index, parseInt(value));
+                                    newMap.set(index, value);
                                     return newMap;
                                   });
-                                  // Recalculate subsequent blocks with locked dates
-                                  recalculateBlocks(index, parseInt(value));
                                 }}
                               >
                                 <SelectTrigger className="h-8 text-xs font-normal border-0 shadow-none focus:ring-0 focus:ring-offset-0">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="2">2 weeks</SelectItem>
-                                  <SelectItem value="4">4 weeks</SelectItem>
-                                  <SelectItem value="6">6 weeks</SelectItem>
-                                  <SelectItem value="8">8 weeks</SelectItem>
+                                  {splitTypeOptions.map((option) => (
+                                    <SelectItem key={option.id} value={option.id}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                             </TableCell>

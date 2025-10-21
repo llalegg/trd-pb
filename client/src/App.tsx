@@ -8,6 +8,7 @@ import AddProgram from "@/pages/add-program";
 import AthleteView from "@/pages/athlete-view";
 import SessionView from "@/pages/session-view";
 import ExecutionView from "@/pages/execution-view";
+import FocusView from "@/pages/focus-view";
 import NotFound from "@/pages/not-found";
 import MessagesPage from "@/pages/messages";
 import VaultPage from "@/pages/vault";
@@ -20,7 +21,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Programs} />
       <Route path="/add-program" component={AddProgram} />
-      <Route path="/athlete-view" component={AthleteView} />
+      <Route path="/home" component={AthleteView} />
       <Route path="/messages" component={MessagesPage} />
       <Route path="/vault" component={VaultPage} />
       <Route path="/me" component={MePage} />
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/week-page" component={WeekPage} />
       <Route path="/session-view" component={SessionView} />
       <Route path="/execution-view" component={ExecutionView} />
+      <Route path="/focus-view" component={FocusView} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,234 +1,364 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Play, CheckCircle, Clock, Dumbbell, Target, Zap, Moon, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
-import { format, addDays, startOfWeek, endOfWeek, isToday, isSameDay } from "date-fns";
+import { ChevronDown, ChevronRight, ChevronLeft, Moon, Calendar } from "lucide-react";
 import MobileTabBar from "@/components/MobileTabBar";
+import { getExercisesForDay } from "@/lib/sessionData";
 
-// Mock data for athlete program
-const mockProgram = {
-  id: "1",
-  programId: "P123456",
-  athleteName: "Sarah Johnson",
-  startDate: "2025-01-15",
-  endDate: "2025-03-15",
-  routineTypes: ["throwing", "movement", "lifting"],
-  blockDuration: 8,
-};
+// Image assets from Figma
+const imgVector = "http://localhost:3845/assets/14a1440996fb831339d674011bb1aee591393b35.svg";
+const imgVector1 = "http://localhost:3845/assets/50fdb6383d561681b93fcab7a2b2c98b2ad32725.svg";
+const imgTimer = "http://localhost:3845/assets/3318047abfbab8ad4554ff44c19ceb6fb726445f.svg";
+const imgCurrentDayIndicator = "http://localhost:3845/assets/de280e049fb3261c679d633b4f3a1843f9c02e36.svg";
+const imgProgressChart = "http://localhost:3845/assets/a58d63cfbad335456531a7adb68e74b80af3830a.svg";
+const imgPlay = "http://localhost:3845/assets/a550711f1ea8cd2067f00618e6675bddb3e494cc.svg";
 
-const mockWeekSchedule = [
-  {
-    date: "2025-01-20",
-    dayOfWeek: "Monday",
-    isRestDay: false,
-    routines: [
-      { type: "throwing", name: "Throwing Session", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" },
-      { type: "movement", name: "Movement Prep", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" },
-      { type: "lifting", name: "Upper Body Strength", exerciseCount: 8, estimatedTime: "60 min", status: "not-started" },
-    ]
-  },
-  {
-    date: "2025-01-21",
-    dayOfWeek: "Tuesday",
-    isRestDay: true,
-    routines: []
-  },
-  {
-    date: "2025-01-22",
-    dayOfWeek: "Wednesday",
-    isRestDay: false,
-    routines: [
-      { type: "throwing", name: "Throwing Session", exerciseCount: 5, estimatedTime: "40 min", status: "not-started" },
-      { type: "movement", name: "Recovery Movement", exerciseCount: 3, estimatedTime: "25 min", status: "not-started" },
-    ]
-  },
-  {
-    date: "2025-01-23",
-    dayOfWeek: "Thursday",
-    isRestDay: false,
-    routines: [
-      { type: "lifting", name: "Lower Body Strength", exerciseCount: 7, estimatedTime: "55 min", status: "not-started" },
-      { type: "movement", name: "Movement Prep", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" },
-    ]
-  },
-  {
-    date: "2025-01-24",
-    dayOfWeek: "Friday",
-    isRestDay: false,
-    routines: [
-      { type: "throwing", name: "Throwing Session", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" },
-    ]
-  },
-  {
-    date: "2025-01-25",
-    dayOfWeek: "Saturday",
-    isRestDay: true,
-    routines: []
-  },
-  {
-    date: "2025-01-26",
-    dayOfWeek: "Sunday",
-    isRestDay: true,
-    routines: []
-  },
-];
+function IconChevronRight({ className }: { className?: string }) {
+  return (
+    <div className={className}>
+      <div className="absolute bottom-1/4 left-[37.5%] right-[37.5%] top-1/4">
+        <div className="absolute inset-[-8.33%_-16.67%]" style={{ "--stroke-0": "rgba(24, 24, 27, 1)" } as React.CSSProperties}>
+          <img alt="" className="block max-w-none size-full" src={imgVector} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
-const routineTypeIcons = {
-  throwing: Target,
-  movement: Zap,
-  lifting: Dumbbell,
-};
+function IconChevronDown({ className }: { className?: string }) {
+  return (
+    <div className={className}>
+      <div className="absolute bottom-[37.5%] left-1/4 right-1/4 top-[37.5%]">
+        <div className="absolute inset-[-16.67%_-8.33%]" style={{ "--stroke-0": "rgba(24, 24, 27, 1)" } as React.CSSProperties}>
+          <img alt="" className="block max-w-none size-full" src={imgVector1} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Circular Progress Component
+function CircularProgress({ progress, size = 32 }: { progress: number; size?: number }) {
+  const radius = (size - 4) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg
+        className="w-full h-full transform -rotate-90"
+        width={size}
+        height={size}
+      >
+        {/* Background circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="rgba(255, 255, 255, 0.16)"
+          strokeWidth="2"
+          fill="none"
+        />
+        {/* Progress circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="rgba(255, 255, 255, 1)"
+          strokeWidth="2"
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+}
 
 export default function AthleteView() {
   const [, setLocation] = useLocation();
-  const [selectedDate, setSelectedDate] = useState(new Date("2025-01-20"));
-  
-  // Get current week's schedule
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
-  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
-  
-  const currentWeekSchedule = mockWeekSchedule.map(day => ({
-    ...day,
-    dateObj: new Date(day.date)
-  }));
+  const [selectedMonth, setSelectedMonth] = useState("Jul");
+  const [selectedDay, setSelectedDay] = useState(17);
+  const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+  const [showFullCalendar, setShowFullCalendar] = useState(false);
+  const [currentMonthIndex, setCurrentMonthIndex] = useState(6); // July is index 6
 
-  const todaySchedule = currentWeekSchedule.find(day => isToday(day.dateObj));
-  const selectedDaySchedule = currentWeekSchedule.find(day => isSameDay(day.dateObj, selectedDate));
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "complete":
-        return <CheckCircle className="h-4 w-4 text-muted-foreground" />;
-      case "in-progress":
-        return <Clock className="h-4 w-4 text-muted-foreground" />;
-      default:
-        return <Play className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
+  // Enhanced week days with routine counts and rest day indicators
+  const weekDays = [
+    { day: "M", date: 16, isCurrent: false, routineCount: 2, isRestDay: false },
+    { day: "T", date: 17, isCurrent: true, routineCount: 3, isRestDay: false },
+    { day: "W", date: 18, isCurrent: false, routineCount: 0, isRestDay: true },
+    { day: "T", date: 19, isCurrent: false, routineCount: 2, isRestDay: false },
+    { day: "F", date: 20, isCurrent: false, routineCount: 1, isRestDay: false },
+    { day: "S", date: 21, isCurrent: false, routineCount: 0, isRestDay: true },
+    { day: "S", date: 22, isCurrent: false, routineCount: 1, isRestDay: false },
+  ];
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "complete":
-        return "Complete";
-      case "in-progress":
-        return "In Progress";
-      default:
-        return "Not Started";
-    }
-  };
+  const currentRoutines = getExercisesForDay(selectedDay);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="bg-zinc-950 relative min-h-screen w-full">
+      <div className="flex flex-col gap-4 items-start px-4 pt-10 pb-20 w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl mx-auto">
+        {/* Calendar Header */}
+        <div className="flex gap-2 items-center w-full">
+          <button
+            onClick={() => setShowFullCalendar(!showFullCalendar)}
+            className="flex gap-2 items-center hover:opacity-80 transition-opacity"
+          >
+            <Calendar className="h-5 w-5 text-white" />
+            <p className="font-medium text-2xl leading-none text-white">
+              {selectedMonth}
+            </p>
+          </button>
 
-
-      {/* Day Selector */}
-      <div className="p-4">
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {currentWeekSchedule.map((day) => {
-            const isSelected = isSameDay(day.dateObj, selectedDate);
-            const isTodayDate = day.dateObj.getDate() === 20; // Current day is 20
-            const isPastDay = day.dateObj.getDate() < 20; // Previous days are disabled
-            const isDisabled = isPastDay;
-            
-            return (
-              <Button
-                key={day.date}
-                variant={isSelected ? "default" : "outline"}
-                size="sm"
-                onClick={() => !isDisabled && setSelectedDate(day.dateObj)}
-                disabled={isDisabled}
-                className={cn(
-                  "flex-shrink-0 min-w-[80px] flex-col h-16 gap-1",
-                  isTodayDate && "ring-2 ring-primary/50",
-                  isDisabled && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <span className="text-xs font-medium">{day.dayOfWeek.slice(0, 3)}</span>
-                <span className="text-sm font-semibold">{day.dateObj.getDate()}</span>
-                {day.isRestDay && (
-                  <div className="w-2 h-2 rounded-full bg-muted-foreground" />
-                )}
-              </Button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Training Session Card */}
-      <div className="px-4 pb-4">
-        <Card 
-          className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => !selectedDaySchedule?.isRestDay && setLocation("/session-view")}
-        >
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">
-                  {selectedDaySchedule?.isRestDay ? "Rest Day" : "Training Session"}
-                </CardTitle>
-                {!selectedDaySchedule?.isRestDay && (
-                  <CardDescription>
-                    Block 1 • Week 1
-                  </CardDescription>
-                )}
+          {showFullCalendar && (
+            <div className="absolute top-16 left-4 right-4 sm:left-auto sm:right-auto sm:w-auto bg-neutral-800 border border-neutral-700 rounded-2xl p-4 z-10">
+              {/* Month Navigation */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => {
+                    const newIndex = currentMonthIndex > 0 ? currentMonthIndex - 1 : 11;
+                    setCurrentMonthIndex(newIndex);
+                    setSelectedMonth(months[newIndex]);
+                  }}
+                  className="p-2 hover:bg-neutral-700 rounded-xl transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4 text-white" />
+                </button>
+                <h3 className="text-lg font-semibold text-white">{months[currentMonthIndex]} 2024</h3>
+                <button
+                  onClick={() => {
+                    const newIndex = currentMonthIndex < 11 ? currentMonthIndex + 1 : 0;
+                    setCurrentMonthIndex(newIndex);
+                    setSelectedMonth(months[newIndex]);
+                  }}
+                  className="p-2 hover:bg-neutral-700 rounded-xl transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4 text-white" />
+                </button>
               </div>
-              {!selectedDaySchedule?.isRestDay && (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              )}
+              
+              {/* Full Calendar Grid */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {["S", "M", "T", "W", "T", "F", "S"].map((day) => (
+                  <div key={day} className="text-center text-xs text-muted-foreground p-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Calendar Days */}
+              <div className="grid grid-cols-7 gap-1">
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                  <button
+                    key={day}
+                    onClick={() => {
+                      setSelectedDay(day);
+                      setShowFullCalendar(false);
+                    }}
+                    className={`p-2 text-sm rounded-xl transition-colors ${
+                      day === selectedDay
+                        ? "bg-primary text-primary-foreground"
+                        : day === 17
+                        ? "bg-accent-foreground/10 text-accent-foreground border border-accent-foreground"
+                        : "text-white hover:bg-neutral-700"
+                    }`}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            {selectedDaySchedule?.isRestDay ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-                  <Moon className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Rest Day</h3>
-                <p className="text-muted-foreground">
-                  Take time to recover and prepare for tomorrow's training.
-                </p>
+          )}
+
+          {showMonthDropdown && !showFullCalendar && (
+            <div className="absolute top-16 left-4 right-4 sm:left-auto sm:right-auto sm:w-auto bg-neutral-800 border border-neutral-700 rounded-2xl p-2 z-10">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1">
+                {months.map((month) => (
+                  <button
+                    key={month}
+                    onClick={() => {
+                      setSelectedMonth(month);
+                      setShowMonthDropdown(false);
+                    }}
+                    className={`px-3 py-2 text-sm rounded-xl transition-colors ${
+                      month === selectedMonth
+                        ? "bg-primary text-primary-foreground"
+                        : "text-white hover:bg-neutral-700"
+                    }`}
+                  >
+                    {month}
+                  </button>
+                ))}
               </div>
-            ) : (
-              <div className="space-y-3">
-                {selectedDaySchedule?.routines.map((routine) => {
-                  const IconComponent = routineTypeIcons[routine.type as keyof typeof routineTypeIcons];
+            </div>
+          )}
+        </div>
+
+        {/* Calendar Week View */}
+        <div className="flex gap-2 items-center w-full overflow-x-auto pb-2 -mx-4 pl-4">
+          {weekDays.map((dayData, index) => (
+            <button
+              key={index}
+              onClick={() => setSelectedDay(dayData.date)}
+              className={`flex flex-col gap-1 items-center justify-center p-3 rounded-2xl min-w-[70px] h-[80px] shrink-0 transition-colors ${
+                dayData.isCurrent
+                  ? "border-2 border-accent-foreground bg-accent-foreground/10"
+                  : selectedDay === dayData.date
+                  ? "border border-accent-foreground bg-accent-foreground/5"
+                  : "border border-border hover:border-accent-foreground/50"
+              }`}
+            >
+              <p className="text-xs sm:text-sm text-muted-foreground">{dayData.day}</p>
+              <p className="text-xs sm:text-sm text-foreground">{dayData.date}</p>
+              
+              {/* Rest day moon icon or routine dots */}
+              {dayData.isRestDay ? (
+                <Moon className="h-3 w-3 text-muted-foreground" />
+              ) : dayData.routineCount > 0 ? (
+                <div className="flex gap-0.5">
+                  {Array.from({ length: Math.min(dayData.routineCount, 3) }, (_, i) => (
+                    <div key={i} className="h-1 w-1 rounded-full bg-accent-foreground" />
+                  ))}
+                  {dayData.routineCount > 3 && (
+                    <div className="h-1 w-1 rounded-full bg-muted-foreground" />
+                  )}
+                </div>
+              ) : (
+                <div className="h-1 w-1" />
+              )}
+              
+              {dayData.isCurrent && (
+                <div className="h-1 sm:h-1.5 w-1 sm:w-1.5 rounded-full bg-accent-foreground" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Stats Cards */}
+        <div className="flex gap-3 w-full overflow-x-auto pb-2 -mx-4 pl-4">
+          <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl min-w-[140px] shrink-0">
+            <p className="text-sm text-muted-foreground">
+              Weight lifted (lbs)
+            </p>
+            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">
+              267
+            </p>
+          </div>
+          <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl min-w-[140px] shrink-0">
+            <p className="text-sm text-muted-foreground">
+              Distance (miles)
+            </p>
+            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">
+              2.5
+            </p>
+          </div>
+          <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl min-w-[140px] shrink-0">
+            <p className="text-sm text-muted-foreground">
+              Height (ft/in)
+            </p>
+            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">
+              5'10"
+            </p>
+          </div>
+          <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl min-w-[140px] shrink-0">
+            <p className="text-sm text-muted-foreground">
+              Sets Completed
+            </p>
+            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">
+              12
+            </p>
+          </div>
+          <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl min-w-[140px] shrink-0">
+            <p className="text-sm text-muted-foreground">
+              Workout Time
+            </p>
+            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">
+              2h 15m
+            </p>
+          </div>
+        </div>
+
+        {/* Training Session */}
+        <div className="flex flex-col gap-3 items-start w-full">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between w-full">
+            <p className="font-medium text-base text-muted-foreground">
+              Training session
+            </p>
+            <div className="flex gap-2">
+              <Badge variant="secondary" className="bg-secondary text-secondary-foreground rounded-full px-3 py-1">
+                Block 1
+              </Badge>
+              <Badge variant="outline" className="bg-background border-border rounded-full px-3 py-1">
+                Week 1
+              </Badge>
+            </div>
+          </div>
+
+          {/* Training Session Card */}
+          <div className="bg-neutral-900 flex flex-col gap-6 items-end p-2 rounded-2xl w-full">
+            {currentRoutines.length > 0 ? (
+              <div className="flex flex-col gap-4 items-start w-full">
+                {currentRoutines.map((routine, index) => {
+                  const progress = routine.exercises.length > 0 
+                    ? Math.round((routine.exercises.reduce((sum, ex) => sum + ex.completedSets, 0) / routine.exercises.reduce((sum, ex) => sum + ex.sets, 0)) * 100)
+                    : 0;
                   
                   return (
-                    <div 
-                      key={routine.type}
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    <button
+                      key={index}
+                      className="flex gap-4 sm:gap-5 items-center w-full hover:bg-neutral-800/50 p-3 rounded-2xl transition-colors"
+                      onClick={() => setLocation(`/session-view?day=${selectedDay}`)}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                          <IconComponent className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-sm">{routine.name}</h4>
-                          <p className="text-xs text-muted-foreground">
-                            {routine.exerciseCount} exercises • {routine.estimatedTime}
-                          </p>
+                      <CircularProgress progress={progress} size={32} />
+                      <div className="flex flex-col gap-1 grow items-start">
+                        <p className="font-medium text-base sm:text-lg text-white">
+                          {routine.name}
+                        </p>
+                        <div className="flex gap-3 items-start text-sm text-muted-foreground">
+                          <p>{routine.exerciseCount} exercises</p>
+                          <p>{routine.estimatedTime}</p>
+                          <p>{routine.exercises.reduce((sum, ex) => sum + ex.completedSets, 0)}/{routine.exercises.reduce((sum, ex) => sum + ex.sets, 0)} sets</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(routine.status)}
-                        <span className="text-xs text-muted-foreground">
-                          {getStatusText(routine.status)}
-                        </span>
-                      </div>
-                    </div>
+                      <IconChevronRight className="w-6 h-6 sm:w-7 sm:h-7 relative shrink-0" />
+                    </button>
                   );
                 })}
               </div>
+            ) : (
+              <div className="flex flex-col gap-4 items-center justify-center w-full py-12">
+                <Moon className="h-16 w-16 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="font-medium text-lg text-muted-foreground mb-3">Rest Day</p>
+                  <p className="text-base text-muted-foreground">No training scheduled for this day</p>
+                </div>
+              </div>
             )}
-          </CardContent>
-        </Card>
+
+            {/* Continue Button - only show if there are routines */}
+            {currentRoutines.length > 0 && (
+              <Button
+                className="bg-primary text-primary-foreground flex gap-2 h-12 items-center justify-center px-6 py-3 rounded-full w-full"
+                onClick={() => setLocation(`/session-view?day=${selectedDay}`)}
+              >
+                <div className="w-5 h-5 relative shrink-0">
+                  <div className="absolute bottom-[12.5%] left-1/4 right-[16.67%] top-[12.5%]">
+                    <div className="absolute inset-[-5.54%_-7.13%]" style={{ "--stroke-0": "rgba(24, 24, 27, 1)" } as React.CSSProperties}>
+                      <img alt="" className="block max-w-none size-full" src={imgPlay} />
+                    </div>
+                  </div>
+                </div>
+                <p className="font-medium text-base">Continue</p>
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
-
-
 
       <MobileTabBar />
     </div>

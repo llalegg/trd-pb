@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface LoggedResult {
+interface SetResult {
   reps: string;
   weight?: string;
   time?: string;
@@ -25,9 +25,9 @@ interface EnterResultsModalProps {
   exerciseName: string;
   sets: number;
   reps: string;
-  onSave: (result: LoggedResult) => void;
+  onSave: (results: SetResult[]) => void;
   onCancel: () => void;
-  existingResult?: LoggedResult;
+  existingResults?: SetResult[];
 }
 
 export default function EnterResultsModal({
@@ -36,27 +36,37 @@ export default function EnterResultsModal({
   reps,
   onSave,
   onCancel,
-  existingResult
+  existingResults
 }: EnterResultsModalProps) {
-  const [formData, setFormData] = useState<LoggedResult>({
-    reps: existingResult?.reps || "",
-    weight: existingResult?.weight || "",
-    time: existingResult?.time || "",
-    rpe: existingResult?.rpe || "",
-    notes: existingResult?.notes || ""
-  });
+  const initialRows: SetResult[] = useMemo(() => {
+    if (existingResults && existingResults.length > 0) {
+      const copy = [...existingResults];
+      if (copy.length < sets) {
+        const empty: SetResult = { reps: "" };
+        return [...copy, ...Array.from({ length: sets - copy.length }, () => ({ ...empty }))];
+      }
+      return copy.slice(0, sets);
+    }
+    return Array.from({ length: sets }, () => ({ reps: "" }));
+  }, [existingResults, sets]);
 
-  const handleInputChange = (field: keyof LoggedResult, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const [setResults, setSetResults] = useState<SetResult[]>(initialRows);
+
+  const updateSetField = (index: number, field: keyof SetResult, value: string) => {
+    setSetResults(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
   };
 
   const handleSave = () => {
-    // Only save if at least one field has content
-    if (formData.reps.trim() || formData.weight?.trim() || formData.time?.trim() || formData.notes?.trim()) {
-      onSave(formData);
-    } else {
+    const anyData = setResults.some(r => (r.reps && r.reps.trim()) || r.weight || r.time || r.rpe || r.notes);
+    if (!anyData) {
       onCancel();
+      return;
     }
+    onSave(setResults);
   };
 
   const rpeOptions = Array.from({ length: 10 }, (_, i) => i + 1);
@@ -85,68 +95,75 @@ export default function EnterResultsModal({
             Target: {sets} sets × {reps}
           </div>
 
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="reps">Reps</Label>
-                <Input
-                  id="reps"
-                  value={formData.reps}
-                  onChange={(e) => handleInputChange("reps", e.target.value)}
-                  placeholder="e.g., 10"
-                />
-              </div>
-              <div>
-                <Label htmlFor="weight">Weight (lbs)</Label>
-                <Input
-                  id="weight"
-                  value={formData.weight || ""}
-                  onChange={(e) => handleInputChange("weight", e.target.value)}
-                  placeholder="e.g., 135"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="time">Time</Label>
-                <Input
-                  id="time"
-                  value={formData.time || ""}
-                  onChange={(e) => handleInputChange("time", e.target.value)}
-                  placeholder="e.g., 1:30"
-                />
-              </div>
-              <div>
-                <Label htmlFor="rpe">RPE</Label>
-                <Select
-                  value={formData.rpe || ""}
-                  onValueChange={(value) => handleInputChange("rpe", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rpeOptions.map((rpe) => (
-                      <SelectItem key={rpe} value={rpe.toString()}>
-                        {rpe} - {rpe <= 3 ? "Very Easy" : rpe <= 5 ? "Easy" : rpe <= 7 ? "Moderate" : rpe <= 9 ? "Hard" : "Max Effort"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes || ""}
-                onChange={(e) => handleInputChange("notes", e.target.value)}
-                placeholder="How did it feel? Any adjustments needed?"
-                rows={3}
-              />
-            </div>
+          <div className="space-y-3">
+            {setResults.map((row, idx) => (
+              <Card key={idx}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Set {idx + 1}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor={`reps-${idx}`}>Reps</Label>
+                      <Input
+                        id={`reps-${idx}`}
+                        value={row.reps}
+                        onChange={(e) => updateSetField(idx, "reps", e.target.value)}
+                        placeholder="e.g., 10"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`weight-${idx}`}>Weight (lbs)</Label>
+                      <Input
+                        id={`weight-${idx}`}
+                        value={row.weight || ""}
+                        onChange={(e) => updateSetField(idx, "weight", e.target.value)}
+                        placeholder="e.g., 135"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor={`time-${idx}`}>Time</Label>
+                      <Input
+                        id={`time-${idx}`}
+                        value={row.time || ""}
+                        onChange={(e) => updateSetField(idx, "time", e.target.value)}
+                        placeholder="e.g., 1:30"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`rpe-${idx}`}>RPE</Label>
+                      <Select
+                        value={row.rpe || ""}
+                        onValueChange={(value) => updateSetField(idx, "rpe", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {rpeOptions.map((rpe) => (
+                            <SelectItem key={rpe} value={rpe.toString()}>
+                              {rpe} - {rpe <= 3 ? "Very Easy" : rpe <= 5 ? "Easy" : rpe <= 7 ? "Moderate" : rpe <= 9 ? "Hard" : "Max Effort"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor={`notes-${idx}`}>Notes</Label>
+                    <Textarea
+                      id={`notes-${idx}`}
+                      value={row.notes || ""}
+                      onChange={(e) => updateSetField(idx, "notes", e.target.value)}
+                      placeholder="How did it feel? Any adjustments needed?"
+                      rows={2}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           <div className="flex gap-2 pt-4">

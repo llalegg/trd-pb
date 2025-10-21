@@ -239,7 +239,7 @@ export default function ExecutionView() {
   };
 
 
-  const handleSaveResults = (result: any) => {
+  const handleSaveResults = (_setIndex: number, result: any) => {
     setExerciseResults([result]);
     setShowEnterResults(false);
     // TODO: Update exercise status to complete
@@ -481,9 +481,10 @@ export default function ExecutionView() {
           exerciseName={currentExercise.name}
           sets={currentExercise.sets}
           reps={currentExercise.reps}
+          currentSetIndex={0}
           onSave={handleSaveResults}
           onCancel={() => setShowEnterResults(false)}
-          existingResult={currentExercise.loggedResults[0]}
+          existingResults={currentExercise.loggedResults}
         />
       )}
 

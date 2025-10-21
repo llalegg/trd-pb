@@ -29,16 +29,16 @@ export default function Programs() {
         {/* Program Athlete View Card */}
         <Card 
           className="cursor-pointer hover:shadow-lg transition-shadow duration-200 border-2 hover:border-primary/50"
-          onClick={() => setLocation("/athlete-view")}
+          onClick={() => setLocation("/home")}
           data-testid="card-athlete-view"
         >
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-full w-fit">
               <Users className="h-8 w-8 text-primary" />
             </div>
-            <CardTitle>Program Athlete View</CardTitle>
+            <CardTitle>Athlete Home</CardTitle>
             <CardDescription>
-              Mobile-first view for athletes to execute their training programs.
+              Mobile-first home view for athletes to execute their training programs.
             </CardDescription>
           </CardHeader>
         </Card>
