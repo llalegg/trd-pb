@@ -57,7 +57,7 @@ export default function ExerciseDetailsSheet({ exercise, onClose }: ExerciseDeta
           <div className="relative aspect-square w-full rounded-2xl bg-muted overflow-hidden">
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-14 h-14 bg-black/30 rounded-full flex items-center justify-center">
-                <Play className="h-6 w-6 text-white ml-1" />
+                <div className="h-6 w-6 text-white ml-1">▶</div>
               </div>
             </div>
             <div className="absolute bottom-4 left-4 right-4">
