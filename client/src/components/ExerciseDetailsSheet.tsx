@@ -1,8 +1,14 @@
-import { X, Play, Dumbbell, Target, Zap, ChevronDown, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Dumbbell, Target, Zap, ChevronDown, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
@@ -36,33 +42,16 @@ export default function ExerciseDetailsSheet({ exercise, onClose }: ExerciseDeta
   const [isHowToOpen, setIsHowToOpen] = useState(true);
 
   return (
-    <div className="fixed inset-0 bg-background z-50 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          className="p-2"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-        <h1 className="text-lg font-semibold text-foreground">{exercise.name}</h1>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            // TODO: Navigate to execution view for this exercise
-            onClose();
-          }}
-          className="p-2"
-        >
-          <Play className="h-4 w-4" />
-        </Button>
-      </div>
+    <Sheet open={true} onOpenChange={onClose}>
+      <SheetContent side="bottom" className="h-auto max-h-[85vh]">
+        <SheetHeader>
+          <SheetTitle className="text-lg">{exercise.name}</SheetTitle>
+          <SheetDescription>
+            Exercise details and instructions
+          </SheetDescription>
+        </SheetHeader>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+        <div className="overflow-y-auto py-6 space-y-4">
         {/* Video Section */}
         <div className="p-4">
           <div className="relative aspect-square w-full rounded-2xl bg-muted overflow-hidden">
@@ -166,21 +155,8 @@ export default function ExerciseDetailsSheet({ exercise, onClose }: ExerciseDeta
             </div>
           </div>
         )}
-      </div>
-
-      {/* Bottom Action Bar */}
-      <div className="p-4 border-t border-border">
-        <Button
-          onClick={() => {
-            // TODO: Navigate to execution view for this exercise
-            onClose();
-          }}
-          className="w-full"
-        >
-          <Play className="h-4 w-4 mr-2" />
-          Start Exercise
-        </Button>
-      </div>
-    </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
