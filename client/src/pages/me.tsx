@@ -7,15 +7,15 @@ import { cn } from "@/lib/utils";
 
 // Mock team data
 const teamMembers = [
-  { name: "Tyler German", role: "Primary Coach", avatar: null, initials: "TG" },
-  { name: "Isaac Wiley", role: "Secondary Coach", avatar: null, initials: "IW" },
-  { name: "Kyle Crockett", role: "Athlete Support", avatar: null, initials: "KC" },
-  { name: "James Werner", role: "Director of Rehab", avatar: null, initials: "JW" },
-  { name: "Kenny Campbell", role: "Onboarding Specialist", avatar: null, initials: "KC" },
-  { name: "Max Aarons", role: "Physiotherapist", avatar: null, initials: "MA" },
-  { name: "Gavin Montgomery", role: "Content Specialist", avatar: null, initials: "GM" },
-  { name: "Ronald Pena", role: "Parent", avatar: null, initials: "RP" },
-  { name: "Kathryn Pena", role: "Parent", avatar: null, initials: "KP" },
+  { name: "Alex Johnson", role: "Primary Coach", avatar: null, initials: "AJ" },
+  { name: "Samuel Martin", role: "Secondary Coach", avatar: null, initials: "SM" },
+  { name: "David Chen", role: "Athlete Support", avatar: null, initials: "DC" },
+  { name: "Ethan Liu", role: "Director of Rehab", avatar: null, initials: "EL" },
+  { name: "Michael Brown", role: "Onboarding Specialist", avatar: null, initials: "MB" },
+  { name: "James Kim", role: "Physiotherapist", avatar: null, initials: "JK" },
+  { name: "Daniel Taylor", role: "Content Specialist", avatar: null, initials: "DT" },
+  { name: "Ryan Davis", role: "Parent", avatar: null, initials: "RD" },
+  { name: "Ethan Wright", role: "Parent", avatar: null, initials: "EW" },
 ];
 
 export default function MePage() {
@@ -47,11 +47,11 @@ export default function MePage() {
         {/* Profile Section */}
         <div className="flex items-center gap-5 relative">
           <Avatar className="w-24 h-24 border border-white/10">
-            <AvatarImage src="/api/placeholder/96/96" alt="Eleanor Pena" />
-            <AvatarFallback className="text-lg bg-[#1C1C1B]">EP</AvatarFallback>
+            <AvatarImage src="/api/placeholder/96/96" alt="Owen Martinez" />
+            <AvatarFallback className="text-lg bg-[#1C1C1B]">OM</AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-foreground">Eleanor Pena</h2>
+            <h2 className="text-lg font-semibold text-foreground">Owen Martinez</h2>
             <p className="text-sm text-muted-foreground">Princeton, In-Season</p>
           </div>
           <Button
