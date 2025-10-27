@@ -133,6 +133,9 @@ export default function FocusView() {
     { set: 4, reps: 110, weight: 110, rpe: "", restTime: "2:00" },
   ]);
 
+  // Track which cells have been overridden by user input
+  const [overriddenCells, setOverriddenCells] = useState<{ [key: string]: boolean }>({});
+
   // Get superset data or regular exercises
   const getSupersetData = () => {
     if (supersetType === 'movement') {
@@ -301,6 +304,12 @@ export default function FocusView() {
     setTableData(prev => prev.map((row, index) => 
       index === rowIndex ? { ...row, [field]: value } : row
     ));
+    
+    // Mark this cell as overridden (except for RPE which starts empty)
+    const cellKey = `${rowIndex}-${field}`;
+    if (field !== 'rpe' || value !== '') {
+      setOverriddenCells(prev => ({ ...prev, [cellKey]: true }));
+    }
   };
 
   const handleRPEClick = (rowIndex: number) => {
@@ -335,6 +344,12 @@ export default function FocusView() {
   const trackingFields = isSuperset 
     ? getTrackingFields(supersetType) 
     : getTrackingFields(currentExercise?.routineType || 'strength');
+
+  // Helper function to check if a cell is overridden
+  const isCellOverridden = (rowIndex: number, field: string) => {
+    const cellKey = `${rowIndex}-${field}`;
+    return overriddenCells[cellKey] || false;
+  };
 
   // Video slider handlers for superset
   const handleVideoSwipe = (direction: 'left' | 'right') => {
@@ -658,25 +673,36 @@ export default function FocusView() {
                           <p className="text-sm font-semibold text-[#979795] font-['Montserrat']">{setIndex + 1}</p>
                         </div>
                         {trackingFields.includes('reps') && (
-                          <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0">
-                        <input
+                          <div className={cn(
+                            "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                            isCellOverridden(setIndex, `${exerciseIndex}-reps`) && "bg-[#16140F]"
+                          )}>
+                            <input
                               type="number"
                               defaultValue={exercise.reps}
+                              onChange={(e) => handleTableInputChange(setIndex, `${exerciseIndex}-reps`, parseInt(e.target.value) || 0)}
                               className="w-full bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
                             />
                           </div>
                         )}
                         {trackingFields.includes('weight') && (
-                          <div className="w-[100px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0">
-                        <input
-                          type="text"
+                          <div className={cn(
+                            "w-[100px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                            isCellOverridden(setIndex, `${exerciseIndex}-weight`) && "bg-[#16140F]"
+                          )}>
+                            <input
+                              type="text"
                               defaultValue={exercise.weight}
+                              onChange={(e) => handleTableInputChange(setIndex, `${exerciseIndex}-weight`, e.target.value)}
                               className="w-full bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
                             />
                           </div>
                         )}
                         {trackingFields.includes('rpe') && (
-                          <div className="w-[80px] px-4 py-3 flex items-center flex-shrink-0">
+                          <div className={cn(
+                            "w-[80px] px-4 py-3 flex items-center flex-shrink-0",
+                            isCellOverridden(setIndex, `${exerciseIndex}-rpe`) && "bg-[#16140F]"
+                          )}>
                             <button
                               onClick={() => handleRPEClick(setIndex)}
                               className="w-full flex items-center justify-between bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
@@ -858,7 +884,10 @@ export default function FocusView() {
                   <p className="text-sm font-semibold text-[#979795] font-['Montserrat']">{row.set}</p>
                 </div>
                 {trackingFields.includes('reps') && (
-                  <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0">
+                  <div className={cn(
+                    "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                    isCellOverridden(index, 'reps') && "bg-[#16140F]"
+                  )}>
                     <input
                       type="number"
                       value={row.reps}
@@ -868,7 +897,10 @@ export default function FocusView() {
                   </div>
                 )}
                 {trackingFields.includes('weight') && (
-                  <div className="w-[100px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0">
+                  <div className={cn(
+                    "w-[100px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                    isCellOverridden(index, 'weight') && "bg-[#16140F]"
+                  )}>
                     <input
                       type="number"
                       value={row.weight}
@@ -878,7 +910,10 @@ export default function FocusView() {
                   </div>
                 )}
                 {trackingFields.includes('velocity') && (
-                  <div className="w-[90px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0">
+                  <div className={cn(
+                    "w-[90px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                    isCellOverridden(index, 'velocity') && "bg-[#16140F]"
+                  )}>
                     <input
                       type="number"
                       value={(row as any).velocity || ''}
@@ -889,7 +924,10 @@ export default function FocusView() {
                   </div>
                 )}
                 {trackingFields.includes('accuracy') && (
-                  <div className="w-[90px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0">
+                  <div className={cn(
+                    "w-[90px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                    isCellOverridden(index, 'accuracy') && "bg-[#16140F]"
+                  )}>
                     <input
                       type="number"
                       value={(row as any).accuracy || ''}
@@ -900,7 +938,10 @@ export default function FocusView() {
                   </div>
                 )}
                 {trackingFields.includes('rpe') && (
-                  <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0">
+                  <div className={cn(
+                    "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                    isCellOverridden(index, 'rpe') && "bg-[#16140F]"
+                  )}>
                     <button
                       onClick={() => handleRPEClick(index)}
                       className="w-full flex items-center justify-between bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
@@ -911,7 +952,10 @@ export default function FocusView() {
                   </div>
                 )}
                 {trackingFields.includes('restTime') && (
-                  <div className="w-[90px] px-4 py-3 flex items-center flex-shrink-0">
+                  <div className={cn(
+                    "w-[90px] px-4 py-3 flex items-center flex-shrink-0",
+                    isCellOverridden(index, 'restTime') && "bg-[#16140F]"
+                  )}>
                     <input
                       type="text"
                       value={row.restTime}

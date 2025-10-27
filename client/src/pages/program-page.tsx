@@ -138,21 +138,21 @@ export default function ProgramPage() {
   }, 0);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-[#0d0d0c] pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-background border-b border-border">
-        <div className="flex items-center justify-between p-4">
+      <div className="sticky top-0 z-50 bg-[#0d0d0c] pt-12 pb-4">
+        <div className="flex items-center justify-between px-4 mb-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setLocation("/me")}
-            className="p-2"
+            className="p-2 hover:bg-[#171716]"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 text-[#f7f6f2]" />
           </Button>
           <div className="text-center">
-            <h1 className="text-lg font-semibold">Program</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">Program</h1>
+            <p className="text-sm text-[#979795] font-['Montserrat'] font-medium">
               {formatDate(mockProgram.startDate).replace(/, \d{4}/, '')} - {formatDate(mockProgram.endDate).replace(/, \d{4}/, '')}
             </p>
           </div>
@@ -160,9 +160,9 @@ export default function ProgramPage() {
             variant="ghost"
             size="sm"
             onClick={handleCalendarOpen}
-            className="p-2"
+            className="p-2 hover:bg-[#171716]"
           >
-            <Calendar className="h-4 w-4" />
+            <Calendar className="h-4 w-4 text-[#f7f6f2]" />
           </Button>
         </div>
       </div>
@@ -177,8 +177,8 @@ export default function ProgramPage() {
                 key={index}
                 className={`flex-1 h-2 rounded-sm transition-all duration-300 ${
                   index < completedWeeks 
-                    ? 'bg-primary' 
-                    : 'bg-muted'
+                    ? 'bg-[#c4af6c]' 
+                    : 'bg-[#292928]'
                 }`}
               />
             ))}
@@ -187,13 +187,13 @@ export default function ProgramPage() {
 
         {/* Summary Stats */}
         <div className="flex gap-3">
-          <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl flex-1">
-            <p className="text-sm text-muted-foreground">Duration</p>
-            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">{totalWeeks} weeks</p>
+          <div className="bg-[#171716] flex flex-col gap-2 items-start p-4 rounded-xl flex-1">
+            <p className="text-sm text-[#979795] font-['Montserrat'] font-medium">Duration</p>
+            <p className="text-2xl sm:text-3xl leading-none text-[#f7f6f2] font-semibold font-['Montserrat']">{totalWeeks} weeks</p>
           </div>
-          <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl flex-1">
-            <p className="text-sm text-muted-foreground">Training days</p>
-            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">{completedTrainingDays}/{totalTrainingDays}</p>
+          <div className="bg-[#171716] flex flex-col gap-2 items-start p-4 rounded-xl flex-1">
+            <p className="text-sm text-[#979795] font-['Montserrat'] font-medium">Training days</p>
+            <p className="text-2xl sm:text-3xl leading-none text-[#f7f6f2] font-semibold font-['Montserrat']">{completedTrainingDays}/{totalTrainingDays}</p>
           </div>
         </div>
       </div>
@@ -216,34 +216,34 @@ export default function ProgramPage() {
                   <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center">
                       {block.status === "locked" ? (
-                        <Lock className="h-6 w-6 text-muted-foreground" />
+                        <Lock className="h-6 w-6 text-[#979795]" />
                       ) : (
-                        <span className="text-lg font-bold text-foreground">
+                        <span className="text-lg font-bold text-[#f7f6f2] font-['Montserrat']">
                           {block.id}
                         </span>
                       )}
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{block.name}</CardTitle>
-                      <CardDescription className="text-sm">
+                      <h3 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">{block.name}</h3>
+                      <p className="text-sm text-[#979795] font-['Montserrat'] font-medium">
                         {formatDate(block.startDate)} - {formatDate(block.endDate)}
-                      </CardDescription>
+                      </p>
                     </div>
                   </div>
                   {block.status === "active" && (
-                    <Badge variant="default">Active</Badge>
+                    <Badge variant="default" className="bg-[#c4af6c] text-[#0d0d0c] font-['Montserrat'] font-medium">Active</Badge>
                   )}
                   {block.status === "locked" && (
-                    <Badge variant="secondary">Locked</Badge>
+                    <Badge variant="secondary" className="bg-[#292928] text-[#979795] font-['Montserrat'] font-medium">Locked</Badge>
                   )}
                 </div>
               </div>
               <div className="pt-0">
-                <p className="text-sm text-muted-foreground mb-4">{block.description}</p>
+                <p className="text-sm text-[#979795] font-['Montserrat'] font-medium mb-4">{block.description}</p>
                 
                 {/* Weeks List */}
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-foreground">Weekly breakdown:</h4>
+                  <h4 className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">Weekly breakdown:</h4>
                   <div className="space-y-2">
                     {block.weeks.map((weekData) => {
                       const isCurrent = isCurrentWeek(weekData.startDate);
@@ -253,38 +253,38 @@ export default function ProgramPage() {
                         <div 
                           key={weekData.week}
                           className={cn(
-                            "flex items-center justify-between p-3 rounded-lg transition-all duration-200",
-                            block.status === "locked" ? "bg-muted/30" : "bg-muted/50",
-                            isCurrent && "ring-2 ring-primary/50 bg-primary/5",
-                            isClickable && "cursor-pointer hover:bg-muted/70"
+                            "flex items-center justify-between p-3 rounded-xl transition-all duration-200",
+                            block.status === "locked" ? "bg-[#171716]" : "bg-[#171716]",
+                            isCurrent && "ring-2 ring-[#c4af6c]/50 bg-[#c4af6c]/5",
+                            isClickable && "cursor-pointer hover:bg-[#292928]"
                           )}
                           onClick={() => isClickable && handleWeekClick(block.id, weekData.week)}
                         >
                           <div className="flex items-center gap-3">
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-foreground">
+                                <span className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">
                                   Week {weekData.week}
                                 </span>
                                 {isCurrent && (
-                                  <Badge variant="default" className="text-xs">
+                                  <Badge variant="default" className="text-xs bg-[#c4af6c] text-[#0d0d0c] font-['Montserrat'] font-medium">
                                     Current
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-[#979795] font-['Montserrat'] font-medium">
                                 {formatDate(weekData.startDate)}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="text-right">
-                              <span className="text-sm font-medium text-foreground">
+                              <span className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">
                                 {weekData.trainingDays} training days
                               </span>
                             </div>
                             {isClickable && (
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              <ChevronRight className="h-4 w-4 text-[#979795]" />
                             )}
                           </div>
                         </div>

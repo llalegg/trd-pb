@@ -1,4 +1,4 @@
-import { Camera, User, CreditCard, Calendar, Dumbbell, BookOpenCheck, ChartPie, CalendarDays, Zap, HelpCircle, ChevronRight } from "lucide-react";
+import { Camera, User, CreditCard, Calendar, Dumbbell, BookOpenCheck, ChartPie, CalendarDays, Zap, HelpCircle, ChevronRight, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import MobileTabBar from "@/components/MobileTabBar";
@@ -27,6 +27,7 @@ export default function MePage() {
   ];
 
   const additionalItems = [
+    { icon: FileText, label: "Program", href: "/program-page" },
     { icon: Calendar, label: "Schedule", href: "#" },
     { icon: Dumbbell, label: "Equipment", href: "#" },
     { icon: BookOpenCheck, label: "Injury Ledger", href: "#" },
@@ -47,7 +48,7 @@ export default function MePage() {
         <div className="flex items-center gap-5 relative">
           <Avatar className="w-24 h-24 border border-white/10">
             <AvatarImage src="/api/placeholder/96/96" alt="Eleanor Pena" />
-            <AvatarFallback className="text-lg bg-neutral-900">EP</AvatarFallback>
+            <AvatarFallback className="text-lg bg-[#1C1C1B]">EP</AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <h2 className="text-lg font-semibold text-foreground">Eleanor Pena</h2>
@@ -55,19 +56,19 @@ export default function MePage() {
           </div>
           <Button
             size="sm"
-            className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-neutral-900 border border-white/10"
+            className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-[#1C1C1B] border border-white/10"
           >
             <Camera className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Team Section - Performance & Access Team */}
-        <div className="bg-neutral-800 rounded-lg px-4 py-2">
+        <div className="bg-[#1C1C1B] rounded-lg px-4 py-2">
           <div className="flex gap-8 overflow-x-auto pb-2">
             {teamMembers.map((member, index) => (
               <div key={index} className="flex-shrink-0 text-center w-28">
                 <Avatar className="w-12 h-12 mx-auto mb-2 border border-white/10">
-                  <AvatarFallback className="text-xs bg-neutral-900">
+                  <AvatarFallback className="text-xs bg-[#1C1C1B]">
                     {member.initials}
                   </AvatarFallback>
                 </Avatar>
@@ -79,7 +80,7 @@ export default function MePage() {
         </div>
 
         {/* Menu Items - First List */}
-        <div className="bg-neutral-800 rounded-lg overflow-hidden">
+        <div className="bg-[#1C1C1B] rounded-lg overflow-hidden">
           {menuItems.map((item, index) => (
             <div
               key={index}
@@ -110,7 +111,7 @@ export default function MePage() {
         </div>
 
         {/* Additional Items - Second List */}
-        <div className="bg-neutral-800 rounded-lg overflow-hidden">
+        <div className="bg-[#1C1C1B] rounded-lg overflow-hidden">
           {additionalItems.map((item, index) => (
             <div
               key={index}
@@ -141,7 +142,7 @@ export default function MePage() {
         </div>
 
         {/* Tech Support - Third List */}
-        <div className="bg-neutral-800 rounded-lg overflow-hidden">
+        <div className="bg-[#1C1C1B] rounded-lg overflow-hidden">
           {techSupportItem.map((item, index) => (
             <div
               key={index}
