@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Play, CheckCircle, Dumbbell, Target, Zap, Edit3, Calendar, FileText } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle, Check, Dumbbell, Target, Zap, Calendar, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,59 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { getSessionData } from "@/lib/sessionData";
+
+// Exercise Card Component based on Figma design
+interface ExerciseCardProps {
+  exercise: {
+    name: string;
+    sets: number;
+    reps: string;
+    completedSets?: number;
+  };
+  isCompleted: boolean;
+  onClick: () => void;
+}
+
+function ExerciseCard({ exercise, isCompleted, onClick }: ExerciseCardProps) {
+  // Calculate estimated time based on sets (rough estimate: 2 minutes per set)
+  const estimatedTime = Math.ceil(exercise.sets * 2);
+  
+  return (
+    <div 
+      className={cn(
+        "flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors",
+        isCompleted ? "bg-transparent" : "bg-[#171716]"
+      )}
+      onClick={onClick}
+    >
+      {/* Exercise Info */}
+      <div className="flex-1 min-w-0">
+        <h4 className={cn(
+          "text-[14px] font-semibold truncate",
+          isCompleted ? "text-muted-foreground" : "text-foreground"
+        )}>
+          {exercise.name}
+        </h4>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <span>{estimatedTime} min</span>
+          <span>•</span>
+          <span>{exercise.reps} x {exercise.sets}</span>
+        </div>
+      </div>
+
+      {/* Status Icon */}
+      <div className="flex-shrink-0">
+        {isCompleted ? (
+          <Check className="h-5 w-5 text-muted-foreground" />
+        ) : (
+          <div className="w-8 h-8 bg-[#292928] rounded-full flex items-center justify-center">
+            <Play className="h-4 w-4 text-foreground ml-0.5" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Circular Progress Component
 function CircularProgress({ progress, size = 20 }: { progress: number; size?: number }) {
@@ -77,14 +130,14 @@ export default function SessionView() {
     recovery: Zap,
   };
 
-  const routineTypeOrder = ["throwing", "movement", "strength", "recovery"];
+  const routineTypeOrder = ["strength", "movement", "throwing", "recovery"];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "completed":
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-green-400" />;
       default:
-        return <Play className="h-5 w-5 text-muted-foreground" />;
+        return <Play className="h-5 w-5 text-neutral-400" />;
     }
   };
 
@@ -100,9 +153,9 @@ export default function SessionView() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
-        return "text-green-500";
+        return "text-green-400";
       default:
-        return "text-muted-foreground";
+        return "text-neutral-400";
     }
   };
 
@@ -127,75 +180,40 @@ export default function SessionView() {
   const progressPercentage = totalRoutines > 0 ? (completedRoutines / totalRoutines) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#0d0d0c]">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-background">
-        <div className="flex items-center justify-between p-4">
-          <Button
-            variant="ghost"
-            size="sm"
+      <div className="sticky top-0 z-50 bg-[#0d0d0c] pt-3">
+        {/* Navigation Bar */}
+        <div className="flex items-center h-12 px-4">
+          <button 
             onClick={() => setLocation("/home")}
-            className="p-2"
+            className="flex items-center justify-center w-12 h-12 rounded-full hover:bg-muted/50 transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="text-center">
-            {isScrolled ? (
-              <h1 className="text-lg font-semibold">Tuesday, Oct 17</h1>
-            ) : (
-              <>
-                <h1 className="text-lg font-semibold">Tuesday, Oct 17 Session</h1>
-                <div className="flex gap-2 items-center justify-center mt-1">
-                  <Badge variant="secondary" className="bg-secondary text-secondary-foreground rounded-full px-2 py-1 text-xs">
-                    Block 1
-                  </Badge>
-                  <Badge variant="outline" className="bg-background border-border rounded-full px-2 py-1 text-xs">
-                    Week 1
-                  </Badge>
-                </div>
-              </>
-            )}
+            <ArrowLeft className="w-6 h-6 text-[#f7f6f2]" />
+          </button>
+          <div className="flex-1 ml-2">
+            <h1 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat'] text-left">
+              Tuesday, Oct 17 Session
+            </h1>
+            <p className="text-xs text-[#979795] font-['Montserrat'] font-semibold text-left">
+              Block 1, Week 1
+            </p>
           </div>
-          <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLocation("/program-page")}
-              className="p-2"
-            >
-              <FileText className="h-4 w-4" />
-            </Button>
-          </div>
+          <button 
+            onClick={() => setLocation("/program-page")}
+            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/50 transition-colors"
+          >
+            <FileText className="w-6 h-6 text-[#f7f6f2]" />
+          </button>
         </div>
       </div>
 
-      {/* Duration and Exercises Summary Cards */}
-      <div className="px-4 py-4">
-        <div className="flex gap-3">
-          <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl flex-1">
-            <p className="text-sm text-muted-foreground">
-              Duration
-            </p>
-            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">
-              {sessionData.totalDuration}
-            </p>
-          </div>
-          <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl flex-1">
-            <p className="text-sm text-muted-foreground">
-              Exercises
-            </p>
-            <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">
-              {sessionData.routines.reduce((sum, routine) => sum + routine.exerciseCount, 0)}
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Removed top routine progress bar per request */}
 
 
       {/* Floating Continue Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-40">
+      <div className="fixed bottom-0 left-0 right-0 p-4 z-40">
         <div className="px-4">
           <Button className="w-full" onClick={goToFocusView}>
             <Play className="h-4 w-4 mr-2" />
@@ -205,7 +223,7 @@ export default function SessionView() {
       </div>
 
       {/* Routine Cards */}
-      <div className="px-4 pb-[100px] space-y-8">
+      <div className="px-4 pt-6 pb-[100px] space-y-8">
         {sortedRoutines.map((routine) => {
           const IconComponent = routineTypeIcons[routine.type as keyof typeof routineTypeIcons];
           const isCompleted = routine.status === "completed";
@@ -226,34 +244,21 @@ export default function SessionView() {
             <div key={routine.type} className="space-y-4">
               {/* Routine Header */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-12 h-12 rounded-lg bg-muted flex items-center justify-center",
-                    isCompleted && "opacity-60"
-                  )}>
-                    <IconComponent className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">{routine.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {routine.exerciseCount} exercises • {routine.estimatedTime}
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-base text-white font-['Montserrat'] capitalize">
+                    {routine.type}
+                  </h3>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={cn("text-sm font-medium", getStatusColor(routine.status))}>
-                    {getStatusText(routine.status)}
-                  </span>
-                  {routine.status === "completed" && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleStartRoutine(routine.type)}
-                      className="p-2"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <div className="w-4 h-4">
+                    <svg viewBox="0 0 16 16" className="w-4 h-4 text-[#979795]">
+                      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1" fill="none"/>
+                      <path d="M8 4v4l3 2" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <p className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">
+                    {routine.estimatedTime}
+                  </p>
                 </div>
               </div>
 
@@ -261,16 +266,20 @@ export default function SessionView() {
               <div className="mb-4">
                 <div className="flex gap-1">
                   {routine.exercises.map((exercise: any, index: number) => {
-                    const exerciseProgress = exercise.sets > 0 ? (exercise.completedSets / exercise.sets) * 100 : 0;
+                    // Make first exercise in Strength routine completed by default
+                    const isExerciseCompleted = routine.type === "strength" && index === 0 
+                      ? true 
+                      : exercise.completedSets >= exercise.sets;
                     return (
                       <div
                         key={index}
-                        className="flex-1 h-2 rounded-full bg-muted relative"
+                        className="flex-1 h-2 rounded-full bg-neutral-800 relative"
                       >
-                        <div 
-                          className="h-2 bg-primary rounded-full transition-all duration-300"
-                          style={{ width: `${exerciseProgress}%` }}
-                        />
+                        {isExerciseCompleted && (
+                          <div 
+                            className="h-2 bg-[#c4af6c] rounded-full transition-all duration-300 w-full"
+                          />
+                        )}
                       </div>
                     );
                   })}
@@ -279,54 +288,26 @@ export default function SessionView() {
 
               {/* Exercise List */}
               <div className="space-y-2">
-                <div className="grid grid-cols-1 gap-2">
-                  {(routine.exercises as any[]).map((exercise: any, index: number) => {
-                    // Check if this is the first uncompleted exercise across all routines
-                    const isFirstUncompleted = (() => {
-                      // Find the first uncompleted exercise across all routines
-                      for (const r of sessionData.routines) {
-                        for (let i = 0; i < r.exercises.length; i++) {
-                          const ex = r.exercises[i] as any;
-                          const isCompleted = ex.completedSets >= ex.sets;
-                          if (!isCompleted) {
-                            // This is the first uncompleted exercise
-                            return r.type === routine.type && i === index;
-                          }
-                        }
-                      }
-                      return false;
-                    })();
-                    
-                    return (
-                      <div 
-                        key={index}
-                        className="flex items-center justify-between gap-3 p-2 bg-muted/50 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <CircularProgress progress={exercise.progress || 0} size={20} />
-                          <div className="min-w-0">
-                            <p className="text-sm text-foreground truncate">{exercise.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {exercise.sets} sets × {exercise.reps}
-                              {exercise.weight ? ` × ${exercise.weight} lbs` : ""}
-                            </p>
-                          </div>
-                        </div>
-                        <Button 
-                          size="icon" 
-                          variant={isFirstUncompleted ? "default" : "ghost"} 
-                          onClick={goToFocusView}
-                        >
-                          {exercise.completedSets >= exercise.sets ? (
-                            <Edit3 className="h-4 w-4" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
+                {(routine.exercises as any[]).map((exercise: any, index: number) => {
+                  // Make first exercise in Strength routine completed by default
+                  const isExerciseCompleted = routine.type === "strength" && index === 0 
+                    ? true 
+                    : exercise.completedSets >= exercise.sets;
+                  
+                  return (
+                    <ExerciseCard
+                      key={index}
+                      exercise={{
+                        name: exercise.name,
+                        sets: exercise.sets,
+                        reps: exercise.reps,
+                        completedSets: exercise.completedSets
+                      }}
+                      isCompleted={isExerciseCompleted}
+                      onClick={goToFocusView}
+                    />
+                  );
+                })}
               </div>
             </div>
           );
@@ -336,7 +317,7 @@ export default function SessionView() {
       {/* Floating Continue Button */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
         <div className="px-4 py-4">
-          <Button className="w-full h-12 text-base font-medium" onClick={goToFocusView}>
+          <Button className="w-full h-12 text-base font-semibold" onClick={goToFocusView}>
             <Play className="h-5 w-5 mr-2" />
             Continue
           </Button>
