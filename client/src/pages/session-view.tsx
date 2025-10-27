@@ -284,8 +284,12 @@ export default function SessionView() {
     setLocation("/execution-view");
   };
 
-  const goToFocusView = () => {
-    setLocation("/focus-view");
+  const goToFocusView = (routineType?: string, exerciseName?: string) => {
+    if (routineType && exerciseName) {
+      setLocation(`/focus-view?routineType=${encodeURIComponent(routineType)}&exerciseName=${encodeURIComponent(exerciseName)}`);
+    } else {
+      setLocation("/focus-view");
+    }
   };
 
   const goToSupersetFocusView = (routineType: string) => {
@@ -339,7 +343,7 @@ export default function SessionView() {
       {/* Floating Continue Button */}
       <div className="fixed bottom-0 left-0 right-0 p-4 z-40">
         <div className="px-4">
-          <Button className="w-full" onClick={goToFocusView}>
+          <Button className="w-full" onClick={() => goToFocusView()}>
             <Play className="h-4 w-4 mr-2" />
             Continue
           </Button>
@@ -454,7 +458,7 @@ export default function SessionView() {
                         completedSets: exercise.completedSets
                       }}
                       isCompleted={isExerciseCompleted}
-                      onClick={goToFocusView}
+                      onClick={() => goToFocusView(routine.type, exercise.name)}
                     />
                   );
                 })}
@@ -467,7 +471,7 @@ export default function SessionView() {
       {/* Floating Continue Button */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
         <div className="px-4 py-4">
-          <Button className="w-full h-12 text-base font-semibold" onClick={goToFocusView}>
+          <Button className="w-full h-12 text-base font-semibold" onClick={() => goToFocusView()}>
             <Play className="h-5 w-5 mr-2" />
             Continue
           </Button>

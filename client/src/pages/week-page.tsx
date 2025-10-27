@@ -1,54 +1,131 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Calendar, Play, CheckCircle, Dumbbell, Target, Zap, Edit3 } from "lucide-react";
+import { ArrowLeft, Play, Check, Dumbbell, Target, Zap, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import MobileTabBar from "@/components/MobileTabBar";
 import { cn } from "@/lib/utils";
-import { format, addDays, startOfWeek, endOfWeek, isToday, isSameDay } from "date-fns";
-import { getExercisesForDay } from "@/lib/sessionData";
+import { format, isSameDay } from "date-fns";
+import { getSessionData } from "@/lib/sessionData";
+import { exerciseStateManager } from "@/lib/exerciseState";
+import MobileTabBar from "@/components/MobileTabBar";
 
-// Circular Progress Component
-function CircularProgress({ progress, size = 20 }: { progress: number; size?: number }) {
-  const radius = (size - 4) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
+// Exercise Card Component (same as session-view)
+interface ExerciseCardProps {
+  exercise: {
+    name: string;
+    sets: number;
+    reps: string;
+    completedSets?: number;
+  };
+  isCompleted: boolean;
+  onClick: () => void;
+}
 
+// Superset Card Component (same as session-view)
+interface SupersetCardProps {
+  superset: {
+    name: string;
+    sets: number;
+    exercises: Array<{
+      name: string;
+      reps: string;
+      additionalParam?: string;
+    }>;
+    completedSets?: number;
+  };
+  isCompleted: boolean;
+  onClick: () => void;
+}
+
+function ExerciseCard({ exercise, isCompleted, onClick }: ExerciseCardProps) {
+  // Calculate estimated time based on sets (rough estimate: 2 minutes per set)
+  const estimatedTime = Math.ceil(exercise.sets * 2);
+  
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg
-        className="w-full h-full transform -rotate-90"
-        width={size}
-        height={size}
-      >
-        {/* Background circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="rgba(255, 255, 255, 0.16)"
-          strokeWidth="2"
-          fill="none"
-        />
-        {/* Progress circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="rgba(255, 255, 255, 1)"
-          strokeWidth="2"
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-        />
-      </svg>
+    <div 
+      className={cn(
+        "flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors",
+        isCompleted ? "bg-[#121210]" : "bg-[#171716]"
+      )}
+      onClick={onClick}
+    >
+      {/* Exercise Info */}
+      <div className="flex-1 min-w-0">
+        <h4 className={cn(
+          "text-[14px] font-semibold truncate font-['Montserrat']",
+          isCompleted ? "text-[#979795]" : "text-[#f7f6f2]"
+        )}>
+          {exercise.name}
+        </h4>
+        <div className="flex items-center gap-1 text-xs text-[#979795] font-['Montserrat'] font-medium">
+          <span>{estimatedTime}</span>
+          <span>•</span>
+          <span>{exercise.reps} x {exercise.sets}</span>
+        </div>
+      </div>
+
+      {/* Status Icon */}
+      <div className="flex-shrink-0">
+        {isCompleted ? (
+          <Check className="h-5 w-5 text-[#979795]" />
+        ) : (
+          <div className="w-8 h-8 bg-[#292928] rounded-full flex items-center justify-center">
+            <Play className="h-4 w-4 text-[#f7f6f2] ml-0.5" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-// Mock data for week view - Week starts Monday, ends Sunday
+function SupersetCard({ superset, isCompleted, onClick }: SupersetCardProps) {
+  return (
+    <div 
+      className={cn(
+        "bg-[#171716] rounded-xl overflow-hidden cursor-pointer transition-colors w-full",
+        isCompleted && "opacity-60"
+      )}
+      onClick={onClick}
+    >
+      {/* Superset Header */}
+      <div className="bg-[#121210] flex items-center justify-between px-4 py-3">
+        <div className="flex flex-col gap-1">
+          <p className="text-[14px] font-semibold text-[#585856] font-['Montserrat']">
+            Superset
+          </p>
+          <p className="text-xs font-medium text-[#979795] font-['Montserrat']">
+            {superset.sets} sets
+          </p>
+        </div>
+        <div className="flex-shrink-0">
+          {isCompleted ? (
+            <Check className="h-5 w-5 text-[#979795]" />
+          ) : (
+            <div className="w-8 h-8 bg-[#292928] rounded-full flex items-center justify-center">
+              <Play className="h-4 w-4 text-[#f7f6f2] ml-0.5" />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Superset Exercises */}
+      <div className="px-4 py-3 space-y-2">
+        {superset.exercises.map((exercise, index) => (
+          <div key={index} className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">{exercise.name}</p>
+              <p className="text-xs text-[#979795] font-['Montserrat'] font-medium">
+                {exercise.reps} {exercise.additionalParam && `• ${exercise.additionalParam}`}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Mock week schedule data
 const mockWeekSchedule = {
   "1-1": { // Block 1, Week 1
     blockId: 1,
@@ -56,344 +133,21 @@ const mockWeekSchedule = {
     startDate: "2025-01-15",
     endDate: "2025-01-21",
     days: [
-      {
-        date: "2025-01-15",
-        dayOfWeek: "Wednesday",
-        isRestDay: false,
-        routines: [
-          { type: "movement", name: "Recovery session", exerciseCount: 3, estimatedTime: "20 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-16",
-        dayOfWeek: "Thursday",
-        isRestDay: false,
-        routines: [
-          { type: "lifting", name: "Lower body strength", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-17",
-        dayOfWeek: "Friday",
-        isRestDay: false,
-        routines: [
-          { type: "throwing", name: "Throwing session", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" },
-          { type: "movement", name: "Movement prep", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-18",
-        dayOfWeek: "Saturday",
-        isRestDay: false,
-        routines: [
-          { type: "lifting", name: "Upper body strength", exerciseCount: 8, estimatedTime: "60 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-19",
-        dayOfWeek: "Sunday",
-        isRestDay: true,
-        routines: []
-      },
-      {
-        date: "2025-01-20",
-        dayOfWeek: "Monday",
-        isRestDay: false,
-        routines: [
-          { type: "throwing", name: "Bullpen session", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-21",
-        dayOfWeek: "Tuesday",
-        isRestDay: true,
-        routines: []
-      }
+      { date: "2025-01-15", dayOfWeek: "Wed", isRestDay: false },
+      { date: "2025-01-16", dayOfWeek: "Thu", isRestDay: false },
+      { date: "2025-01-17", dayOfWeek: "Fri", isRestDay: false },
+      { date: "2025-01-18", dayOfWeek: "Sat", isRestDay: false },
+      { date: "2025-01-19", dayOfWeek: "Sun", isRestDay: true },
+      { date: "2025-01-20", dayOfWeek: "Mon", isRestDay: false },
+      { date: "2025-01-21", dayOfWeek: "Tue", isRestDay: true },
     ]
-  },
-  "1-2": { // Block 1, Week 2
-    blockId: 1,
-    weekNumber: 2,
-    startDate: "2025-01-22",
-    endDate: "2025-01-28",
-    days: [
-      {
-        date: "2025-01-22",
-        dayOfWeek: "Wednesday",
-        isRestDay: false,
-        routines: [
-          { type: "lifting", name: "Lower body power", exerciseCount: 5, estimatedTime: "40 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-23",
-        dayOfWeek: "Thursday",
-        isRestDay: false,
-        routines: [
-          { type: "throwing", name: "Bullpen session", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-24",
-        dayOfWeek: "Friday",
-        isRestDay: false,
-        routines: [
-          { type: "lifting", name: "Upper body power", exerciseCount: 6, estimatedTime: "50 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-25",
-        dayOfWeek: "Saturday",
-        isRestDay: false,
-        routines: [
-          { type: "movement", name: "Recovery session", exerciseCount: 3, estimatedTime: "20 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-26",
-        dayOfWeek: "Sunday",
-        isRestDay: true,
-        routines: []
-      },
-      {
-        date: "2025-01-27",
-        dayOfWeek: "Monday",
-        isRestDay: false,
-        routines: [
-          { type: "throwing", name: "Throwing session", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-28",
-        dayOfWeek: "Tuesday",
-        isRestDay: true,
-        routines: []
-      }
-    ]
-  },
-  "1-3": { // Block 1, Week 3
-    blockId: 1,
-    weekNumber: 3,
-    startDate: "2025-01-29",
-    endDate: "2025-02-04",
-    days: [
-      {
-        date: "2025-01-29",
-        dayOfWeek: "Wednesday",
-        isRestDay: false,
-        routines: [
-          { type: "lifting", name: "Lower body strength", exerciseCount: 7, estimatedTime: "55 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-30",
-        dayOfWeek: "Thursday",
-        isRestDay: false,
-        routines: [
-          { type: "throwing", name: "Bullpen session", exerciseCount: 5, estimatedTime: "35 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-01-31",
-        dayOfWeek: "Friday",
-        isRestDay: false,
-        routines: [
-          { type: "lifting", name: "Upper body strength", exerciseCount: 8, estimatedTime: "60 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-01",
-        dayOfWeek: "Saturday",
-        isRestDay: false,
-        routines: [
-          { type: "movement", name: "Recovery session", exerciseCount: 4, estimatedTime: "25 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-02",
-        dayOfWeek: "Sunday",
-        isRestDay: true,
-        routines: []
-      },
-      {
-        date: "2025-02-03",
-        dayOfWeek: "Monday",
-        isRestDay: false,
-        routines: [
-          { type: "throwing", name: "Throwing session", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-04",
-        dayOfWeek: "Tuesday",
-        isRestDay: true,
-        routines: []
-      }
-    ]
-  },
-  "1-4": { // Block 1, Week 4
-    blockId: 1,
-    weekNumber: 4,
-    startDate: "2025-02-05",
-    endDate: "2025-02-11",
-    days: [
-      {
-        date: "2025-02-05",
-        dayOfWeek: "Wednesday",
-        isRestDay: false,
-        routines: [
-          { type: "lifting", name: "Lower body power", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-06",
-        dayOfWeek: "Thursday",
-        isRestDay: false,
-        routines: [
-          { type: "throwing", name: "Bullpen session", exerciseCount: 4, estimatedTime: "30 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-07",
-        dayOfWeek: "Friday",
-        isRestDay: false,
-        routines: [
-          { type: "lifting", name: "Upper body power", exerciseCount: 7, estimatedTime: "55 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-08",
-        dayOfWeek: "Saturday",
-        isRestDay: false,
-        routines: [
-          { type: "movement", name: "Recovery session", exerciseCount: 3, estimatedTime: "20 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-09",
-        dayOfWeek: "Sunday",
-        isRestDay: true,
-        routines: []
-      },
-      {
-        date: "2025-02-10",
-        dayOfWeek: "Monday",
-        isRestDay: false,
-        routines: [
-          { type: "throwing", name: "Throwing session", exerciseCount: 6, estimatedTime: "45 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-11",
-        dayOfWeek: "Tuesday",
-        isRestDay: true,
-        routines: []
-      }
-    ]
-  },
-  "2-1": { // Block 2, Week 1
-    blockId: 2,
-    weekNumber: 1,
-    startDate: "2025-02-12",
-    endDate: "2025-02-18",
-    days: [
-      {
-        date: "2025-02-12",
-        dayOfWeek: "Wednesday",
-        isRestDay: false,
-        routines: [
-          { type: "lifting", name: "Lower body strength", exerciseCount: 8, estimatedTime: "60 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-13",
-        dayOfWeek: "Thursday",
-        isRestDay: false,
-        routines: [
-          { type: "throwing", name: "Bullpen session", exerciseCount: 5, estimatedTime: "35 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-14",
-        dayOfWeek: "Friday",
-        isRestDay: false,
-        routines: [
-          { type: "lifting", name: "Upper body strength", exerciseCount: 9, estimatedTime: "65 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-15",
-        dayOfWeek: "Saturday",
-        isRestDay: false,
-        routines: [
-          { type: "movement", name: "Recovery session", exerciseCount: 4, estimatedTime: "25 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-16",
-        dayOfWeek: "Sunday",
-        isRestDay: true,
-        routines: []
-      },
-      {
-        date: "2025-02-17",
-        dayOfWeek: "Monday",
-        isRestDay: false,
-        routines: [
-          { type: "throwing", name: "Throwing session", exerciseCount: 7, estimatedTime: "50 min", status: "not-started" }
-        ]
-      },
-      {
-        date: "2025-02-18",
-        dayOfWeek: "Tuesday",
-        isRestDay: true,
-        routines: []
-      }
-    ]
-  }
-};
-
-const routineTypeIcons = {
-  throwing: Target,
-  movement: Zap,
-  lifting: Dumbbell,
-  strength: Dumbbell,
-  recovery: Zap,
-};
-
-  const routineTypeOrder = ["movement", "strength", "throwing", "lifting", "recovery"];
-
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case "completed":
-      return <CheckCircle className="h-5 w-5 text-green-500" />;
-    default:
-      return <Play className="h-5 w-5 text-muted-foreground" />;
-  }
-};
-
-const getStatusText = (status: string) => {
-  switch (status) {
-    case "completed":
-      return "Completed";
-    default:
-      return "";
-  }
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "completed":
-      return "text-green-500";
-    default:
-      return "text-muted-foreground";
   }
 };
 
 export default function WeekPage() {
   const [, setLocation] = useLocation();
-  const [selectedDate, setSelectedDate] = useState(new Date("2025-01-15"));
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date("2025-01-17")); // Default to day 17
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Parse URL query parameters
   const urlParams = new URLSearchParams(window.location.search);
@@ -402,293 +156,214 @@ export default function WeekPage() {
   const weekKey = `${blockId}-${weekNumber}`;
   
   const weekData = mockWeekSchedule[weekKey as keyof typeof mockWeekSchedule];
-  
+
+  // Subscribe to exercise state changes
+  useEffect(() => {
+    const unsubscribe = exerciseStateManager.subscribe(() => {
+      setRefreshTrigger(prev => prev + 1);
+    });
+    return () => { unsubscribe(); };
+  }, []);
+
   if (!weekData) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <h2 className="text-lg font-semibold mb-2">Week not found</h2>
-            <p className="text-muted-foreground mb-4">This week is not available yet.</p>
-            <Button onClick={() => setLocation("/program-page")}>
-              Back to Program
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-[#0d0d0c] flex items-center justify-center">
+        <div className="bg-[#171716] rounded-xl p-6 text-center">
+          <h2 className="text-lg font-semibold mb-2 text-[#f7f6f2] font-['Montserrat']">Week not found</h2>
+          <p className="text-[#979795] mb-4 font-['Montserrat'] font-medium">This week is not available yet.</p>
+          <Button 
+            onClick={() => setLocation("/program-page")}
+            className="bg-[#e5e4e1] hover:bg-[#f7f6f2] text-[#0d0d0c] font-semibold font-['Montserrat']"
+          >
+            Back to Program
+          </Button>
+        </div>
       </div>
     );
   }
 
-  const selectedDaySchedule = weekData.days.find(day => isSameDay(new Date(day.date), selectedDate));
-  
-  // Get detailed session data for the selected day
+  // Get session data for the selected day
   const selectedDayNumber = selectedDate.getDate();
-  const sessionRoutines = getExercisesForDay(selectedDayNumber);
+  const sessionData = getSessionData(selectedDayNumber);
   
-  // Calculate total duration
-  const totalDuration = sessionRoutines.reduce((total, routine) => {
-    const timeStr = routine.estimatedTime;
-    const minutes = parseInt(timeStr.match(/\d+/)?.[0] || '0');
-    return total + minutes;
-  }, 0);
-  
-  const formatDuration = (minutes: number) => {
-    if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  // Check if selected day is a rest day
+  const selectedDaySchedule = weekData.days.find(day => isSameDay(new Date(day.date), selectedDate));
+  const isRestDay = selectedDaySchedule?.isRestDay || false;
+
+  // Navigation functions (same as session-view)
+  const goToFocusView = (routineType?: string, exerciseName?: string) => {
+    if (routineType && exerciseName) {
+      setLocation(`/focus-view?routineType=${encodeURIComponent(routineType)}&exerciseName=${encodeURIComponent(exerciseName)}`);
+    } else {
+      setLocation("/focus-view");
     }
-    return `${minutes} min`;
+  };
+
+  const goToSupersetFocusView = (routineType: string) => {
+    setLocation(`/focus-view?superset=true&supersetType=${routineType}`);
+  };
+
+  // Get superset data (same as session-view)
+  const getSuperset = (routineType: string) => {
+    if (routineType === "movement") {
+      return {
+        name: "Movement Superset",
+        sets: 4,
+        exercises: [
+          { name: "Band Pull-Apart", reps: "110", additionalParam: "Band" },
+          { name: "Shoulder Circles", reps: "15", additionalParam: "Body weight" },
+          { name: "Arm Swings", reps: "20", additionalParam: "Body weight" }
+        ]
+      };
+    } else if (routineType === "strength") {
+      return {
+        name: "Strength Superset", 
+        sets: 4,
+        exercises: [
+          { name: "Push-ups", reps: "12", additionalParam: "Body weight" },
+          { name: "Pull-ups", reps: "8", additionalParam: "Body weight" }
+        ]
+      };
+    }
+    return null;
   };
 
   return (
-    <div className="bg-neutral-950 relative min-h-screen w-full pb-20">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-neutral-950 border-b border-border">
-        <div className="flex items-center justify-between p-4">
+    <div className="min-h-screen bg-[#0d0d0c] pb-20">
+      {/* Header (same styling as session-view) */}
+      <div className="sticky top-0 z-50 bg-[#0d0d0c] pt-12 pb-4">
+        <div className="flex items-center justify-between px-4 mb-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setLocation("/program-page")}
-            className="p-2"
+            className="p-2 hover:bg-[#171716]"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 text-[#f7f6f2]" />
           </Button>
           <div className="text-center">
-            <h1 className="text-lg font-semibold">Block {weekData.blockId} • Week {weekData.weekNumber}</h1>
-            <p className="text-sm text-muted-foreground">
-              {format(new Date(weekData.startDate), "MMM d")} - {format(new Date(weekData.endDate), "MMM d, yyyy")}
+            <h1 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">
+              {format(selectedDate, "EEEE, MMM d")} Session
+            </h1>
+            <p className="text-sm text-[#979795] font-['Montserrat'] font-semibold">
+              Block {weekData.blockId}, Week {weekData.weekNumber}
             </p>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setShowCalendar(true)}
-            className="p-2"
+            className="p-2 hover:bg-[#171716]"
           >
-            <Calendar className="h-4 w-4" />
+            <Calendar className="h-4 w-4 text-[#f7f6f2]" />
           </Button>
         </div>
       </div>
 
       {/* Day Selector */}
-      <div className="flex gap-2 items-center w-full overflow-x-auto pb-2 pl-4 pr-4">
+      <div className="flex gap-0 px-4 w-full mb-6">
         {weekData.days.map((day) => {
           const isSelected = isSameDay(new Date(day.date), selectedDate);
-          const isTodayDate = new Date(day.date).getDate() === 15; // Current day is 15
-          const isPastDay = new Date(day.date).getDate() < 15; // Previous days are disabled
-          const isDisabled = isPastDay;
-          const routineCount = day.routines.length;
+          const dayNumber = new Date(day.date).getDate();
           
           return (
-            <button
-              key={day.date}
-              onClick={() => !isDisabled && setSelectedDate(new Date(day.date))}
-              disabled={isDisabled}
-              className={cn(
-                "flex flex-col gap-1 items-center justify-center p-3 rounded-2xl min-w-[70px] h-[80px] shrink-0 transition-colors",
-                isTodayDate
-                  ? "border-2 border-accent-foreground bg-accent-foreground/10"
-                  : isSelected
-                  ? "border border-accent-foreground bg-accent-foreground/5"
-                  : "border border-border hover:border-accent-foreground/50",
-                isDisabled && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              <p className="text-xs sm:text-sm text-muted-foreground">{day.dayOfWeek.slice(0, 3)}</p>
-              <p className="text-base sm:text-lg text-foreground font-semibold">{new Date(day.date).getDate()}</p>
-              
-              {/* Rest day moon icon or routine dots */}
-              {day.isRestDay ? (
-                <div className="h-3 w-3 rounded-full bg-muted-foreground" />
-              ) : routineCount > 0 ? (
-                <div className="flex gap-0.5">
-                  {Array.from({ length: Math.min(routineCount, 3) }, (_, i) => (
-                    <div key={i} className="h-1 w-1 rounded-full bg-accent-foreground" />
-                  ))}
-                  {routineCount > 3 && (
-                    <div className="h-1 w-1 rounded-full bg-muted-foreground" />
-                  )}
-                </div>
-              ) : (
-                <div className="h-1 w-1" />
-              )}
-              
-              {isTodayDate && (
-                <div className="h-1 sm:h-1.5 w-1 sm:w-1.5 rounded-full bg-accent-foreground" />
-              )}
-            </button>
+            <div key={day.date} className="flex-1 flex flex-col items-center">
+              <p className="text-xs text-[#979795] mb-2 font-['Montserrat'] font-medium">{day.dayOfWeek}</p>
+              <button
+                onClick={() => setSelectedDate(new Date(day.date))}
+                className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold font-['Montserrat'] transition-colors",
+                  isSelected
+                    ? "bg-[#f7f6f2] text-[#0d0d0c]"
+                    : "text-[#f7f6f2] hover:bg-[#171716]"
+                )}
+              >
+                {dayNumber}
+              </button>
+            </div>
           );
         })}
       </div>
 
-      {/* Duration and Exercises Summary Cards */}
-      {!selectedDaySchedule?.isRestDay && sessionRoutines.length > 0 && (
-        <div className="px-4 py-4">
-          <div className="flex gap-3">
-            <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl flex-1">
-              <p className="text-sm text-muted-foreground">
-                Duration
-              </p>
-              <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">
-                {formatDuration(totalDuration)}
-              </p>
-            </div>
-            <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl flex-1">
-              <p className="text-sm text-muted-foreground">
-                Exercises
-              </p>
-              <p className="text-2xl sm:text-3xl leading-none text-foreground font-semibold">
-                {sessionRoutines.reduce((sum, routine) => sum + routine.exerciseCount, 0)}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Rest Day Display */}
-      {selectedDaySchedule?.isRestDay && (
+      {isRestDay && (
         <div className="px-4 py-4">
-          <div className="bg-neutral-900 flex flex-col gap-4 items-center justify-center p-6 rounded-2xl w-full">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+          <div className="bg-[#171716] flex flex-col gap-4 items-center justify-center p-6 rounded-xl w-full">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#292928] flex items-center justify-center">
               <span className="text-2xl">😴</span>
             </div>
-            <p className="text-lg font-semibold mb-2">Rest day</p>
-            <p className="text-muted-foreground text-center">
+            <p className="text-lg font-semibold mb-2 text-[#f7f6f2] font-['Montserrat']">Rest day</p>
+            <p className="text-[#979795] text-center font-['Montserrat'] font-medium">
               Take time to recover and prepare for tomorrow's training.
             </p>
           </div>
         </div>
       )}
 
-      {/* Routine Cards */}
-      {!selectedDaySchedule?.isRestDay && sessionRoutines.length > 0 && (
-        <div className="px-4 pb-4 space-y-8">
-          {sessionRoutines.map((routine) => {
-            const IconComponent = routineTypeIcons[routine.type as keyof typeof routineTypeIcons];
-            const isCompleted = routine.status === "completed";
-            
-            const routineProgress = (() => {
-              const list = (routine.exercises as any[]) as { sets: number; completedSets?: number }[];
-              if (!list.length) return 0;
-              const totals = list.reduce((acc, e) => {
-                acc.completed += (e.completedSets || 0);
-                acc.total += e.sets || 0;
-                return acc;
-              }, { completed: 0, total: 0 });
-              if (totals.total === 0) return 0;
-              return Math.round((totals.completed / totals.total) * 100);
-            })();
+      {/* Session Content (same as session-view) */}
+      {!isRestDay && (
+        <div className="px-4 pb-4 space-y-6">
+          {/* Removed progress bar to match session-view */}
 
-            return (
-              <div key={routine.type} className="space-y-4">
-                {/* Routine Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-12 h-12 rounded-lg bg-muted flex items-center justify-center",
-                      isCompleted && "opacity-60"
-                    )}>
-                      <IconComponent className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">{routine.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {routine.exerciseCount} exercises • {routine.estimatedTime}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn("text-sm font-medium", getStatusColor(routine.status))}>
-                      {getStatusText(routine.status)}
-                    </span>
-                    {routine.status === "completed" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setLocation("/execution-view")}
-                        className="p-2"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+          {/* Routines */}
+          {sessionData.routines.map((routine, routineIndex) => (
+            <div key={routineIndex} className="space-y-4">
+              {/* Routine Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-semibold text-base text-[#f7f6f2] font-['Montserrat'] capitalize">{routine.type}</h3>
+                  <p className="text-[14px] text-[#979795] font-['Montserrat'] font-medium">
+                    {routine.type === "movement" && "Dynamic Warm-up"}
+                    {routine.type === "strength" && "Core lift (heaviest, most demanding)"}
+                    {routine.type === "throwing" && "Throwing technique"}
+                  </p>
                 </div>
-
-                {/* Routine Progress by Sections */}
-                <div className="mb-4">
-                  <div className="flex gap-1">
-                    {routine.exercises.map((exercise: any, index: number) => {
-                      const exerciseProgress = exercise.sets > 0 ? (exercise.completedSets / exercise.sets) * 100 : 0;
-                      return (
-                        <div
-                          key={index}
-                          className="flex-1 h-2 rounded-full bg-muted relative"
-                        >
-                          <div 
-                            className="h-2 bg-primary rounded-full transition-all duration-300"
-                            style={{ width: `${exerciseProgress}%` }}
-                          />
-                        </div>
-                      );
-                    })}
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4">
+                    <svg viewBox="0 0 16 16" className="w-4 h-4 text-[#979795]">
+                      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1" fill="none" />
+                      <path d="M8 4v4l3 2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+                    </svg>
                   </div>
-                </div>
-
-                {/* Exercise List */}
-                <div className="space-y-2">
-                  <div className="grid grid-cols-1 gap-2">
-                    {(routine.exercises as any[]).map((exercise: any, index: number) => {
-                      // Check if this is the first uncompleted exercise across all routines
-                      const isFirstUncompleted = (() => {
-                        // Find the first uncompleted exercise across all routines
-                        for (const r of sessionRoutines) {
-                          for (let i = 0; i < r.exercises.length; i++) {
-                            const ex = r.exercises[i] as any;
-                            const isCompleted = ex.completedSets >= ex.sets;
-                            if (!isCompleted) {
-                              // This is the first uncompleted exercise
-                              return r.type === routine.type && i === index;
-                            }
-                          }
-                        }
-                        return false;
-                      })();
-                      
-                      return (
-                        <div 
-                          key={index}
-                          className="flex items-center justify-between gap-3 p-2 bg-muted/50 rounded-lg"
-                        >
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <CircularProgress progress={exercise.progress || 0} size={20} />
-                            <div className="min-w-0">
-                              <p className="text-sm text-foreground truncate">{exercise.name}</p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {exercise.sets} sets × {exercise.reps}
-                                {exercise.weight ? ` × ${exercise.weight} lbs` : ""}
-                              </p>
-                            </div>
-                          </div>
-                          <Button 
-                            size="icon" 
-                            variant={isFirstUncompleted ? "default" : "ghost"} 
-                            onClick={() => setLocation("/focus-view")}
-                          >
-                            {exercise.completedSets >= exercise.sets ? (
-                              <Edit3 className="h-4 w-4" />
-                            ) : (
-                              <Play className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <p className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">{routine.estimatedTime}</p>
                 </div>
               </div>
-            );
-          })}
+
+              {/* Superset Cards */}
+              {(routine.type === "movement" || routine.type === "strength") && (
+                <SupersetCard
+                  superset={getSuperset(routine.type)!}
+                  isCompleted={exerciseStateManager.isExerciseCompleted(routine.type, getSuperset(routine.type)!.name)}
+                  onClick={() => goToSupersetFocusView(routine.type)}
+                />
+              )}
+
+              {/* Exercise Cards */}
+              <div className="space-y-2">
+                {routine.exercises.map((exercise, exerciseIndex) => {
+                  const isCompleted = exerciseStateManager.isExerciseCompleted(routine.type, exercise.name);
+                  
+                  return (
+                    <ExerciseCard
+                      key={exerciseIndex}
+                      exercise={exercise}
+                      isCompleted={isCompleted}
+                      onClick={() => goToFocusView(routine.type, exercise.name)}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* Continue Button */}
+          <div className="pt-6">
+            <Button 
+              onClick={goToFocusView}
+              className="w-full bg-[#e5e4e1] hover:bg-[#f7f6f2] text-[#0d0d0c] font-semibold font-['Montserrat']"
+            >
+              Continue
+            </Button>
+          </div>
         </div>
       )}
 

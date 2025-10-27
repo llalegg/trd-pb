@@ -39,23 +39,18 @@ const getSessionExercises = () => {
   return allExercises;
 };
 
-// RPE options with descriptions
+// RPE options with descriptions (1-10 scale)
 const rpeOptions = [
-  { value: "6", description: "No exertion at all" },
-  { value: "7", description: "Extremely light" },
-  { value: "8", description: "Very light" },
-  { value: "9", description: "Light" },
-  { value: "10", description: "Fairly light" },
-  { value: "11", description: "Moderate" },
-  { value: "12", description: "Somewhat hard" },
-  { value: "13", description: "Hard" },
-  { value: "14", description: "Very hard" },
-  { value: "15", description: "Extremely hard" },
-  { value: "16", description: "Very, very hard" },
-  { value: "17", description: "Maximal exertion" },
-  { value: "18", description: "Supramaximal" },
-  { value: "19", description: "Supramaximal" },
-  { value: "20", description: "Maximal exertion" }
+  { value: "1", description: "Very easy" },
+  { value: "2", description: "Easy" },
+  { value: "3", description: "Moderate" },
+  { value: "4", description: "Somewhat hard" },
+  { value: "5", description: "Hard" },
+  { value: "6", description: "Very hard" },
+  { value: "7", description: "Very, very hard" },
+  { value: "8", description: "Extremely hard" },
+  { value: "9", description: "Near maximal" },
+  { value: "10", description: "Maximal effort" }
 ];
 
 // RPE Bottom Sheet Component
@@ -107,11 +102,32 @@ function RPEBottomSheet({ isOpen, onClose, onSelect, currentValue }: {
 
 export default function FocusView() {
   const [, setLocation] = useLocation();
-  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  
+  // Check URL parameters for navigation
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetRoutineType = urlParams.get('routineType');
+  const targetExerciseName = urlParams.get('exerciseName');
+  const isSuperset = urlParams.get('superset') === 'true';
+  const supersetType = urlParams.get('supersetType') || 'movement';
+  
+  // Find the correct exercise index based on URL parameters
+  const getInitialExerciseIndex = () => {
+    if (targetRoutineType && targetExerciseName) {
+      const sessionExercises = getSessionExercises();
+      const foundIndex = sessionExercises.findIndex(exercise => 
+        exercise.routineType === targetRoutineType && exercise.name === targetExerciseName
+      );
+      return foundIndex >= 0 ? foundIndex : 0;
+    }
+    return 0;
+  };
+  
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(getInitialExerciseIndex());
   const [exerciseStates, setExerciseStates] = useState<{ [key: number]: 'not-started' | 'active' | 'completed' }>({});
   const [showIntroScreen, setShowIntroScreen] = useState(false);
   const [showRPESheet, setShowRPESheet] = useState(false);
   const [selectedRPERow, setSelectedRPERow] = useState<number | null>(null);
+  const [selectedRPEExercise, setSelectedRPEExercise] = useState<number | null>(null);
   const [showExerciseDetails, setShowExerciseDetails] = useState(false);
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
   const [completedRoutineType, setCompletedRoutineType] = useState<string>('');
@@ -119,11 +135,6 @@ export default function FocusView() {
   // Superset-specific state
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<number | null>(null);
-  
-  // Check if this is superset mode from URL params
-  const urlParams = new URLSearchParams(window.location.search);
-  const isSuperset = urlParams.get('superset') === 'true';
-  const supersetType = urlParams.get('supersetType') || 'movement';
   
   // Table data state - initialize with assigned values, RPE empty, add rest time
   const [tableData, setTableData] = useState([
@@ -135,6 +146,9 @@ export default function FocusView() {
 
   // Track which cells have been overridden by user input
   const [overriddenCells, setOverriddenCells] = useState<{ [key: string]: boolean }>({});
+
+  // Superset table data state
+  const [supersetTableData, setSupersetTableData] = useState<{ [key: string]: any }>({});
 
   // Get superset data or regular exercises
   const getSupersetData = () => {
@@ -312,14 +326,21 @@ export default function FocusView() {
     }
   };
 
-  const handleRPEClick = (rowIndex: number) => {
+  const handleRPEClick = (rowIndex: number, exerciseIndex?: number) => {
     setSelectedRPERow(rowIndex);
+    setSelectedRPEExercise(exerciseIndex || null);
     setShowRPESheet(true);
   };
 
   const handleRPESelect = (value: string) => {
     if (selectedRPERow !== null) {
-      handleTableInputChange(selectedRPERow, 'rpe', value);
+      if (isSuperset && selectedRPEExercise !== null) {
+        // Handle superset RPE selection
+        setSupersetRPE(selectedRPEExercise, selectedRPERow, value);
+      } else {
+        // Handle regular table RPE selection
+        handleTableInputChange(selectedRPERow, 'rpe', value);
+      }
     }
   };
 
@@ -349,6 +370,23 @@ export default function FocusView() {
   const isCellOverridden = (rowIndex: number, field: string) => {
     const cellKey = `${rowIndex}-${field}`;
     return overriddenCells[cellKey] || false;
+  };
+
+  // Helper function to get superset RPE value
+  const getSupersetRPE = (exerciseIndex: number, setIndex: number) => {
+    const key = `${exerciseIndex}-${setIndex}-rpe`;
+    return supersetTableData[key] || '';
+  };
+
+  // Helper function to set superset RPE value
+  const setSupersetRPE = (exerciseIndex: number, setIndex: number, value: string) => {
+    const key = `${exerciseIndex}-${setIndex}-rpe`;
+    setSupersetTableData(prev => ({ ...prev, [key]: value }));
+    
+    // Mark as overridden if value is not empty
+    if (value !== '') {
+      setOverriddenCells(prev => ({ ...prev, key: true }));
+    }
   };
 
   // Video slider handlers for superset
@@ -704,10 +742,10 @@ export default function FocusView() {
                             isCellOverridden(setIndex, `${exerciseIndex}-rpe`) && "bg-[#16140F]"
                           )}>
                             <button
-                              onClick={() => handleRPEClick(setIndex)}
+                              onClick={() => handleRPEClick(setIndex, exerciseIndex)}
                               className="w-full flex items-center justify-between bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
                             >
-                              <span>9</span>
+                              <span>{getSupersetRPE(exerciseIndex, setIndex) || 'Select'}</span>
                               <ChevronDown className="w-4 h-4 text-[#979795]" />
                             </button>
                           </div>
