@@ -1,4 +1,4 @@
-import { Home, MessageCircle, Lock, User } from "lucide-react";
+import { Home, MessageCircleMore, SquarePlay, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 
@@ -6,8 +6,8 @@ type TabKey = "home" | "messages" | "vault" | "me";
 
 const tabs: Array<{ key: TabKey; label: string; href: string; icon: any; disabled?: boolean }> = [
   { key: "home", label: "Home", href: "/home", icon: Home },
-  { key: "messages", label: "Messages", href: "/messages", icon: MessageCircle, disabled: true },
-  { key: "vault", label: "Vault", href: "/vault", icon: Lock, disabled: true },
+  { key: "messages", label: "Messages", href: "/messages", icon: MessageCircleMore, disabled: true },
+  { key: "vault", label: "Vault", href: "/vault", icon: SquarePlay, disabled: true },
   { key: "me", label: "Me", href: "/me", icon: User },
 ];
 
@@ -15,29 +15,31 @@ export default function MobileTabBar() {
   const [location, setLocation] = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 border-t border-border bg-zinc-950 z-50">
-      <div className="grid grid-cols-4 h-16">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-neutral-950">
+      <div className="flex gap-6 items-center justify-center px-4 pt-4 pb-4">
         {tabs.map(({ key, label, href, icon: Icon, disabled }) => {
           const active = location === href;
           return (
             <button
               key={key}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 text-xs",
-                active ? "text-foreground" : "text-muted-foreground",
-                disabled && "opacity-50 cursor-not-allowed"
+                "flex flex-col gap-1.5 items-center justify-center grow transition-colors",
+                active 
+                  ? "text-foreground" 
+                  : "text-[#585856] hover:text-foreground",
+                disabled && "opacity-40 cursor-not-allowed"
               )}
               onClick={() => !disabled && setLocation(href)}
               disabled={disabled}
             >
-              <Icon className={cn("h-5 w-5", active && "text-primary")} />
-              <span className="leading-none">{label}</span>
+              <Icon className="h-6 w-6" strokeWidth={active ? 2 : 1.5} />
+              <span className="text-[10px] leading-[1.2] font-medium">{label}</span>
             </button>
           );
         })}
       </div>
-      {/* iOS home indicator padding */}
-      <div className="h-3" />
+      {/* iOS home indicator area */}
+      <div className="h-4 bg-neutral-950" />
     </nav>
   );
 }

@@ -147,10 +147,10 @@ export default function EnterResultsBottomSheet({
         </div>
 
         <div className="flex gap-4 pt-6 border-t">
-          <Button variant="outline" className="flex-1 h-14 text-lg font-medium" onClick={onCancel}>
+          <Button variant="outline" className="flex-1 h-14 text-lg font-semibold" onClick={onCancel}>
             Cancel
           </Button>
-          <Button className="flex-1 h-14 text-lg font-medium" onClick={handleSave}>
+          <Button className="flex-1 h-14 text-lg font-semibold" onClick={handleSave}>
             Save Results
           </Button>
         </div>

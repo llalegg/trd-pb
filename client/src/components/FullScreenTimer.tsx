@@ -169,7 +169,7 @@ export default function FullScreenTimer({
           <div>
             <h1 className="text-xl font-semibold text-white">{exerciseName}</h1>
             {exerciseDetails && (
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-neutral-400">
                 {exerciseDetails.sets} sets • {exerciseDetails.reps} reps • {exerciseDetails.restTime} rest
               </p>
             )}
@@ -202,19 +202,19 @@ export default function FullScreenTimer({
           <div className={`inline-flex items-center px-6 py-3 rounded-full ${currentPhase.color} text-white font-semibold text-lg`}>
             {currentPhase.name}
           </div>
-          <p className="text-center text-gray-400 mt-2">
+          <p className="text-center text-neutral-400 mt-2">
             Phase {currentPhaseIndex + 1} of {phases.length}
           </p>
         </div>
 
         {/* Timer Circle */}
         <div className="relative mb-8">
-          <div className="w-64 h-64 rounded-full border-8 border-gray-700 flex items-center justify-center">
+          <div className="w-64 h-64 rounded-full border-8 border-neutral-700 flex items-center justify-center">
             <div className="text-center">
               <div className="text-6xl font-mono font-bold text-white mb-2">
                 {formatTime(timeRemaining)}
               </div>
-              <div className="text-lg text-gray-400">
+              <div className="text-lg text-neutral-400">
                 {currentPhase.isWork ? "WORK HARD!" : "REST"}
               </div>
             </div>
@@ -227,7 +227,7 @@ export default function FullScreenTimer({
 
         {/* Workout Progress */}
         <div className="w-full max-w-md mb-8">
-          <div className="flex justify-between text-sm text-gray-400 mb-2">
+          <div className="flex justify-between text-sm text-neutral-400 mb-2">
             <span>Workout Progress</span>
             <span>{Math.round(workoutProgress)}%</span>
           </div>
@@ -287,12 +287,12 @@ export default function FullScreenTimer({
                   ? phase.color
                   : index === currentPhaseIndex
                   ? `${phase.color} opacity-70`
-                  : 'bg-gray-700'
+                  : 'bg-neutral-700'
               }`}
             />
           ))}
         </div>
-        <div className="flex justify-between text-xs text-gray-400">
+        <div className="flex justify-between text-xs text-neutral-400">
           {phases.map((phase, index) => (
             <span key={index} className={index === currentPhaseIndex ? 'text-white font-semibold' : ''}>
               {phase.name}

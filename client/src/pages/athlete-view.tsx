@@ -2,42 +2,10 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronRight, ChevronLeft, Moon, Calendar, FileText } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronLeft, Moon, Calendar, FileText, Play } from "lucide-react";
 import MobileTabBar from "@/components/MobileTabBar";
 import CalendarBottomSheet from "@/components/CalendarBottomSheet";
 import { getExercisesForDay } from "@/lib/sessionData";
-
-// Image assets from Figma
-const imgVector = "http://localhost:3845/assets/14a1440996fb831339d674011bb1aee591393b35.svg";
-const imgVector1 = "http://localhost:3845/assets/50fdb6383d561681b93fcab7a2b2c98b2ad32725.svg";
-const imgTimer = "http://localhost:3845/assets/3318047abfbab8ad4554ff44c19ceb6fb726445f.svg";
-const imgCurrentDayIndicator = "http://localhost:3845/assets/de280e049fb3261c679d633b4f3a1843f9c02e36.svg";
-const imgProgressChart = "http://localhost:3845/assets/a58d63cfbad335456531a7adb68e74b80af3830a.svg";
-const imgPlay = "http://localhost:3845/assets/a550711f1ea8cd2067f00618e6675bddb3e494cc.svg";
-
-function IconChevronRight({ className }: { className?: string }) {
-  return (
-    <div className={className}>
-      <div className="absolute bottom-1/4 left-[37.5%] right-[37.5%] top-1/4">
-        <div className="absolute inset-[-8.33%_-16.67%]" style={{ "--stroke-0": "rgba(24, 24, 27, 1)" } as React.CSSProperties}>
-          <img alt="" className="block max-w-none size-full" src={imgVector} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function IconChevronDown({ className }: { className?: string }) {
-  return (
-    <div className={className}>
-      <div className="absolute bottom-[37.5%] left-1/4 right-1/4 top-[37.5%]">
-        <div className="absolute inset-[-16.67%_-8.33%]" style={{ "--stroke-0": "rgba(24, 24, 27, 1)" } as React.CSSProperties}>
-          <img alt="" className="block max-w-none size-full" src={imgVector1} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Circular Progress Component
 function CircularProgress({ progress, size = 32 }: { progress: number; size?: number }) {
@@ -98,7 +66,7 @@ export default function AthleteView() {
   const currentRoutines = getExercisesForDay(selectedDay);
 
   return (
-    <div className="bg-zinc-950 relative min-h-screen w-full">
+    <div className="bg-neutral-950 relative min-h-screen w-full">
       <div className="flex flex-col gap-4 items-start px-0 pt-10 pb-20 w-full">
         {/* Calendar Header */}
         <div className="flex gap-2 items-center w-full px-4">
@@ -154,8 +122,8 @@ export default function AthleteView() {
           ))}
         </div>
 
-        {/* Stats Cards */}
-        <div className="flex gap-3 w-full overflow-x-auto pb-2 pl-4 pr-4">
+        {/* Stats Cards - Hidden */}
+        {/* <div className="flex gap-3 w-full overflow-x-auto pb-2 pl-4 pr-4">
           <div className="bg-neutral-900 flex flex-col gap-2 items-start p-4 rounded-2xl min-w-[140px] shrink-0">
             <p className="text-sm text-muted-foreground">
               Weight lifted (lbs)
@@ -196,7 +164,7 @@ export default function AthleteView() {
               2h 15m
             </p>
           </div>
-        </div>
+        </div> */}
 
         {/* Training Session */}
         <div className="flex flex-col gap-3 items-start w-full px-4">
@@ -218,18 +186,18 @@ export default function AthleteView() {
           <div className="bg-neutral-900 flex flex-col gap-6 items-end p-2 rounded-2xl w-full">
             <div className="flex flex-col gap-4 items-start w-full">
               <button className="flex gap-4 sm:gap-5 items-center w-full hover:bg-neutral-800/50 p-3 rounded-2xl transition-colors">
-                <CircularProgress progress={24} size={32} />
+                <CircularProgress progress={6} size={32} />
                 <div className="flex flex-col gap-1 grow items-start">
                   <p className="font-medium text-base sm:text-lg text-white">
-                    Throwing
+                    Strength
                   </p>
                   <div className="flex gap-3 items-start text-sm text-muted-foreground">
-                    <p>6 exercises</p>
-                    <p>45 min</p>
-                    <p>4/17 sets</p>
+                    <p>4 exercises</p>
+                    <p>30 min</p>
+                    <p>1/16 sets</p>
                   </div>
                 </div>
-                <IconChevronRight className="w-6 h-6 sm:w-7 sm:h-7 relative shrink-0" />
+                <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground shrink-0" />
               </button>
               <button className="flex gap-4 sm:gap-5 items-center w-full hover:bg-neutral-800/50 p-3 rounded-2xl transition-colors">
                 <CircularProgress progress={0} size={32} />
@@ -243,21 +211,21 @@ export default function AthleteView() {
                     <p>0/15 sets</p>
                   </div>
                 </div>
-                <IconChevronRight className="w-6 h-6 sm:w-7 sm:h-7 relative shrink-0" />
+                <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground shrink-0" />
               </button>
               <button className="flex gap-4 sm:gap-5 items-center w-full hover:bg-neutral-800/50 p-3 rounded-2xl transition-colors">
-                <CircularProgress progress={6} size={32} />
+                <CircularProgress progress={24} size={32} />
                 <div className="flex flex-col gap-1 grow items-start">
                   <p className="font-medium text-base sm:text-lg text-white">
-                    Strength
+                    Throwing
                   </p>
                   <div className="flex gap-3 items-start text-sm text-muted-foreground">
-                    <p>4 exercises</p>
-                    <p>30 min</p>
-                    <p>1/16 sets</p>
+                    <p>6 exercises</p>
+                    <p>45 min</p>
+                    <p>4/17 sets</p>
                   </div>
                 </div>
-                <IconChevronRight className="w-6 h-6 sm:w-7 sm:h-7 relative shrink-0" />
+                <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7 text-muted-foreground shrink-0" />
               </button>
             </div>
 
@@ -267,13 +235,7 @@ export default function AthleteView() {
                 className="bg-primary text-primary-foreground flex gap-2 h-12 items-center justify-center px-6 py-3 rounded-full w-full"
                 onClick={() => setLocation(`/session-view?day=${selectedDay}`)}
               >
-                <div className="w-5 h-5 relative shrink-0">
-                  <div className="absolute bottom-[12.5%] left-1/4 right-[16.67%] top-[12.5%]">
-                    <div className="absolute inset-[-5.54%_-7.13%]" style={{ "--stroke-0": "rgba(24, 24, 27, 1)" } as React.CSSProperties}>
-                      <img alt="" className="block max-w-none size-full" src={imgPlay} />
-                    </div>
-                  </div>
-                </div>
+                <Play className="w-5 h-5" />
                 <p className="font-medium text-base">Continue</p>
               </Button>
             </div>
