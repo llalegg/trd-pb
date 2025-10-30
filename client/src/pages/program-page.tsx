@@ -22,7 +22,7 @@ const mockProgram = {
       endDate: "2025-02-11",
       duration: "4 weeks",
       status: "active",
-      description: "Building base strength and movement patterns",
+      description: "Building base strength & conditioning and movement patterns",
       weeks: [
         { week: 1, trainingDays: 4, startDate: "2025-01-15" },
         { week: 2, trainingDays: 4, startDate: "2025-01-22" },
@@ -32,7 +32,7 @@ const mockProgram = {
     },
     {
       id: 2,
-      name: "Block 2: Strength Development",
+      name: "Block 2: Strength & Conditioning Development",
       startDate: "2025-02-12",
       endDate: "2025-03-11",
       duration: "4 weeks",

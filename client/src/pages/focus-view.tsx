@@ -132,6 +132,11 @@ export default function FocusView() {
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
   const [completedRoutineType, setCompletedRoutineType] = useState<string>('');
   
+  // Weight unit state (lbs by default)
+  const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs');
+  const lbsToKg = (lbs: number) => Math.round(lbs * 0.45359237 * 10) / 10;
+  const kgToLbs = (kg: number) => Math.round((kg / 0.45359237) * 10) / 10;
+  
   // Superset-specific state
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<number | null>(null);
@@ -179,7 +184,7 @@ export default function FocusView() {
       };
     } else {
       return {
-        name: "Strength Superset",
+        name: "Strength & Conditioning Superset",
         sets: 4,
         exercises: [
           {
@@ -693,7 +698,29 @@ export default function FocusView() {
                     )}
                     {trackingFields.includes('weight') && (
                       <div className="w-[100px] px-4 py-3 border-r border-[#292928] flex-shrink-0">
-                        <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Weight (lbs)</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Weight ({weightUnit})</p>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setWeightUnit('lbs')}
+                              className={cn(
+                                "text-[10px] px-1.5 py-0.5 rounded",
+                                weightUnit === 'lbs' ? "bg-[#292928] text-[#f7f6f2]" : "text-[#979795] hover:bg-[#171716]"
+                              )}
+                            >
+                              lbs
+                            </button>
+                            <button
+                              onClick={() => setWeightUnit('kg')}
+                              className={cn(
+                                "text-[10px] px-1.5 py-0.5 rounded",
+                                weightUnit === 'kg' ? "bg-[#292928] text-[#f7f6f2]" : "text-[#979795] hover:bg-[#171716]"
+                              )}
+                            >
+                              kg
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     )}
                     {trackingFields.includes('rpe') && (
@@ -730,8 +757,24 @@ export default function FocusView() {
                           )}>
                             <input
                               type="text"
-                              defaultValue={exercise.weight}
-                              onChange={(e) => handleTableInputChange(setIndex, `${exerciseIndex}-weight`, e.target.value)}
+                              defaultValue={(() => {
+                                const raw = exercise.weight as string;
+                                const numeric = parseFloat(raw);
+                                if (!isNaN(numeric)) {
+                                  return weightUnit === 'kg' ? String(lbsToKg(numeric)) : String(numeric);
+                                }
+                                return raw;
+                              })()}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const n = parseFloat(val);
+                                if (!isNaN(n)) {
+                                  const lbs = weightUnit === 'kg' ? kgToLbs(n) : n;
+                                  handleTableInputChange(setIndex, `${exerciseIndex}-weight`, String(Math.round(lbs * 10) / 10));
+                                } else {
+                                  handleTableInputChange(setIndex, `${exerciseIndex}-weight`, val);
+                                }
+                              }}
                               className="w-full bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
                             />
                           </div>
@@ -889,7 +932,29 @@ export default function FocusView() {
             )}
             {trackingFields.includes('weight') && (
               <div className="w-[100px] px-4 py-3 border-r border-[#292928] flex-shrink-0">
-                <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Weight (lbs)</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Weight ({weightUnit})</p>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setWeightUnit('lbs')}
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded",
+                        weightUnit === 'lbs' ? "bg-[#292928] text-[#f7f6f2]" : "text-[#979795] hover:bg-[#171716]"
+                      )}
+                    >
+                      lbs
+                    </button>
+                    <button
+                      onClick={() => setWeightUnit('kg')}
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded",
+                        weightUnit === 'kg' ? "bg-[#292928] text-[#f7f6f2]" : "text-[#979795] hover:bg-[#171716]"
+                      )}
+                    >
+                      kg
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
             {trackingFields.includes('velocity') && (
@@ -941,8 +1006,15 @@ export default function FocusView() {
                   )}>
                     <input
                       type="number"
-                      value={row.weight}
-                      onChange={(e) => handleTableInputChange(index, 'weight', parseInt(e.target.value) || 0)}
+                      value={(() => {
+                        const lbs = Number(row.weight) || 0;
+                        return weightUnit === 'kg' ? lbsToKg(lbs) : lbs;
+                      })()}
+                      onChange={(e) => {
+                        const n = parseFloat(e.target.value);
+                        const lbs = isNaN(n) ? 0 : (weightUnit === 'kg' ? kgToLbs(n) : n);
+                        handleTableInputChange(index, 'weight', Math.round(lbs * 10) / 10);
+                      }}
                       className="w-full bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
                     />
                   </div>

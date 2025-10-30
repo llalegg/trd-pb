@@ -17,6 +17,17 @@ export interface Routine {
   status: "not-started" | "in-progress" | "completed";
   description: string;
   exercises: Exercise[];
+  // Movement specific
+  routineType?: "Corrective A" | "Corrective E" | "Mobility & Activation";
+  // S&C specific
+  bodyFocus?: "Upper Body" | "Lower Body" | "Total Body";
+  liftingTime?: string;
+  conditioningType?: string;
+  conditioningTime?: string;
+  // Throwing specific
+  seriesType?: "Player Series A" | "Catch & Play" | "Play Session";
+  intensity?: "High Intensity" | "Medium Intensity" | "Rest";
+  isRestDay?: boolean;
 }
 
 export interface SessionData {
@@ -30,64 +41,126 @@ export interface SessionData {
 // Enhanced exercises with different routines for different days
 export const getExercisesForDay = (day: number): Routine[] => {
   switch (day) {
-    case 16: // Monday
+    case 15: // Monday (completed day)
       return [
-        {
-          type: "throwing",
-          name: "Throwing",
-          exerciseCount: 6,
-          estimatedTime: "45 min",
-          status: "not-started",
-          description: "Focus on mechanics and velocity development",
-          exercises: [
-            { name: "Dynamic warm-up throws", sets: 2, reps: "10-15", progress: 100, completedSets: 2 },
-            { name: "Long toss progression", sets: 3, reps: "8-10", progress: 66, completedSets: 2 },
-            { name: "Bullpen session", sets: 4, reps: "5-6", progress: 0, completedSets: 0 },
-            { name: "Velocity tracking", sets: 3, reps: "6", progress: 0, completedSets: 0 },
-            { name: "Mechanical drills", sets: 3, reps: "8-12", progress: 0, completedSets: 0 },
-            { name: "Cool down throws", sets: 2, reps: "10-12", progress: 0, completedSets: 0 }
-          ]
-        },
         {
           type: "movement",
           name: "Movement",
           exerciseCount: 4,
-          estimatedTime: "30 min",
-          status: "not-started",
+          estimatedTime: "30m",
+          status: "completed",
           description: "Dynamic warm-up and mobility work",
+          routineType: "Corrective A",
           exercises: [
-            { name: "Hip mobility circuit", sets: 2, reps: "60s ea.", progress: 0, completedSets: 0 },
-            { name: "Shoulder activation", sets: 3, reps: "12", progress: 0, completedSets: 0 },
+            { name: "Hip mobility circuit", sets: 2, reps: "60s ea.", progress: 100, completedSets: 2 },
+            { name: "Shoulder activation", sets: 3, reps: "12", progress: 100, completedSets: 3 },
+            { name: "Core stability work", sets: 3, reps: "45s", progress: 100, completedSets: 3 },
+            { name: "Movement patterns", sets: 2, reps: "10", progress: 100, completedSets: 2 }
+          ]
+        },
+        {
+          type: "strength",
+          name: "S&C",
+          exerciseCount: 5,
+          estimatedTime: "45m",
+          status: "completed",
+          description: "Upper body strength & conditioning training",
+          bodyFocus: "Upper Body",
+          liftingTime: "45m",
+          conditioningType: "Bike",
+          conditioningTime: "15m",
+          exercises: [
+            { name: "Bench press", sets: 5, reps: "5", weight: "185", progress: 100, completedSets: 5 },
+            { name: "Pull-ups", sets: 4, reps: "8-10", progress: 100, completedSets: 4 },
+            { name: "Shoulder press", sets: 3, reps: "8", weight: "95", progress: 100, completedSets: 3 },
+            { name: "Rows", sets: 4, reps: "10", weight: "65", progress: 100, completedSets: 4 },
+            { name: "Bike conditioning", sets: 1, reps: "15 min", progress: 100, completedSets: 1 }
+          ]
+        },
+        {
+          type: "throwing",
+          name: "Throwing",
+          exerciseCount: 6,
+          estimatedTime: "25m",
+          status: "completed",
+          description: "Throwing mechanics and arm care",
+          seriesType: "Catch & Play",
+          intensity: "Medium Intensity",
+          exercises: [
+            { name: "Arm care routine", sets: 2, reps: "12", progress: 100, completedSets: 2 },
+            { name: "Long toss progression", sets: 4, reps: "8-10", progress: 100, completedSets: 4 },
+            { name: "Bullpen session", sets: 3, reps: "15", progress: 100, completedSets: 3 },
+            { name: "Velocity work", sets: 2, reps: "5", progress: 100, completedSets: 2 },
+            { name: "Mechanical drills", sets: 3, reps: "8-12", progress: 100, completedSets: 3 },
+            { name: "Cool down throws", sets: 2, reps: "10-12", progress: 100, completedSets: 2 }
+          ]
+        }
+      ];
+    case 16: // Tuesday (partially completed session)
+      return [
+        {
+          type: "movement",
+          name: "Movement",
+          exerciseCount: 4,
+          estimatedTime: "30m",
+          status: "in-progress",
+          description: "Dynamic warm-up and mobility work",
+          routineType: "Corrective A",
+          exercises: [
+            { name: "Hip mobility circuit", sets: 2, reps: "60s ea.", progress: 100, completedSets: 2 },
+            { name: "Shoulder activation", sets: 3, reps: "12", progress: 100, completedSets: 3 },
             { name: "Core stability work", sets: 3, reps: "45s", progress: 0, completedSets: 0 },
             { name: "Movement patterns", sets: 2, reps: "10", progress: 0, completedSets: 0 }
+          ]
+        },
+        {
+          type: "strength",
+          name: "S&C",
+          exerciseCount: 5,
+          estimatedTime: "45m",
+          status: "not-started",
+          description: "Upper body strength & conditioning training",
+          bodyFocus: "Upper Body",
+          liftingTime: "45m",
+          conditioningType: "Bike",
+          conditioningTime: "15m",
+          exercises: [
+            { name: "Bench press", sets: 5, reps: "5", weight: "185", progress: 100, completedSets: 5 },
+            { name: "Pull-ups", sets: 4, reps: "8-10", progress: 100, completedSets: 4 },
+            { name: "Shoulder press", sets: 3, reps: "8", weight: "95", progress: 67, completedSets: 2 },
+            { name: "Rows", sets: 4, reps: "10", weight: "65", progress: 0, completedSets: 0 },
+            { name: "Bike conditioning", sets: 1, reps: "15 min", progress: 0, completedSets: 0 }
+          ]
+        },
+        {
+          type: "throwing",
+          name: "Throwing",
+          exerciseCount: 6,
+          estimatedTime: "45m",
+          status: "not-started",
+          description: "Focus on mechanics and velocity development",
+          seriesType: "Player Series A",
+          intensity: "High Intensity",
+          exercises: [
+            { name: "Dynamic warm-up throws", sets: 2, reps: "10-15", progress: 0, completedSets: 0 },
+            { name: "Long toss progression", sets: 3, reps: "8-10", progress: 0, completedSets: 0 },
+            { name: "Bullpen session", sets: 4, reps: "5-6", progress: 0, completedSets: 0 },
+            { name: "Velocity tracking", sets: 3, reps: "6", progress: 0, completedSets: 0 },
+            { name: "Mechanical drills", sets: 3, reps: "8-12", progress: 0, completedSets: 0 },
+            { name: "Cool down throws", sets: 2, reps: "10-12", progress: 0, completedSets: 0 }
           ]
         }
       ];
     case 17: // Tuesday (current day)
       return [
         {
-          type: "throwing",
-          name: "Throwing",
-          exerciseCount: 6,
-          estimatedTime: "45 min",
-          status: "not-started",
-          description: "Focus on mechanics and velocity development",
-          exercises: [
-            { name: "Dynamic warm-up throws", sets: 2, reps: "10-15", progress: 100, completedSets: 2 },
-            { name: "Long toss progression", sets: 3, reps: "8-10", progress: 66, completedSets: 2 },
-            { name: "Bullpen session", sets: 4, reps: "5-6", progress: 0, completedSets: 0 },
-            { name: "Velocity tracking", sets: 3, reps: "6", progress: 0, completedSets: 0 },
-            { name: "Mechanical drills", sets: 3, reps: "8-12", progress: 0, completedSets: 0 },
-            { name: "Cool down throws", sets: 2, reps: "10-12", progress: 0, completedSets: 0 }
-          ]
-        },
-        {
           type: "movement",
           name: "Movement",
           exerciseCount: 6,
-          estimatedTime: "45 min",
+          estimatedTime: "30m",
           status: "not-started",
           description: "Dynamic warm-up and mobility work",
+          routineType: "Mobility & Activation",
           exercises: [
             { name: "Hip mobility circuit", sets: 2, reps: "60s ea.", progress: 0, completedSets: 0 },
             { name: "Shoulder activation", sets: 3, reps: "12", progress: 0, completedSets: 0 },
@@ -99,16 +172,36 @@ export const getExercisesForDay = (day: number): Routine[] => {
         },
         {
           type: "strength",
-          name: "Strength",
+          name: "S&C",
           exerciseCount: 4,
-          estimatedTime: "30 min",
+          estimatedTime: "45m",
           status: "not-started",
-          description: "Progressive overload training",
+          description: "Progressive strength & conditioning training",
+          bodyFocus: "Lower Body",
+          liftingTime: "45m",
           exercises: [
-            { name: "Bench press", sets: 5, reps: "5", weight: "185", progress: 20, completedSets: 1 },
-            { name: "Pull-ups", sets: 4, reps: "8-10", progress: 0, completedSets: 0 },
-            { name: "Shoulder press", sets: 3, reps: "8", weight: "95", progress: 0, completedSets: 0 },
-            { name: "Rows", sets: 4, reps: "10", weight: "65", progress: 0, completedSets: 0 }
+            { name: "Squats", sets: 5, reps: "5", weight: "225", progress: 0, completedSets: 0 },
+            { name: "Romanian deadlifts", sets: 4, reps: "8-10", progress: 0, completedSets: 0 },
+            { name: "Bulgarian split squats", sets: 3, reps: "8", weight: "95", progress: 0, completedSets: 0 },
+            { name: "Calf raises", sets: 4, reps: "15", weight: "65", progress: 0, completedSets: 0 }
+          ]
+        },
+        {
+          type: "throwing",
+          name: "Throwing",
+          exerciseCount: 6,
+          estimatedTime: "45m",
+          status: "not-started",
+          description: "Focus on mechanics and velocity development",
+          seriesType: "Catch & Play",
+          intensity: "Medium Intensity",
+          exercises: [
+            { name: "Dynamic warm-up throws", sets: 2, reps: "10-15", progress: 0, completedSets: 0 },
+            { name: "Long toss progression", sets: 3, reps: "8-10", progress: 0, completedSets: 0 },
+            { name: "Bullpen session", sets: 4, reps: "5-6", progress: 0, completedSets: 0 },
+            { name: "Velocity tracking", sets: 3, reps: "6", progress: 0, completedSets: 0 },
+            { name: "Mechanical drills", sets: 3, reps: "8-12", progress: 0, completedSets: 0 },
+            { name: "Cool down throws", sets: 2, reps: "10-12", progress: 0, completedSets: 0 }
           ]
         }
       ];
@@ -117,48 +210,98 @@ export const getExercisesForDay = (day: number): Routine[] => {
     case 19: // Thursday
       return [
         {
-          type: "throwing",
-          name: "Throwing",
-          exerciseCount: 4,
-          estimatedTime: "30 min",
-          status: "completed",
-          description: "Recovery throwing session",
-          exercises: [
-            { name: "Light warm-up throws", sets: 2, reps: "10-12", progress: 100, completedSets: 2 },
-            { name: "Easy bullpen", sets: 3, reps: "5-6", progress: 100, completedSets: 3 },
-            { name: "Mechanical focus", sets: 2, reps: "8", progress: 100, completedSets: 2 },
-            { name: "Cool down", sets: 2, reps: "8-10", progress: 100, completedSets: 2 }
-          ]
-        },
-        {
           type: "movement",
           name: "Movement",
           exerciseCount: 3,
-          estimatedTime: "20 min",
-          status: "completed",
+          estimatedTime: "20m",
+          status: "not-started",
           description: "Light movement and recovery",
+          routineType: "Corrective E",
           exercises: [
-            { name: "Gentle mobility", sets: 2, reps: "45s ea.", progress: 100, completedSets: 2 },
-            { name: "Recovery stretches", sets: 2, reps: "60s", progress: 100, completedSets: 2 },
-            { name: "Breathing exercises", sets: 1, reps: "5 min", progress: 100, completedSets: 1 }
+            { name: "Gentle mobility", sets: 2, reps: "45s ea.", progress: 0, completedSets: 0 },
+            { name: "Recovery stretches", sets: 2, reps: "60s", progress: 0, completedSets: 0 },
+            { name: "Breathing exercises", sets: 1, reps: "5 min", progress: 0, completedSets: 0 }
           ]
+        },
+        {
+          type: "strength",
+          name: "S&C",
+          exerciseCount: 3,
+          estimatedTime: "30m",
+          status: "not-started",
+          description: "Total body strength & conditioning training",
+          bodyFocus: "Total Body",
+          liftingTime: "30m",
+          conditioningType: "Running",
+          conditioningTime: "20m",
+          exercises: [
+            { name: "Push-ups", sets: 3, reps: "12", progress: 0, completedSets: 0 },
+            { name: "Bodyweight squats", sets: 3, reps: "15", progress: 0, completedSets: 0 },
+            { name: "Running conditioning", sets: 1, reps: "20 min", progress: 0, completedSets: 0 }
+          ]
+        },
+        {
+          type: "throwing",
+          name: "Throwing",
+          exerciseCount: 0,
+          estimatedTime: "0m",
+          status: "completed",
+          description: "Rest day - no throwing",
+          seriesType: "REST",
+          intensity: "Rest",
+          isRestDay: true,
+          exercises: []
         }
       ];
     case 20: // Friday
       return [
         {
-          type: "strength",
-          name: "Strength",
-          exerciseCount: 5,
-          estimatedTime: "40 min",
-          status: "in-progress",
-          description: "Full body strength training",
+          type: "movement",
+          name: "Movement",
+          exerciseCount: 4,
+          estimatedTime: "25m",
+          status: "not-started",
+          description: "Pre-workout mobility and activation",
+          routineType: "Mobility & Activation",
           exercises: [
-            { name: "Squats", sets: 4, reps: "8", weight: "225", progress: 50, completedSets: 2 },
-            { name: "Deadlifts", sets: 3, reps: "5", weight: "275", progress: 33, completedSets: 1 },
+            { name: "Dynamic warm-up", sets: 2, reps: "60s ea.", progress: 0, completedSets: 0 },
+            { name: "Joint mobility", sets: 3, reps: "10", progress: 0, completedSets: 0 },
+            { name: "Activation drills", sets: 3, reps: "8", progress: 0, completedSets: 0 },
+            { name: "Movement prep", sets: 2, reps: "12", progress: 0, completedSets: 0 }
+          ]
+        },
+        {
+          type: "strength",
+          name: "Strength & Conditioning",
+          exerciseCount: 5,
+          estimatedTime: "40m",
+          status: "not-started",
+          description: "Full body strength & conditioning training",
+          bodyFocus: "Total Body",
+          liftingTime: "40m",
+          exercises: [
+            { name: "Squats", sets: 4, reps: "8", weight: "225", progress: 0, completedSets: 0 },
+            { name: "Deadlifts", sets: 3, reps: "5", weight: "275", progress: 0, completedSets: 0 },
             { name: "Overhead press", sets: 3, reps: "8", weight: "95", progress: 0, completedSets: 0 },
             { name: "Pull-ups", sets: 4, reps: "8-10", progress: 0, completedSets: 0 },
             { name: "Core circuit", sets: 3, reps: "45s", progress: 0, completedSets: 0 }
+          ]
+        },
+        {
+          type: "throwing",
+          name: "Throwing",
+          exerciseCount: 5,
+          estimatedTime: "35m",
+          status: "not-started",
+          description: "End-of-week throwing session",
+          seriesType: "Play Session",
+          intensity: "Medium Intensity",
+          exercises: [
+            { name: "Light warm-up throws", sets: 2, reps: "8-10", progress: 0, completedSets: 0 },
+            { name: "Progressive distance", sets: 3, reps: "6-8", progress: 0, completedSets: 0 },
+            { name: "Game simulation", sets: 3, reps: "5", progress: 0, completedSets: 0 },
+            { name: "Accuracy work", sets: 2, reps: "10", progress: 0, completedSets: 0 },
+            { name: "Cool down throws", sets: 2, reps: "8", progress: 0, completedSets: 0 }
           ]
         }
       ];
@@ -167,16 +310,49 @@ export const getExercisesForDay = (day: number): Routine[] => {
     case 22: // Sunday
       return [
         {
-          type: "recovery",
-          name: "Recovery",
+          type: "movement",
+          name: "Movement",
           exerciseCount: 3,
-          estimatedTime: "25 min",
+          estimatedTime: "25m",
           status: "not-started",
           description: "Active recovery and mobility",
+          routineType: "Corrective E",
           exercises: [
             { name: "Foam rolling", sets: 1, reps: "10 min", progress: 0, completedSets: 0 },
             { name: "Dynamic stretching", sets: 2, reps: "60s ea.", progress: 0, completedSets: 0 },
             { name: "Light cardio", sets: 1, reps: "15 min", progress: 0, completedSets: 0 }
+          ]
+        },
+        {
+          type: "strength",
+          name: "Strength & Conditioning",
+          exerciseCount: 4,
+          estimatedTime: "30m",
+          status: "not-started",
+          description: "Light strength & conditioning work",
+          bodyFocus: "Upper Body",
+          liftingTime: "30m",
+          exercises: [
+            { name: "Light resistance bands", sets: 3, reps: "15", progress: 0, completedSets: 0 },
+            { name: "Bodyweight exercises", sets: 3, reps: "12", progress: 0, completedSets: 0 },
+            { name: "Core stability", sets: 3, reps: "30s", progress: 0, completedSets: 0 },
+            { name: "Flexibility work", sets: 2, reps: "60s", progress: 0, completedSets: 0 }
+          ]
+        },
+        {
+          type: "throwing",
+          name: "Throwing",
+          exerciseCount: 4,
+          estimatedTime: "30m",
+          status: "not-started",
+          description: "Light throwing session",
+          seriesType: "Catch & Play",
+          intensity: "Medium Intensity",
+          exercises: [
+            { name: "Easy warm-up throws", sets: 2, reps: "10", progress: 0, completedSets: 0 },
+            { name: "Light catch play", sets: 3, reps: "8", progress: 0, completedSets: 0 },
+            { name: "Form focus", sets: 2, reps: "6", progress: 0, completedSets: 0 },
+            { name: "Recovery throws", sets: 2, reps: "8", progress: 0, completedSets: 0 }
           ]
         }
       ];

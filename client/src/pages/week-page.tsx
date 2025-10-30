@@ -217,7 +217,7 @@ export default function WeekPage() {
       };
     } else if (routineType === "strength") {
       return {
-        name: "Strength Superset", 
+        name: "Strength & Conditioning Superset", 
         sets: 4,
         exercises: [
           { name: "Push-ups", reps: "12", additionalParam: "Body weight" },
@@ -313,7 +313,7 @@ export default function WeekPage() {
                   <h3 className="font-semibold text-base text-[#f7f6f2] font-['Montserrat'] capitalize">{routine.type}</h3>
                   <p className="text-[14px] text-[#979795] font-['Montserrat'] font-medium">
                     {routine.type === "movement" && "Dynamic Warm-up"}
-                    {routine.type === "strength" && "Core lift (heaviest, most demanding)"}
+                    {routine.type === "strength" && "Strength & conditioning (heaviest, most demanding)"}
                     {routine.type === "throwing" && "Throwing technique"}
                   </p>
                 </div>

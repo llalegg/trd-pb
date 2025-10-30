@@ -24,7 +24,7 @@ const mockProgramCalendar = {
     },
     {
       id: 2,
-      name: "Block 2: Strength Development",
+      name: "Block 2: Strength & Conditioning Development",
       startDate: "2025-02-12",
       endDate: "2025-03-11",
       status: "locked",

@@ -2,49 +2,10 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronRight, Bell, Phone, Plus, User } from "lucide-react";
+import { ChevronDown, Bell, Play, Plus, ChevronRight, Moon } from "lucide-react";
 import MobileTabBar from "@/components/MobileTabBar";
 import CalendarBottomSheet from "@/components/CalendarBottomSheet";
 import { getExercisesForDay } from "@/lib/sessionData";
-
-// Circular Progress Component
-function CircularProgress({ progress, size = 32 }: { progress: number; size?: number }) {
-  const radius = (size - 4) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
-
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg
-        className="w-full h-full transform -rotate-90"
-        width={size}
-        height={size}
-      >
-        {/* Background circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="#292928"
-          strokeWidth="2"
-          fill="none"
-        />
-        {/* Progress circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="#c4af6c"
-          strokeWidth="2"
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-        />
-      </svg>
-    </div>
-  );
-}
 
 export default function AthleteView() {
   const [, setLocation] = useLocation();
@@ -54,57 +15,122 @@ export default function AthleteView() {
 
   // Week days for horizontal selector (matching Figma design)
   const weekDays = [
-    { day: "M", date: 15, isCurrent: false, isRestDay: false },
-    { day: "T", date: 16, isCurrent: true, isRestDay: false },
-    { day: "W", date: 17, isCurrent: false, isRestDay: true },
-    { day: "T", date: 18, isCurrent: false, isRestDay: false },
-    { day: "F", date: 19, isCurrent: false, isRestDay: false },
-    { day: "S", date: 20, isCurrent: false, isRestDay: true },
-    { day: "S", date: 21, isCurrent: false, isRestDay: false },
+    { day: "M", date: 15, isCurrent: selectedDay === 15, isRestDay: false, sessionState: 'completed' },
+    { day: "T", date: 16, isCurrent: selectedDay === 16, isRestDay: false, sessionState: 'in-progress' },
+    { day: "W", date: 17, isCurrent: selectedDay === 17, isRestDay: true, sessionState: 'rest' },
+    { day: "T", date: 18, isCurrent: selectedDay === 18, isRestDay: false, sessionState: 'scheduled' },
+    { day: "F", date: 19, isCurrent: selectedDay === 19, isRestDay: false, sessionState: 'scheduled' },
+    { day: "S", date: 20, isCurrent: selectedDay === 20, isRestDay: false, sessionState: 'scheduled' },
+    { day: "S", date: 21, isCurrent: selectedDay === 21, isRestDay: true, sessionState: 'rest' },
   ];
 
   const currentRoutines = getExercisesForDay(selectedDay);
   const currentDay = weekDays.find(day => day.date === selectedDay);
   const isRestDay = currentDay?.isRestDay || false;
+  const sessionState = currentDay?.sessionState || 'new';
+
+  // Calculate total exercises and completed exercises from session data
+  const totalExercises = currentRoutines.reduce((total, routine) => total + routine.exercises.length, 0);
+  const completedExercises = currentRoutines.reduce((total, routine) => {
+    return total + routine.exercises.filter(exercise => {
+      return exercise.completedSets === exercise.sets;
+    }).length;
+  }, 0);
+
+  // Find the first incomplete exercise for navigation
+  const findFirstIncompleteExercise = () => {
+    for (const routine of currentRoutines) {
+      for (const exercise of routine.exercises) {
+        if ((exercise.completedSets || 0) < exercise.sets) {
+          return exercise;
+        }
+      }
+    }
+    return null;
+  };
+
+  const hasCompletedExercises = completedExercises > 0;
+  const firstIncompleteExercise = findFirstIncompleteExercise();
+  const progressPercentage = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
 
   const handleDaySelect = (date: number) => {
     setSelectedDay(date);
   };
 
+  // Simple circular progress component
+  const CircularProgress = ({ progress, size = 20 }: { progress: number; size?: number }) => {
+    const radius = (size - 2) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const strokeDasharray = circumference;
+    const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+    return (
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg
+          width={size}
+          height={size}
+          className="transform -rotate-90"
+        >
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="#3d3d3c"
+            strokeWidth="2"
+            fill="none"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="#c4af6c"
+            strokeWidth="2"
+            fill="none"
+            strokeDasharray={strokeDasharray}
+            strokeDashoffset={strokeDashoffset}
+            className="transition-all duration-300 ease-in-out"
+          />
+        </svg>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-[#0d0d0c] relative min-h-screen w-full">
-      <div className="flex flex-col gap-0 items-start px-0 pt-12 pb-20 w-full">
-        {/* Header */}
-        <div className="flex items-center justify-between w-full px-4 mb-6">
-          <button
-            onClick={() => setShowCalendarBottomSheet(true)}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-          >
-            <h1 className="text-2xl font-bold text-[#f7f6f2] font-['Montserrat']">{selectedMonth}</h1>
-            <ChevronDown className="w-5 h-5 text-[#979795]" />
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-4 h-[81px]">
+        <button
+          onClick={() => setShowCalendarBottomSheet(true)}
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        >
+          <h1 className="text-[30px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.32]">{selectedMonth}</h1>
+          <ChevronDown className="w-6 h-6 text-[#f7f6f2]" />
+        </button>
+        <div className="relative">
+          <button className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-[#171716] transition-colors">
+            <Bell className="w-6 h-6 text-[#f7f6f2]" />
           </button>
-          <div className="relative">
-            <button className="p-2 hover:bg-[#171716] rounded-lg transition-colors">
-              <Bell className="w-5 h-5 text-[#979795]" />
-            </button>
-            {/* Notification badge */}
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#c4af6c] rounded-full flex items-center justify-center">
-              <span className="text-xs font-semibold text-black font-['Montserrat']">1</span>
-            </div>
+          {/* Notification badge */}
+          <div className="absolute top-[6px] right-[6px] min-w-[20px] h-5 bg-[#d6c281] rounded-full flex items-center justify-center px-[6px]">
+            <span className="text-xs font-semibold text-black font-['Montserrat'] leading-[1.32]">1</span>
           </div>
         </div>
+      </div>
 
+      {/* Content Container */}
+      <div className="flex flex-col gap-3 px-4 pb-20">
         {/* Day Selector */}
-        <div className="flex gap-0 px-4 w-full mb-6">
+        <div className="flex gap-2 pb-2">
           {weekDays.map((day, index) => (
-            <div key={index} className="flex-1 flex flex-col items-center">
-              <p className="text-xs text-[#979795] mb-2 font-['Montserrat'] font-medium">{day.day}</p>
+            <div key={index} className="flex flex-col items-center gap-2 flex-1">
+              <p className="text-xs font-medium text-[#585856] font-['Montserrat'] leading-[1.32]">{day.day}</p>
               <button
                 onClick={() => handleDaySelect(day.date)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold font-['Montserrat'] transition-colors ${
+                className={`w-11 h-11 rounded-full flex items-center justify-center text-base font-medium font-['Montserrat'] leading-[1.5] transition-colors border ${
                   day.isCurrent
-                    ? "bg-[#f7f6f2] text-[#0d0d0c]"
-                    : "text-[#f7f6f2] hover:bg-[#171716]"
+                    ? "border-[#3d3d3c] bg-transparent text-[#f7f6f2] font-semibold"
+                    : "border-[#1c1c1b] bg-transparent text-[#585856]"
                 }`}
               >
                 {day.date}
@@ -113,112 +139,245 @@ export default function AthleteView() {
           ))}
         </div>
 
-        {/* Training Session Card - Only show if not rest day */}
+        {/* Training Section - Only show if not rest day */}
         {!isRestDay && (
-          <div className="px-4 w-full mb-6">
-            <div className="bg-[#171716] rounded-xl p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">Training session</h2>
+          <div className="flex flex-col gap-3">
+            {/* Training Header */}
+            <p className="text-sm font-medium text-[#979795] font-['Montserrat'] leading-[1.46]">Training</p>
+            
+            {/* Training Card */}
+            <div 
+              className="bg-[#171716] rounded-2xl overflow-hidden cursor-pointer"
+              onClick={() => setLocation("/session-view")}
+            >
+              {/* Card Header */}
+              <div className="bg-[#121210] flex items-center justify-between px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <CircularProgress progress={progressPercentage} size={20} />
+                  <p className="text-xs font-medium text-white font-['Montserrat'] leading-[1.32]">
+                    {sessionState === 'completed' ? `${totalExercises}/${totalExercises} exercises` : 
+                     `${completedExercises}/${totalExercises} exercises`}
+                  </p>
                 </div>
-                <Badge variant="secondary" className="bg-[#292928] text-[#f7f6f2] font-['Montserrat'] font-medium">
-                  Block 1, Week 1
-                </Badge>
+                {sessionState === 'scheduled' || sessionState === 'completed' || selectedDay !== 16 ? (
+                  <ChevronRight className="w-[18px] h-[18px] text-[#585856]" />
+                ) : (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent card click
+                      if (hasCompletedExercises && firstIncompleteExercise) {
+                        // Navigate to focus view with the first incomplete exercise
+                        setLocation("/focus-view");
+                      } else {
+                        // Navigate to focus view for new sessions
+                        setLocation("/focus-view");
+                      }
+                    }}
+                    className="bg-[#e5e4e1] flex items-center gap-2 px-3 py-2 rounded-full hover:bg-[#f7f6f2] transition-colors"
+                  >
+                    <Play className="w-4 h-4 text-black ml-0.5" />
+                    <p className="text-xs font-semibold text-black font-['Montserrat'] leading-[1.32]">
+                      {hasCompletedExercises ? 'Continue' : 'Start'}
+                    </p>
+                  </button>
+                )}
               </div>
 
-              {/* Routines */}
-              <div className="space-y-3 mb-4">
-                {currentRoutines.map((routine, index) => {
-                  // Set all exercises as incomplete by default
-                  const completedExercises = 0;
-                  const totalExercises = routine.exercises.length;
-                  const progress = 0;
-
+              {/* Routine Items */}
+              <div className="px-3">
+                {/* Movement Item */}
+                {(() => {
+                  const movementRoutine = currentRoutines.find(r => r.type === "movement");
+                  const isPresent = !!movementRoutine;
+                  
                   return (
-                    <div key={index} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <CircularProgress progress={progress} />
-                        <div>
-                          <p className="text-sm font-medium text-[#f7f6f2] capitalize font-['Montserrat']">
-                            {routine.type}
-                          </p>
-                          <p className="text-xs text-[#979795] font-['Montserrat'] font-medium">
-                            {completedExercises}/{totalExercises} exercises
-                          </p>
-                        </div>
+                    <div className="bg-[#171716] flex items-center gap-3 py-3 rounded-xl">
+                      {/* Intensity Indicator or Sleep Icon */}
+                      <div className="w-5 h-5 flex items-center justify-center overflow-hidden">
+                        {isPresent ? (
+                          <div className="flex gap-[2px]">
+                            <div className="w-1 h-2 bg-[#ff3636] rounded-sm"></div>
+                            <div className="w-1 h-2 bg-[#ff3636] rounded-sm"></div>
+                            <div className="w-1 h-2 bg-[#ff3636] rounded-sm"></div>
+                          </div>
+                        ) : (
+                          <Moon className="w-4 h-4 text-[#585856]" />
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4">
-                          <svg viewBox="0 0 16 16" className="w-4 h-4 text-[#979795]">
-                            <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1" fill="none" />
-                            <path d="M8 4v4l3 2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-                          </svg>
-                        </div>
-                        <p className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">{routine.estimatedTime}</p>
+                      <div className="flex-1 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">Movement</p>
+                        {isPresent && (
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-[rgba(255,255,255,0.08)] text-xs font-medium text-[#979795] font-['Montserrat'] leading-[1.32] px-2 py-0.5 rounded-full">
+                              {movementRoutine.routineType}
+                            </Badge>
+                            <Badge className="bg-[rgba(255,255,255,0.08)] text-xs font-medium text-[#979795] font-['Montserrat'] leading-[1.32] px-2 py-0.5 rounded-full">
+                              {movementRoutine.estimatedTime}
+                            </Badge>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
-                })}
-              </div>
+                })()}
 
-              <Button 
-                onClick={() => setLocation("/session-view")}
-                className="w-full bg-[#e5e4e1] hover:bg-[#f7f6f2] text-[#0d0d0c] font-semibold font-['Montserrat']"
-              >
-                Continue
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
+                {/* Lifting Item */}
+                {(() => {
+                  const strengthRoutine = currentRoutines.find(r => r.type === "strength");
+                  const isPresent = !!strengthRoutine;
+                  
+                  return (
+                    <div className="bg-[#171716] flex items-center gap-3 py-3 rounded-xl">
+                      {/* Intensity Indicator or Sleep Icon */}
+                      <div className="w-5 h-5 flex items-center justify-center overflow-hidden">
+                        {isPresent ? (
+                          <div className="flex gap-[2px]">
+                            <div className="w-1 h-2 bg-[#13b557] rounded-sm"></div>
+                            <div className="w-1 h-2 bg-[#2a2a29] rounded-sm"></div>
+                            <div className="w-1 h-2 bg-[#2a2a29] rounded-sm"></div>
+                          </div>
+                        ) : (
+                          <Moon className="w-4 h-4 text-[#585856]" />
+                        )}
+                      </div>
+                      <div className="flex-1 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">Lifting</p>
+                        {isPresent && (
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-[rgba(255,255,255,0.08)] text-xs font-medium text-[#979795] font-['Montserrat'] leading-[1.32] px-2 py-0.5 rounded-full">
+                              {strengthRoutine.bodyFocus}
+                            </Badge>
+                            <Badge className="bg-[rgba(255,255,255,0.08)] text-xs font-medium text-[#979795] font-['Montserrat'] leading-[1.32] px-2 py-0.5 rounded-full">
+                              {strengthRoutine.liftingTime}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Running Item */}
+                {(() => {
+                  const hasConditioning = currentRoutines.some(r => r.type === "strength" && r.conditioningType);
+                  
+                  return (
+                    <div className="bg-[#171716] flex items-center gap-3 py-3 rounded-xl">
+                      {/* Intensity Indicator or Sleep Icon */}
+                      <div className="w-5 h-5 flex items-center justify-center overflow-hidden">
+                        {hasConditioning ? (
+                          <div className="flex gap-[2px]">
+                            <div className="w-1 h-2 bg-[#ff8d36] rounded-sm"></div>
+                            <div className="w-1 h-2 bg-[#ff8d36] rounded-sm"></div>
+                            <div className="w-1 h-2 bg-[#2a2a29] rounded-sm"></div>
+                          </div>
+                        ) : (
+                          <Moon className="w-4 h-4 text-[#585856]" />
+                        )}
+                      </div>
+                      <div className="flex-1 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">Running</p>
+                        {hasConditioning && (
+                          <Badge className="bg-[rgba(255,255,255,0.08)] text-xs font-medium text-[#979795] font-['Montserrat'] leading-[1.32] px-2 py-0.5 rounded-full">
+                            30m
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Throwing Item */}
+                {(() => {
+                  const throwingRoutine = currentRoutines.find(r => r.type === "throwing");
+                  const isPresent = throwingRoutine && !throwingRoutine.isRestDay;
+                  
+                  return (
+                    <div className="bg-[#171716] flex items-center gap-3 py-3 rounded-xl">
+                      {/* Intensity Indicator or Sleep Icon */}
+                      <div className="w-5 h-5 flex items-center justify-center overflow-hidden">
+                        {isPresent ? (
+                          <div className="flex gap-[2px]">
+                            <div className="w-1 h-2 bg-[#ff8d36] rounded-sm"></div>
+                            <div className="w-1 h-2 bg-[#ff8d36] rounded-sm"></div>
+                            <div className="w-1 h-2 bg-[#2a2a29] rounded-sm"></div>
+                          </div>
+                        ) : (
+                          <Moon className="w-4 h-4 text-[#585856]" />
+                        )}
+                      </div>
+                      <div className="flex-1 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">Throwing</p>
+                        {isPresent && (
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-[rgba(255,255,255,0.08)] text-xs font-medium text-[#979795] font-['Montserrat'] leading-[1.32] px-2 py-0.5 rounded-full">
+                              {throwingRoutine.seriesType}
+                            </Badge>
+                            <Badge className="bg-[rgba(255,255,255,0.08)] text-xs font-medium text-[#979795] font-['Montserrat'] leading-[1.32] px-2 py-0.5 rounded-full">
+                              {throwingRoutine.estimatedTime}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         )}
 
         {/* Events Section */}
-        <div className="px-4 w-full mb-6">
-          <h3 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat'] mb-3">Events</h3>
-          <div className="bg-[#171716] rounded-xl p-4">
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-medium text-[#979795] font-['Montserrat'] leading-[1.46]">Events</p>
+          <div className="bg-[rgba(99,85,41,0.1)] border border-[#443d28] rounded-2xl p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#292928] rounded-full flex items-center justify-center">
-                <Phone className="w-5 h-5 text-[#f7f6f2]" />
-              </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">Call with John Andersen</p>
-                <p className="text-xs text-[#979795] font-['Montserrat'] font-medium">4:00 – 5:00 PM</p>
+                <p className="text-base font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.5]">Call with John Andersen</p>
+                <p className="text-xs font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">4:00 – 5:00 PM</p>
               </div>
+              <ChevronRight className="w-[18px] h-[18px] text-[#585856]" />
             </div>
           </div>
         </div>
 
         {/* My Tasks Section */}
-        <div className="px-4 w-full mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">My tasks</h3>
-            <button className="w-6 h-6 bg-[#292928] rounded-full flex items-center justify-center">
-              <Plus className="w-4 h-4 text-[#f7f6f2]" />
-            </button>
-          </div>
-          <div className="bg-[#171716] rounded-xl p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-4 h-4 border-2 border-[#979795] rounded"></div>
-              <p className="text-sm text-[#f7f6f2] font-['Montserrat'] font-medium">Buy new baseball gloves for my game</p>
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-medium text-[#979795] font-['Montserrat'] leading-[1.46]">My tasks</p>
+          <div className="bg-[rgba(255,255,255,0.04)] rounded-2xl p-4">
+            <div className="flex items-center gap-4">
+              <div className="w-6 h-6 border border-[#3d3d3c] rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-base font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.5]">Buy new baseball gloves for my game</p>
+              </div>
+              <ChevronRight className="w-[18px] h-[18px] text-[#585856]" />
             </div>
           </div>
         </div>
 
-        {/* Tread Tasks Section */}
-        <div className="px-4 w-full mb-6">
-          <h3 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat'] mb-3">Tread tasks</h3>
-          <div className="bg-[#171716] rounded-xl p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-[#c4af6c] rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-[#0d0d0c]" />
+        {/* Team Task Updates Section */}
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-medium text-[#979795] font-['Montserrat'] leading-[1.46]">Team task updates</p>
+          <div className="bg-[rgba(255,255,255,0.04)] rounded-2xl p-4">
+            <div className="flex items-center gap-4">
+              <div className="w-6 h-6 border border-[#292928] rounded-full overflow-hidden">
+                {/* Avatar placeholder - would use actual avatar image */}
+                <div className="w-full h-full bg-[#585856]"></div>
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">Exercise form check for John Andersen</p>
+                <p className="text-base font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.5]">Exercise form check</p>
+                <p className="text-xs font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">for John Andersen</p>
               </div>
+              <ChevronRight className="w-[18px] h-[18px] text-[#585856]" />
             </div>
           </div>
         </div>
       </div>
+
+      {/* Floating Add Button */}
+      <button className="fixed bottom-24 right-4 w-14 h-14 bg-[#e5e4e1] rounded-full flex items-center justify-center hover:bg-[#f7f6f2] transition-colors">
+        <Plus className="w-8 h-8 text-black" />
+      </button>
 
       <MobileTabBar />
 

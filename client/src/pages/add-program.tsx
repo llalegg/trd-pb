@@ -1951,7 +1951,7 @@ export default function AddProgram() {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="strength">Strength</SelectItem>
+                                  <SelectItem value="strength">Strength & Conditioning</SelectItem>
                                   <SelectItem value="power">Power</SelectItem>
                                   <SelectItem value="endurance">Endurance</SelectItem>
                                   <SelectItem value="mobility">Mobility</SelectItem>
@@ -2308,7 +2308,7 @@ export default function AddProgram() {
                                       <SelectItem value="Hybrid">Hybrid</SelectItem>
                                       <SelectItem value="Restorative">Restorative</SelectItem>
                                       <SelectItem value="Functional">Functional</SelectItem>
-                                      <SelectItem value="Strength">Strength</SelectItem>
+                                      <SelectItem value="Strength">Strength & Conditioning</SelectItem>
                                       <SelectItem value="Power">Power</SelectItem>
                                     </SelectContent>
                                   </Select>
