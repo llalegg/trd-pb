@@ -365,3 +365,19 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
 }
+
+/* Page transition styles */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Prevent layout shifts during transitions */
+[data-framer-component] {
+  will-change: transform, opacity;
+}
+
+/* Smooth transitions for mobile app feel */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}

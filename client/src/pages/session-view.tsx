@@ -185,6 +185,7 @@ export default function SessionView() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showInstructionsOverlay, setShowInstructionsOverlay] = useState(false);
   
   // Get the selected day from URL params or default to current day (17)
   const urlParams = new URLSearchParams(window.location.search);
@@ -340,10 +341,17 @@ export default function SessionView() {
 
   const goToFocusView = (routineType?: string, exerciseName?: string) => {
     if (routineType && exerciseName) {
+      // Direct navigation for exercise cards
       setLocation(`/focus-view?routineType=${encodeURIComponent(routineType)}&exerciseName=${encodeURIComponent(exerciseName)}`);
     } else {
-      setLocation("/focus-view");
+      // Show instructions overlay for Continue button
+      setShowInstructionsOverlay(true);
     }
+  };
+
+  const handleContinueFromOverlay = () => {
+    setShowInstructionsOverlay(false);
+    setLocation("/focus-view");
   };
 
   const goToSupersetFocusView = (routineType: string) => {
@@ -361,6 +369,32 @@ export default function SessionView() {
   const totalRoutines = sessionData.routines.length;
   const progressPercentage = totalRoutines > 0 ? (completedRoutines / totalRoutines) * 100 : 0;
 
+  // Get equipment for a specific routine
+  const getRoutineEquipment = (routineType: string, exercises: any[]) => {
+    const equipmentSet = new Set<string>();
+    
+    // Sample equipment based on routine type
+    const equipmentMap: { [key: string]: string[] } = {
+      strength: ["Dumbbells", "Barbell", "Weight Plates", "Bench", "Squat Rack"],
+      movement: ["Resistance Bands", "Foam Roller", "Yoga Mat"],
+      throwing: ["Baseball", "Glove", "Pitching Target"],
+    };
+    
+    // Add equipment based on routine type
+    if (equipmentMap[routineType]) {
+      equipmentMap[routineType].forEach((eq) => equipmentSet.add(eq));
+    }
+    
+    // Check if exercises have equipment property
+    exercises.forEach((exercise: any) => {
+      if (exercise.equipment && Array.isArray(exercise.equipment)) {
+        exercise.equipment.forEach((eq: string) => equipmentSet.add(eq));
+      }
+    });
+    
+    return Array.from(equipmentSet);
+  };
+
   return (
     <div className="min-h-screen bg-[#0d0d0c]">
       {/* Header */}
@@ -375,7 +409,7 @@ export default function SessionView() {
           </button>
           <div className="flex-1 ml-2">
             <h1 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat'] text-left">
-              Tuesday, Oct 17
+              Tuesday, Oct 16
             </h1>
             <p className="text-xs text-[#979795] font-['Montserrat'] font-semibold text-left">
               Block 1, Week 1
@@ -401,11 +435,10 @@ export default function SessionView() {
             <div className={`relative w-8 h-5 rounded-full transition-colors duration-200 ${showCompleted ? 'bg-[#c4af6c]' : 'bg-[#3d3d3c]'}`}>
               <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${showCompleted ? 'translate-x-3' : 'translate-x-0.5'}`} />
             </div>
-            <span className="font-['Montserrat']">Show completed</span>
+            <span className="font-['Montserrat'] font-medium">Show completed</span>
           </button>
         </div>
       </div>
-
 
       {/* Floating Continue Button */}
       <div className="fixed bottom-0 left-0 right-0 p-4 z-40">
@@ -555,6 +588,34 @@ export default function SessionView() {
                 </div>
               </div>
 
+              {/* Equipment Card */}
+              {(() => {
+                const routineEquipment = getRoutineEquipment(routine.type, routine.exercises);
+                return routineEquipment.length > 0 ? (
+                  <div className="mt-4">
+                    <div className="bg-[#121210] border border-[#292928] rounded-[16px] p-[8px]">
+                      <div className="flex flex-wrap gap-[4px] items-center">
+                        {/* Dumbbell Icon */}
+                        <div className="w-[16px] h-[16px] shrink-0 flex items-center justify-center">
+                          <Dumbbell className="w-4 h-4 text-[#979795]" />
+                        </div>
+                        
+                        {/* Equipment Badges */}
+                        {routineEquipment.map((equipment, index) => (
+                          <div
+                            key={index}
+                            className="backdrop-blur-[20px] bg-[rgba(0,0,0,0.25)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full shrink-0"
+                          >
+                            <p className="text-[12px] font-medium text-[#f7f6f2] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
+                              {equipment}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
 
               {/* Exercise List */}
               <div className="space-y-2">
@@ -624,6 +685,92 @@ export default function SessionView() {
           </Button>
         </div>
       </div>
+
+      {/* Instructions Overlay */}
+      {showInstructionsOverlay && (
+        <div className="fixed inset-0 z-50 bg-[#0d0d0c] bg-opacity-95 flex flex-col items-center justify-center px-4">
+          <div className="max-w-md w-full space-y-6">
+            {/* Title */}
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-semibold text-[#f7f6f2] font-['Montserrat']">
+                How to Add Information
+              </h2>
+              <p className="text-sm text-[#979795] font-['Montserrat']">
+                Follow these steps to track your workout
+              </p>
+            </div>
+
+            {/* Instructions */}
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-[#292928] flex items-center justify-center text-sm font-semibold text-[#f7f6f2] shrink-0 mt-0.5">
+                  1
+                </div>
+                <div>
+                  <p className="text-base font-medium text-[#f7f6f2] font-['Montserrat']">
+                    Enter your reps and weight
+                  </p>
+                  <p className="text-sm text-[#979795] font-['Montserrat'] mt-1">
+                    Tap on any cell in the table to edit values
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-[#292928] flex items-center justify-center text-sm font-semibold text-[#f7f6f2] shrink-0 mt-0.5">
+                  2
+                </div>
+                <div>
+                  <p className="text-base font-medium text-[#f7f6f2] font-['Montserrat']">
+                    Set your RPE (Rate of Perceived Exertion)
+                  </p>
+                  <p className="text-sm text-[#979795] font-['Montserrat'] mt-1">
+                    Select from the dropdown to rate your effort level
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-[#292928] flex items-center justify-center text-sm font-semibold text-[#f7f6f2] shrink-0 mt-0.5">
+                  3
+                </div>
+                <div>
+                  <p className="text-base font-medium text-[#f7f6f2] font-['Montserrat']">
+                    Choose your rest time
+                  </p>
+                  <p className="text-sm text-[#979795] font-['Montserrat'] mt-1">
+                    Use the rest time selector to set breaks between sets
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-[#292928] flex items-center justify-center text-sm font-semibold text-[#f7f6f2] shrink-0 mt-0.5">
+                  4
+                </div>
+                <div>
+                  <p className="text-base font-medium text-[#f7f6f2] font-['Montserrat']">
+                    Complete your exercise
+                  </p>
+                  <p className="text-sm text-[#979795] font-['Montserrat'] mt-1">
+                    Tap "Complete & Next" when finished with all sets
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Continue Button */}
+            <div className="pt-4">
+              <Button 
+                className="w-full h-12 text-base font-semibold bg-[#e5e4e1] text-black hover:bg-[#d5d4d1] font-['Montserrat']"
+                onClick={handleContinueFromOverlay}
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

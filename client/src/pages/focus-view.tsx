@@ -696,21 +696,18 @@ export default function FocusView() {
   // Show intro screen as a full page when needed
   if (shouldShowIntroScreen) {
     return (
-      <div className="bg-[#0d0d0c] min-h-screen w-full flex flex-col">
-        {/* Top Navigation Bar */}
-        <div className="flex items-center justify-center h-12 px-4 shrink-0">
-          <button 
-            onClick={() => setLocation("/session-view")}
-            className="flex items-center justify-center w-12 h-12 shrink-0 rounded-full hover:bg-muted/50 transition-colors"
-          >
-            <ChevronLeft className="w-6 h-6 text-[#f7f6f2]" />
-          </button>
-          <div className="flex-1" />
-        </div>
+      <div className="bg-[#0d0d0c] min-h-screen w-full flex flex-col relative">
+        {/* Close Button - Top Right */}
+        <button 
+          onClick={() => setLocation("/session-view")}
+          className="absolute top-4 right-4 w-10 h-10 bg-[#292928] rounded-full flex items-center justify-center z-50"
+        >
+          <X className="w-6 h-6 text-[#f7f6f2]" />
+        </button>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto pb-20">
-          <div className="px-4 py-2 space-y-6">
+          <div className="px-4 pt-6 pb-2 space-y-6">
             {/* Title Section */}
             <div className="space-y-1">
               <p className="text-sm text-[#979795] font-semibold">Prepare for exercise</p>
@@ -733,19 +730,7 @@ export default function FocusView() {
                   <p className="text-sm text-[#979795]">Rest Time</p>
                   <p className="text-lg font-semibold text-[#f7f6f2]">{currentExercise.restTime}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-[#979795]">Routine Type</p>
-                  <p className="text-lg font-semibold text-[#f7f6f2] capitalize">{currentExercise.routineType}</p>
-                </div>
               </div>
-            </div>
-
-            {/* Description Section */}
-            <div className="space-y-3">
-              <h2 className="text-base font-semibold text-[#f7f6f2]">Description</h2>
-              <p className="text-sm text-[#979795] leading-relaxed">
-                {currentExercise.description}
-              </p>
             </div>
 
             {/* Equipment Section */}
