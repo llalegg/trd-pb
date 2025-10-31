@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Programs from "@/pages/programs";
 import AddProgram from "@/pages/add-program";
-import AthleteView from "@/pages/athlete-view";
+import AthleteView from "@/pages/athlete-home";
 import SessionView from "@/pages/session-view";
 import ExecutionView from "@/pages/execution-view";
 import FocusView from "@/pages/focus-view";

@@ -30,7 +30,7 @@ export default function Programs() {
         <Card 
           className="cursor-pointer hover:shadow-lg transition-shadow duration-200 border-2 hover:border-primary/50"
           onClick={() => setLocation("/home")}
-          data-testid="card-athlete-view"
+          data-testid="card-athlete-home"
         >
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-full w-fit">

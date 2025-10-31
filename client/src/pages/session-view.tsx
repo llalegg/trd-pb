@@ -19,6 +19,8 @@ interface ExerciseCardProps {
     completedSets?: number;
   };
   isCompleted: boolean;
+  routineType: string;
+  onClick?: () => void;
 }
 
 // Superset Card Component based on Figma design
@@ -34,13 +36,16 @@ interface SupersetCardProps {
     completedSets?: number;
   };
   isCompleted: boolean;
+  routineType: string;
+  onClick?: () => void;
 }
 
-function ExerciseCard({ exercise, isCompleted }: ExerciseCardProps) {
+function ExerciseCard({ exercise, isCompleted, routineType, onClick }: ExerciseCardProps) {
   if (isCompleted) {
     return (
-      <div 
-        className="bg-[#121210] flex items-center gap-2 h-[44px] px-3 py-[10px] rounded-xl"
+      <button 
+        onClick={onClick}
+        className="bg-[#121210] flex items-center gap-2 h-[44px] px-3 py-[10px] rounded-xl w-full text-left hover:bg-[#1a1a19] transition-colors"
       >
         {/* Completed Icon */}
         <div className="bg-[#1c1c1b] flex items-center justify-center p-1 rounded-full shrink-0 w-5 h-5">
@@ -53,13 +58,14 @@ function ExerciseCard({ exercise, isCompleted }: ExerciseCardProps) {
             {exercise.name}
           </p>
         </div>
-      </div>
+      </button>
     );
   }
 
   return (
-    <div 
-      className="bg-[#171716] flex items-center gap-2 px-3 py-3 rounded-xl"
+    <button 
+      onClick={onClick}
+      className="bg-[#171716] flex items-center gap-2 px-3 py-3 rounded-xl w-full text-left hover:bg-[#1f1f1e] transition-colors"
     >
       {/* Circle Icon */}
       <div className="shrink-0 w-5 h-5 bg-[#292928] rounded-full flex items-center justify-center">
@@ -72,13 +78,13 @@ function ExerciseCard({ exercise, isCompleted }: ExerciseCardProps) {
           {exercise.name}
         </p>
       </div>
-    </div>
+    </button>
   );
 }
 
-function SupersetCard({ superset, isCompleted }: SupersetCardProps) {
+function SupersetCard({ superset, isCompleted, routineType, onClick }: SupersetCardProps) {
   return (
-    <div className="flex flex-col w-full pb-4">
+    <button onClick={onClick} className="flex flex-col w-full pb-4 text-left hover:bg-[#0f0f0e] rounded-lg transition-colors">
       {/* Superset Header - exact Figma specs */}
       <div className="flex items-center justify-between p-3 h-8 w-full">
         <div className="flex items-center gap-3">
@@ -99,19 +105,27 @@ function SupersetCard({ superset, isCompleted }: SupersetCardProps) {
       </div>
 
       {/* Superset Exercises with vertical connecting lines */}
-      <div className="flex flex-col">
+      <div className="flex flex-col pointer-events-none">
         {superset.exercises.map((exercise, index) => (
           <div key={index}>
             {/* Exercise Item */}
-            <ExerciseCard
-              exercise={{
-                name: exercise.name,
-                sets: superset.sets,
-                reps: exercise.reps,
-                completedSets: superset.completedSets || 0
-              }}
-              isCompleted={isCompleted}
-            />
+            <div className={isCompleted ? "bg-[#121210] flex items-center gap-2 h-[44px] px-3 py-[10px] rounded-xl" : "bg-[#171716] flex items-center gap-2 px-3 py-3 rounded-xl"}>
+              {/* Circle Icon */}
+              <div className={isCompleted ? "bg-[#1c1c1b] flex items-center justify-center p-1 rounded-full shrink-0 w-5 h-5" : "shrink-0 w-5 h-5 bg-[#292928] rounded-full flex items-center justify-center"}>
+                {isCompleted ? (
+                  <Check className="w-4 h-4 text-[#979795]" />
+                ) : (
+                  <div className="w-[6px] h-[6px] bg-[#c4af6c] rounded-full"></div>
+                )}
+              </div>
+              
+              {/* Exercise Name */}
+              <div className="flex-1 min-w-0">
+                <p className={`text-[14px] font-['Montserrat'] truncate leading-[1.46] ${isCompleted ? 'font-medium text-[#585856]' : 'font-semibold text-[#f7f6f2]'}`}>
+                  {exercise.name}
+                </p>
+              </div>
+            </div>
             
             {/* Vertical connecting line after each exercise (except last) */}
             {index < superset.exercises.length - 1 && (
@@ -122,7 +136,7 @@ function SupersetCard({ superset, isCompleted }: SupersetCardProps) {
           </div>
         ))}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -170,18 +184,12 @@ export default function SessionView() {
   const [selectedRoutine, setSelectedRoutine] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [expandedRoutines, setExpandedRoutines] = useState<Record<string, boolean>>({});
+  const [showCompleted, setShowCompleted] = useState(false);
   
   // Get the selected day from URL params or default to current day (17)
   const urlParams = new URLSearchParams(window.location.search);
   const selectedDay = parseInt(urlParams.get('day') || '17', 10);
 
-  const toggleRoutineExpansion = (routineType: string) => {
-    setExpandedRoutines(prev => ({
-      ...prev,
-      [routineType]: !prev[routineType]
-    }));
-  };
   
   // Get session data for the selected day
   const sessionData = getSessionData(selectedDay);
@@ -206,6 +214,32 @@ export default function SessionView() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Handle scroll to specific routine from URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const scrollTo = urlParams.get('scrollTo');
+    
+    if (scrollTo) {
+      // Wait for the component to render, then scroll to the routine
+      setTimeout(() => {
+        const routineElement = document.querySelector(`[data-routine="${scrollTo}"]`);
+        if (routineElement) {
+          routineElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          });
+          
+          // Add a highlight effect
+          routineElement.classList.add('ring-2', 'ring-[#c4af6c]', 'ring-opacity-50');
+          setTimeout(() => {
+            routineElement.classList.remove('ring-2', 'ring-[#c4af6c]', 'ring-opacity-50');
+          }, 2000);
+        }
+      }, 100);
+    }
+  }, []);
+
   const routineTypeIcons = {
     throwing: Target,
     movement: Zap,
@@ -216,14 +250,30 @@ export default function SessionView() {
   const routineTypeOrder = ["movement", "strength", "throwing", "recovery"];
 
   // R-focus mapping for Movement and Strength routines
-  const getRFocusText = (routineType: string): string | null => {
+  const getRFocusParams = (routineType: string): string[] => {
     switch (routineType) {
       case "movement":
-        return "Dynamic Warm-up"; // R3
+        return ["Dynamic Warm-up", "Mobility", "Activation"]; // R3 parameters
       case "strength":
-        return "Core lift (heaviest, most demanding)"; // R4
+        return ["Core lift", "Heavy load"]; // R4 parameters
       default:
-        return null; // Only applicable for Movement and Strength
+        return [];
+    }
+  };
+
+  // Get intensity level for each routine type
+  const getIntensityLevel = (routineType: string): { level: number; color: string } => {
+    switch (routineType) {
+      case "movement":
+        return { level: 2, color: "bg-[#4ade80]" }; // Light intensity - green
+      case "strength":
+        return { level: 4, color: "bg-[#f59e0b]" }; // High intensity - orange
+      case "throwing":
+        return { level: 3, color: "bg-[#3b82f6]" }; // Medium-high intensity - blue
+      case "recovery":
+        return { level: 1, color: "bg-[#6b7280]" }; // Low intensity - gray
+      default:
+        return { level: 2, color: "bg-[#6b7280]" };
     }
   };
 
@@ -340,29 +390,19 @@ export default function SessionView() {
         </div>
       </div>
 
-      {/* Global Progress Bar */}
+
+      {/* Toggle Completed Exercises */}
       <div className="px-4 pb-4 pt-3">
-        <div className="flex gap-1">
-          {sessionData.routines.map((routine) => 
-            routine.exercises.map((exercise: any, exerciseIndex: number) => {
-              const isCompletedInState = exerciseStateManager.isExerciseCompleted(routine.type, exercise.name);
-              const isExerciseCompleted = isCompletedInState || 
-                (routine.type === "strength" && exerciseIndex === 0) || 
-                exercise.completedSets >= exercise.sets;
-              return (
-                <div
-                  key={`${routine.type}-${exerciseIndex}`}
-                  className="flex-1 h-2 rounded-full bg-neutral-800 relative"
-                >
-                  {isExerciseCompleted && (
-                    <div 
-                      className="h-2 bg-[#c4af6c] rounded-full transition-all duration-300 w-full"
-                    />
-                  )}
-                </div>
-              );
-            })
-          )}
+        <div className="bg-[#1a1a19] rounded-lg p-3">
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
+            className="flex items-center gap-2 text-sm text-[#979795] hover:text-[#f7f6f2] transition-colors"
+          >
+            <div className={`relative w-8 h-5 rounded-full transition-colors duration-200 ${showCompleted ? 'bg-[#c4af6c]' : 'bg-[#3d3d3c]'}`}>
+              <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${showCompleted ? 'translate-x-3' : 'translate-x-0.5'}`} />
+            </div>
+            <span className="font-['Montserrat']">Show completed</span>
+          </button>
         </div>
       </div>
 
@@ -384,41 +424,134 @@ export default function SessionView() {
           const isCompleted = routine.status === "completed";
           
           const routineProgress = (() => {
-            const list = (routine.exercises as any[]) as { sets: number; completedSets?: number }[];
+            const list = (routine.exercises as any[]) as { sets: number; completedSets?: number; name: string }[];
             if (!list.length) return 0;
-            const totals = list.reduce((acc, e) => {
-              acc.completed += (e.completedSets || 0);
-              acc.total += e.sets || 0;
-              return acc;
-            }, { completed: 0, total: 0 });
-            if (totals.total === 0) return 0;
-            return Math.round((totals.completed / totals.total) * 100);
+            
+            let completedExercises = 0;
+            let totalExercises = 0;
+            
+            // Count completed exercises (not sets)
+            list.forEach((exercise) => {
+              const isCompletedInState = exerciseStateManager.isExerciseCompleted(routine.type, exercise.name);
+              const isCompletedBySets = (exercise.completedSets || 0) >= exercise.sets;
+              const isExerciseCompleted = isCompletedInState || isCompletedBySets || 
+                (routine.type === "strength" && exercise.name === "Romanian deadlifts"); // Pre-completed exercise
+              
+              if (isExerciseCompleted) {
+                completedExercises++;
+              }
+              totalExercises++;
+            });
+            
+            // Add superset if it exists for movement and strength
+            if (routine.type === "movement" || routine.type === "strength") {
+              const supersetCompleted = exerciseStateManager.isExerciseCompleted(routine.type, `${routine.type === 'strength' ? 'Strength & Conditioning' : 'Movement'} Superset`);
+              if (supersetCompleted) {
+                completedExercises++;
+              }
+              totalExercises++;
+            }
+            
+            if (totalExercises === 0) return 0;
+            return Math.round((completedExercises / totalExercises) * 100);
           })();
 
           return (
-            <div key={routine.type} className="space-y-4">
-              {/* Routine Header */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-semibold text-base text-white font-['Montserrat'] capitalize">
-                    {routine.type}
-                  </h3>
-                  {getRFocusText(routine.type) && (
-                    <p className="text-[14px] text-[#979795] font-['Montserrat'] font-medium">
-                      {getRFocusText(routine.type)}
-                    </p>
+            <div key={routine.type} className="space-y-4" data-routine={routine.type}>
+              {/* Routine Header - Figma Design */}
+              <div className="flex gap-[8px] items-center w-full">
+                {/* Progress Circle */}
+                <div className="relative w-[24px] h-[24px] shrink-0">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 24 24">
+                    {/* Background circle */}
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="#3d3d3c"
+                      strokeWidth="2"
+                      fill="none"
+                    />
+                    {/* Progress circle */}
+                    {routineProgress > 0 && (
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="#f7f6f2"
+                        strokeWidth="2"
+                        fill="none"
+                        strokeDasharray={`${2 * Math.PI * 10}`}
+                        strokeDashoffset={`${2 * Math.PI * 10 * (1 - (routineProgress / 100))}`}
+                        strokeLinecap="round"
+                        className="transition-all duration-300"
+                      />
+                    )}
+                  </svg>
+                </div>
+
+                {/* Content */}
+                <div className="flex flex-col gap-[8px] items-start justify-center flex-1 min-w-0">
+                  <p className="text-[16px] font-semibold text-white font-['Montserrat'] leading-[1.5] w-full capitalize">
+                    {routine.type === 'strength' ? 'Strength & Conditioning' : routine.type}
+                  </p>
+                  {getRFocusParams(routine.type).length > 0 && (
+                    <div className="flex flex-wrap gap-[4px] items-start w-full">
+                      {getRFocusParams(routine.type).map((param, index) => (
+                        <div
+                          key={index}
+                          className="backdrop-blur-[20px] bg-[rgba(255,255,255,0.08)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full shrink-0"
+                        >
+                          <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
+                            {param}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4">
-                    <svg viewBox="0 0 16 16" className="w-4 h-4 text-[#979795]">
-                      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1" fill="none"/>
-                      <path d="M8 4v4l3 2" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
-                    </svg>
+
+                {/* Right Side - Intensity & Time */}
+                <div className="flex flex-col items-end gap-[8px] shrink-0">
+                  {/* Intensity Indicator */}
+                  <div className="flex gap-[7px] items-center">
+                    <div className="w-[20px] h-[20px] overflow-hidden relative">
+                      {routine.type === 'movement' && (
+                        <>
+                          <div className="absolute bg-[#ff3636] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
+                          <div className="absolute bg-[#ff3636] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
+                          <div className="absolute bg-[#ff3636] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
+                        </>
+                      )}
+                      {routine.type === 'strength' && (
+                        <>
+                          <div className="absolute bg-[#13b557] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
+                          <div className="absolute bg-[#2a2a29] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
+                          <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
+                        </>
+                      )}
+                      {routine.type === 'throwing' && (
+                        <>
+                          <div className="absolute bg-[#ff8d36] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
+                          <div className="absolute bg-[#ff8d36] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
+                          <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">
-                    {routine.estimatedTime}
-                  </p>
+                  
+                  {/* Time */}
+                  <div className="flex gap-[7px] items-center">
+                    <div className="w-[16px] h-[16px]">
+                      <svg viewBox="0 0 16 16" className="w-4 h-4 text-[#979795]">
+                        <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1" fill="none"/>
+                        <path d="M8 4v4l3 2" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+                    <p className="text-[12px] font-medium text-[#f7f6f2] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
+                      {routine.estimatedTime}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -426,95 +559,55 @@ export default function SessionView() {
               {/* Exercise List */}
               <div className="space-y-2">
                 {(() => {
-                  // Separate completed and incomplete exercises/supersets
-                  const completedItems: JSX.Element[] = [];
-                  const incompleteItems: JSX.Element[] = [];
+                  const allItems: JSX.Element[] = [];
 
                   // Add superset card for Movement and Strength routines
                   if (routine.type === "movement" || routine.type === "strength") {
                     const supersetCompleted = exerciseStateManager.isExerciseCompleted(routine.type, getSuperset(routine.type)!.name);
-                    const supersetElement = (
-                      <SupersetCard
-                        key="superset"
-                        superset={getSuperset(routine.type)!}
-                        isCompleted={supersetCompleted}
-                      />
-                    );
                     
-                    if (supersetCompleted) {
-                      completedItems.push(supersetElement);
-                    } else {
-                      incompleteItems.push(supersetElement);
+                    // Only show if not completed OR if showing completed
+                    if (!supersetCompleted || showCompleted) {
+                      const supersetElement = (
+                        <SupersetCard
+                          key="superset"
+                          superset={getSuperset(routine.type)!}
+                          isCompleted={supersetCompleted}
+                          routineType={routine.type}
+                          onClick={() => goToSupersetFocusView(routine.type)}
+                        />
+                      );
+                      allItems.push(supersetElement);
                     }
                   }
 
-                  // Add individual exercises
+                  // Add individual exercises in original order
                   (routine.exercises as any[]).forEach((exercise: any, index: number) => {
                     const isCompletedInState = exerciseStateManager.isExerciseCompleted(routine.type, exercise.name);
                     const isExerciseCompleted = isCompletedInState || 
                       (routine.type === "strength" && index === 0) || 
                       exercise.completedSets >= exercise.sets;
                     
-                    const exerciseElement = (
-                      <ExerciseCard
-                        key={index}
-                        exercise={{
-                          name: exercise.name,
-                          sets: exercise.sets,
-                          reps: exercise.reps,
-                          completedSets: exercise.completedSets
-                        }}
-                        isCompleted={isExerciseCompleted}
-                      />
-                    );
-
-                    if (isExerciseCompleted) {
-                      completedItems.push(exerciseElement);
-                    } else {
-                      incompleteItems.push(exerciseElement);
+                    // Only show if not completed OR if showing completed
+                    if (!isExerciseCompleted || showCompleted) {
+                      const exerciseElement = (
+                        <ExerciseCard
+                          key={index}
+                          exercise={{
+                            name: exercise.name,
+                            sets: exercise.sets,
+                            reps: exercise.reps,
+                            completedSets: exercise.completedSets
+                          }}
+                          isCompleted={isExerciseCompleted}
+                          routineType={routine.type}
+                          onClick={() => goToFocusView(routine.type, exercise.name)}
+                        />
+                      );
+                      allItems.push(exerciseElement);
                     }
                   });
 
-                  const isExpanded = expandedRoutines[routine.type] || false;
-                  const hasCompletedItems = completedItems.length > 0;
-
-                  return (
-                    <>
-                      {/* Show incomplete items first */}
-                      {incompleteItems}
-                      
-                      {/* Show completed items section if any exist */}
-                      {hasCompletedItems && (
-                        <div className="space-y-2 w-full">
-                          {/* Expandable header for completed items */}
-                          <button
-                            onClick={() => toggleRoutineExpansion(routine.type)}
-                            className="flex items-center gap-2 w-full py-2 px-3 text-left hover:bg-[#1a1a19] rounded-lg transition-colors"
-                          >
-                            <ChevronDown 
-                              className={`w-4 h-4 text-[#979795] transition-transform ${
-                                isExpanded ? 'rotate-180' : ''
-                              }`} 
-                            />
-                            <span className="text-sm font-medium text-[#979795] font-['Montserrat']">
-                              Completed ({completedItems.length})
-                            </span>
-                          </button>
-                          
-                          {/* Completed items (collapsible) */}
-                          {isExpanded && (
-                            <div className="space-y-2 pl-6 w-full">
-                              {completedItems.map((item, index) => (
-                                <div key={index} className="w-full">
-                                  {item}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  );
+                  return allItems;
                 })()}
               </div>
             </div>
