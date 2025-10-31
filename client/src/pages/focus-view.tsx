@@ -798,17 +798,26 @@ export default function FocusView() {
         {/* Video Section with Slider */}
         <div className="h-[377px] relative overflow-hidden">
           {/* Video Thumbnail Placeholder */}
-          <div className="absolute inset-0 bg-[#1a1a1a]">
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: 'url(/images/gym-background.jpg)',
+              backgroundColor: '#1a1a1a', // Fallback color
+            }}
+          >
+            {/* Dark overlay for better text visibility */}
+            <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+            
             <div className="w-full h-full flex items-center justify-center relative">
               {/* Exercise Name Label - Top Left */}
-              <div className="absolute top-4 left-4 bg-black bg-opacity-50 rounded-lg px-3 py-2">
+              <div className="absolute top-4 left-4 bg-black bg-opacity-50 rounded-lg px-3 py-2 z-10">
                 <p className="text-sm font-semibold text-white font-['Montserrat']">
                   {supersetData.exercises[currentVideoIndex]?.name}
                 </p>
               </div>
               
               {/* Duration Badge */}
-              <div className="absolute bottom-4 right-4 bg-black bg-opacity-75 rounded px-2 py-1">
+              <div className="absolute bottom-4 right-4 bg-black bg-opacity-75 rounded px-2 py-1 z-10">
                 <p className="text-xs text-white font-['Montserrat']">2:30</p>
               </div>
               
@@ -1118,11 +1127,20 @@ export default function FocusView() {
       {/* Video Section */}
       <div className="h-[377px] relative overflow-hidden">
         {/* Video Thumbnail Placeholder */}
-        <div className="absolute inset-0 bg-[#1a1a1a]">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: 'url(/images/gym-background.jpg)',
+            backgroundColor: '#1a1a1a', // Fallback color
+          }}
+        >
+          {/* Dark overlay for better text visibility */}
+          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+          
           {/* Thumbnail Content */}
           <div className="w-full h-full flex items-center justify-center relative">
             {/* Duration Badge */}
-            <div className="absolute bottom-4 right-4 bg-black bg-opacity-75 rounded px-2 py-1">
+            <div className="absolute bottom-4 right-4 bg-black bg-opacity-75 rounded px-2 py-1 z-10">
               <p className="text-xs text-white font-['Montserrat']">2:30</p>
             </div>
             
