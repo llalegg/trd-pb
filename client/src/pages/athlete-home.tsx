@@ -144,7 +144,7 @@ export default function AthleteView() {
           <div className="flex flex-col gap-[12px]">
             {/* Training Card */}
             <div 
-              className="flex flex-col gap-[8px] overflow-hidden rounded-[16px] w-[361px] cursor-pointer"
+              className="flex flex-col gap-[8px] overflow-hidden rounded-[16px] w-full cursor-pointer"
               onClick={() => setLocation("/session-view")}
             >
               {/* Card Header */}
