@@ -57,7 +57,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { format, differenceInWeeks, addWeeks, addDays, startOfWeek, endOfWeek, isWithinInterval, getDay } from "date-fns";
+import { format, differenceInWeeks, addWeeks, addDays, startOfWeek, endOfWeek, isWithinInterval, getDay, addMonths, startOfMonth, endOfMonth } from "date-fns";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -86,11 +86,7 @@ const routineTypeOptions = [
   { id: "lifting", label: "Lifting" },
 ];
 
-const splitTypeOptions = [
-  { id: "2", label: "2-day split", days: ["Monday", "Thursday"] },
-  { id: "3", label: "3-day split", days: ["Monday", "Wednesday", "Friday"] },
-  { id: "4", label: "4-day split", days: ["Monday", "Tuesday", "Thursday", "Friday"] },
-];
+// Removed split selection from Settings step; default training logic uses a 4-day split
 
 const DEFAULT_BLOCK_DURATION = 4;
 
@@ -198,8 +194,8 @@ export default function AddProgram() {
   // Block phases state
   const [blockPhases, setBlockPhases] = useState<Map<number, string>>(new Map());
   
-  // Block training splits state
-  const [blockTrainingSplits, setBlockTrainingSplits] = useState<Map<number, string>>(new Map());
+  // Calendar month state for monthly visualization on Settings step
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
   
   // Block durations state
   const [blockDurations, setBlockDurations] = useState<Map<number, number>>(new Map());
@@ -386,7 +382,7 @@ export default function AddProgram() {
     }
   };
 
-  // Calculate which days should be hidden based on block training splits
+  // Calculate which days should be hidden (default 4-day split)
   const calculatedDaysOff = useMemo(() => {
     const hiddenDays = new Set<number>();
     
@@ -395,7 +391,7 @@ export default function AddProgram() {
     
     // If we're viewing a specific block in days view, use that block's training split
     if (viewMode === "days" && blocks.length > 0 && blocks[selectedBlockIndex]) {
-      const trainingSplit = blockTrainingSplits.get(selectedBlockIndex) || "4";
+      const trainingSplit = "4";
       const activeDays = getTrainingDays(trainingSplit);
       
       // Hide all days except the active training days
@@ -407,7 +403,7 @@ export default function AddProgram() {
     }
     
     return hiddenDays;
-  }, [viewMode, selectedBlockIndex, blocks, blockTrainingSplits]);
+  }, [viewMode, selectedBlockIndex, blocks]);
 
   // Calculate columns to display based on view mode
   const displayColumns = useMemo(() => {
@@ -417,7 +413,7 @@ export default function AddProgram() {
         const totalDays = Math.ceil((block.endDate.getTime() - block.startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
         
         // Count training days based on split type
-        const splitType = blockTrainingSplits.get(index) || "4";
+        const splitType = "4";
         const activeTrainingDays = getTrainingDays(splitType);
         let trainingDays = 0;
         let currentDate = new Date(block.startDate);
@@ -1149,7 +1145,9 @@ export default function AddProgram() {
           <form id="program-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
             {/* Step 1: General Settings */}
             {currentStep === 1 && (
-              <div className="max-w-[720px] space-y-6 py-[20px]">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-[20px]">
+                {/* Left: Form + Blocks table */}
+                <div className="space-y-6">
                 <FormField
                   control={form.control}
                   name="athleteId"
@@ -1379,7 +1377,12 @@ export default function AddProgram() {
                             <Calendar
                               mode="single"
                               selected={field.value}
-                              onSelect={field.onChange}
+                              onSelect={(date) => {
+                                field.onChange(date);
+                                if (date) {
+                                  setCalendarMonth(date);
+                                }
+                              }}
                               initialFocus
                               data-testid="calendar-start-date"
                             />
@@ -1417,7 +1420,13 @@ export default function AddProgram() {
                             <Calendar
                               mode="single"
                               selected={field.value}
-                              onSelect={field.onChange}
+                              onSelect={(date) => {
+                                field.onChange(date);
+                                if (date && date < calendarMonth) {
+                                  // keep month in visible range
+                                  setCalendarMonth(date);
+                                }
+                              }}
                               initialFocus
                               data-testid="calendar-end-date"
                             />
@@ -1442,7 +1451,6 @@ export default function AddProgram() {
                           <TableHead>Start Date</TableHead>
                           <TableHead>End Date</TableHead>
                           <TableHead>Duration (weeks)</TableHead>
-                          <TableHead>Split Type</TableHead>
                           <TableHead>Phase</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1513,29 +1521,6 @@ export default function AddProgram() {
                                 {differenceInWeeks(blockEndDates.get(index) || block.endDate, blockStartDates.get(index) || block.startDate)} weeks
                               </div>
                             </TableCell>
-                            <TableCell data-testid={`block-split-${index + 1}`}>
-                              <Select 
-                                value={blockTrainingSplits.get(index) || "4"}
-                                onValueChange={(value) => {
-                                  setBlockTrainingSplits(prev => {
-                                    const newMap = new Map(prev);
-                                    newMap.set(index, value);
-                                    return newMap;
-                                  });
-                                }}
-                              >
-                                <SelectTrigger className="h-8 text-xs font-normal border-0 shadow-none focus:ring-0 focus:ring-offset-0">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {splitTypeOptions.map((option) => (
-                                    <SelectItem key={option.id} value={option.id}>
-                                      {option.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
                             <TableCell data-testid={`block-phase-${index + 1}`}>
                               <Select 
                                 value={blockPhases.get(index) || "pre-season"}
@@ -1568,8 +1553,128 @@ export default function AddProgram() {
               </div>
                             </div>
                           )}
+                </div>
+
+                {/* Right: Monthly Calendar Visualization */}
+                <div className="lg:sticky lg:top-16">
+                  <div className="rounded-md border p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setCalendarMonth((prev) => addMonths(prev, -1))}
+                        aria-label="Previous month"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="text-sm font-medium">
+                        {format(calendarMonth, "MMMM yyyy")}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setCalendarMonth((prev) => addMonths(prev, 1))}
+                        aria-label="Next month"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Weekday headers */}
+                    <div className="grid grid-cols-7 gap-1 text-[11px] text-muted-foreground mb-1">
+                      {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
+                        <div key={d} className="text-center py-1">{d}</div>
+                      ))}
+                    </div>
+
+                    {/* Month grid with large cells */}
+                    <div className="grid grid-cols-7 gap-1">
+                      {(() => {
+                        const start = startOfWeek(startOfMonth(calendarMonth), { weekStartsOn: 0 });
+                        const end = endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 0 });
+                        const days: Date[] = [];
+                        let cursor = new Date(start);
+                        while (cursor <= end) {
+                          days.push(new Date(cursor));
+                          cursor = addDays(cursor, 1);
+                        }
+
+                        const blockColors = [
+                          "bg-emerald-500",
+                          "bg-blue-500",
+                          "bg-amber-500",
+                          "bg-fuchsia-500",
+                          "bg-cyan-500",
+                          "bg-rose-500",
+                          "bg-lime-500",
+                        ];
+
+                        const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+
+                        return days.map((day) => {
+                          const inMonth = day.getMonth() === calendarMonth.getMonth();
+                          // For each day, find blocks that include this day
+                          const dayBlocks = blocks.filter((b) => isWithinInterval(day, { start: b.startDate, end: b.endDate }));
+                          return (
+                            <div
+                              key={day.toISOString()}
+                              className={cn(
+                                "min-h-[96px] rounded-md border p-1 flex flex-col",
+                                inMonth ? "bg-background" : "bg-muted/30"
+                              )}
+                            >
+                              <div className="text-[11px] text-right mb-1 text-muted-foreground">
+                                {format(day, "d")}
+                              </div>
+                              <div className="flex-1 flex flex-col gap-1">
+                                {dayBlocks.slice(0, 3).map((b, idx) => {
+                                  const color = blockColors[(blocks.indexOf(b)) % blockColors.length];
+                                  const isStart = isSameDay(day, b.startDate);
+                                  const isEnd = isSameDay(day, b.endDate);
+                                  return (
+                                    <div
+                                      key={`${b.name}-${idx}`}
+                                      className={cn(
+                                        "h-5 rounded-sm text-[10px] px-1 text-black flex items-center",
+                                        color
+                                      )}
+                                      title={`${b.name}: ${format(b.startDate, 'MMM d')} - ${format(b.endDate, 'MMM d')}`}
+                                    >
+                                      {isStart && <span className="truncate mr-1">{b.name}</span>}
+                                      {!isStart && !isEnd && <span className="opacity-70">•</span>}
+                                      {isEnd && <span className="opacity-70 ml-auto">↘</span>}
+                                    </div>
+                                  );
+                                })}
+                                {dayBlocks.length > 3 && (
+                                  <div className="h-5 rounded-sm text-[10px] px-1 bg-muted text-muted-foreground flex items-center justify-center">
+                                    +{dayBlocks.length - 3} more
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          )}
+                          );
+                        });
+                      })()}
+                    </div>
+
+                    {/* Legend */}
+                    {blocks.length > 0 && (
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {blocks.slice(0, 8).map((b, i) => (
+                          <div key={b.name + i} className="flex items-center gap-2">
+                            <span className={cn("h-3 w-3 rounded-sm inline-block",
+                              ["bg-emerald-500","bg-blue-500","bg-amber-500","bg-fuchsia-500","bg-cyan-500","bg-rose-500","bg-lime-500"][i % 7]
+                            )} />
+                            <span className="text-xs text-muted-foreground truncate">{b.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Step 2: Blocks */}
             {currentStep === 2 && (

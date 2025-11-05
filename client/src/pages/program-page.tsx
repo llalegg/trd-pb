@@ -1,312 +1,259 @@
-import { useState } from "react";
-import { ArrowLeft, Lock, ChevronRight, Calendar } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ArrowLeft, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import MobileTabBar from "@/components/MobileTabBar";
-import ProgramCalendarModal from "@/components/ProgramCalendarModal";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
-import { isSameWeek, startOfWeek, endOfWeek } from "date-fns";
+import { format, differenceInWeeks, addDays, startOfWeek, endOfWeek, isWithinInterval, getDay, startOfMonth, endOfMonth, addMonths, eachDayOfInterval } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { type Program } from "@shared/schema";
+import { getSessionData } from "@/lib/sessionData";
 
-// Mock program data
-const mockProgram = {
-  name: "Princeton In-Season Training",
-  startDate: "2025-01-15",
-  endDate: "2025-03-15",
-  blocks: [
-    {
-      id: 1,
-      name: "Block 1: Foundation",
-      startDate: "2025-01-15",
-      endDate: "2025-02-11",
-      duration: "4 weeks",
-      status: "active",
-      description: "Building base strength & conditioning and movement patterns",
-      weeks: [
-        { week: 1, trainingDays: 4, startDate: "2025-01-15" },
-        { week: 2, trainingDays: 4, startDate: "2025-01-22" },
-        { week: 3, trainingDays: 4, startDate: "2025-01-29" },
-        { week: 4, trainingDays: 4, startDate: "2025-02-05" }
-      ]
-    },
-    {
-      id: 2,
-      name: "Block 2: Strength & Conditioning Development",
-      startDate: "2025-02-12",
-      endDate: "2025-03-11",
-      duration: "4 weeks",
-      status: "locked",
-      description: "Progressive overload and power development",
-      weeks: [
-        { week: 1, trainingDays: 4, startDate: "2025-02-12" },
-        { week: 2, trainingDays: 4, startDate: "2025-02-19" },
-        { week: 3, trainingDays: 4, startDate: "2025-02-26" },
-        { week: 4, trainingDays: 4, startDate: "2025-03-05" }
-      ]
-    },
-    {
-      id: 3,
-      name: "Block 3: Peak Performance",
-      startDate: "2025-03-12",
-      endDate: "2025-04-08",
-      duration: "4 weeks",
-      status: "locked",
-      description: "Competition preparation and fine-tuning",
-      weeks: [
-        { week: 1, trainingDays: 4, startDate: "2025-03-12" },
-        { week: 2, trainingDays: 4, startDate: "2025-03-19" },
-        { week: 3, trainingDays: 4, startDate: "2025-03-26" },
-        { week: 4, trainingDays: 4, startDate: "2025-04-02" }
-      ]
-    },
-    {
-      id: 4,
-      name: "Block 4: Maintenance",
-      startDate: "2025-04-09",
-      endDate: "2025-05-06",
-      duration: "4 weeks",
-      status: "locked",
-      description: "Sustaining gains during competition season",
-      weeks: [
-        { week: 1, trainingDays: 4, startDate: "2025-04-09" },
-        { week: 2, trainingDays: 4, startDate: "2025-04-16" },
-        { week: 3, trainingDays: 4, startDate: "2025-04-23" },
-        { week: 4, trainingDays: 4, startDate: "2025-04-30" }
-      ]
+// Generate blocks from program
+const generateBlocks = (program: Program) => {
+  const startDate = new Date(program.startDate);
+  const endDate = new Date(program.endDate);
+  const totalWeeks = program.blockDuration;
+  
+  const blocks = [];
+  const weeksPerBlock = Math.ceil(totalWeeks / 4); // Assuming 4 blocks
+  
+  for (let blockIdx = 0; blockIdx < 4; blockIdx++) {
+    const blockStartDate = new Date(startDate);
+    blockStartDate.setDate(startDate.getDate() + (blockIdx * weeksPerBlock * 7));
+    
+    let blockEndDate = new Date(blockStartDate);
+    blockEndDate.setDate(blockStartDate.getDate() + (weeksPerBlock * 7) - 1);
+    
+    if (blockEndDate > endDate) {
+      blockEndDate = new Date(endDate);
     }
-  ]
+    
+    blocks.push({
+      id: blockIdx + 1,
+      name: `Block ${blockIdx + 1}`,
+      startDate: blockStartDate,
+      endDate: blockEndDate,
+    });
+  }
+  
+  return blocks;
 };
 
 export default function ProgramPage() {
-  const [, setLocation] = useLocation();
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [location, setLocation] = useLocation();
+  const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
   
-  // Current week is Week 1 of Block 1 (January 15-21, 2025)
-  const currentWeekStart = new Date("2025-01-15");
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const isCurrentWeek = (weekStartDate: string) => {
-    const weekStart = new Date(weekStartDate);
-    return isSameWeek(weekStart, currentWeekStart, { weekStartsOn: 1 });
-  };
-
-  const handleWeekClick = (blockId: number, weekNumber: number) => {
-    setLocation(`/week-page?block=${blockId}&week=${weekNumber}`);
-  };
-
-  const handleCalendarOpen = () => {
-    setShowCalendar(true);
-  };
-
-  // Calculate program progress
-  const totalBlocks = mockProgram.blocks.length;
-  const completedBlocks = mockProgram.blocks.filter(block => block.status === "completed").length;
-  const programProgress = totalBlocks > 0 ? Math.round((completedBlocks / totalBlocks) * 100) : 0;
-
-  // Calculate total duration and completion stats
-  const totalDuration = mockProgram.blocks.reduce((sum, block) => {
-    const duration = parseInt(block.duration.replace(' weeks', ''));
-    return sum + duration;
-  }, 0);
-
-  const totalWeeks = totalDuration;
-  const completedWeeks = mockProgram.blocks.reduce((sum, block) => {
-    if (block.status === "completed") {
-      return sum + parseInt(block.duration.replace(' weeks', ''));
-    }
-    return sum;
-  }, 0);
-
-  // Calculate training days
-  const totalTrainingDays = mockProgram.blocks.reduce((sum, block) => {
-    return sum + block.weeks.reduce((weekSum, week) => weekSum + week.trainingDays, 0);
-  }, 0);
+  // Get program ID from URL params safely
+  const programId = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('id');
+  }, [location]);
   
-  const completedTrainingDays = mockProgram.blocks.reduce((sum, block) => {
-    if (block.status === "completed") {
-      return sum + block.weeks.reduce((weekSum, week) => weekSum + week.trainingDays, 0);
+  // Fetch program data
+  const { data: programs, isLoading } = useQuery<Program[]>({
+    queryKey: ["/api/programs"],
+    enabled: !!programId,
+  });
+
+  const programData = programs?.find(p => p.id === programId);
+  const blocks = programData ? generateBlocks(programData) : [];
+  
+  // Get selected block
+  const selectedBlock = blocks[selectedBlockIndex];
+  
+  // Generate all days in the selected block
+  const allDays = selectedBlock ? eachDayOfInterval({
+    start: selectedBlock.startDate,
+    end: selectedBlock.endDate
+  }) : [];
+
+  const handleDayClick = (day: Date) => {
+    if (programId) {
+      setLocation(`/coach-session-view?programId=${programId}&day=${day.getDate()}`);
     }
-    return sum;
-  }, 0);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Loading program...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!programData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Program not found</p>
+          <Button onClick={() => setLocation("/programs")} className="mt-4">
+            Back to Programs
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#0d0d0c] pb-20">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-[#0d0d0c] pt-12 pb-4">
-        <div className="flex items-center justify-between px-4 mb-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLocation("/me")}
-            className="p-2 hover:bg-[#171716]"
-          >
-            <ArrowLeft className="h-4 w-4 text-[#f7f6f2]" />
-          </Button>
-          <div className="text-center">
-            <h1 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">Program</h1>
-            <p className="text-sm text-[#979795] font-['Montserrat'] font-medium">
-              {formatDate(mockProgram.startDate).replace(/, \d{4}/, '')} - {formatDate(mockProgram.endDate).replace(/, \d{4}/, '')}
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCalendarOpen}
-            className="p-2 hover:bg-[#171716]"
-          >
-            <Calendar className="h-4 w-4 text-[#f7f6f2]" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Program Progress and Stats */}
-      <div className="px-4 py-4">
-        {/* Segmented Progress Bar */}
-        <div className="mb-6">
-          <div className="flex gap-1 mb-2">
-            {Array.from({ length: totalWeeks }, (_, index) => (
-              <div
-                key={index}
-                className={`flex-1 h-2 rounded-sm transition-all duration-300 ${
-                  index < completedWeeks 
-                    ? 'bg-[#c4af6c]' 
-                    : 'bg-[#292928]'
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Summary Stats */}
-        <div className="flex gap-3">
-          <div className="bg-[#171716] flex flex-col gap-2 items-start p-4 rounded-xl flex-1">
-            <p className="text-sm text-[#979795] font-['Montserrat'] font-medium">Duration</p>
-            <p className="text-2xl sm:text-3xl leading-none text-[#f7f6f2] font-semibold font-['Montserrat']">{totalWeeks} weeks</p>
-          </div>
-          <div className="bg-[#171716] flex flex-col gap-2 items-start p-4 rounded-xl flex-1">
-            <p className="text-sm text-[#979795] font-['Montserrat'] font-medium">Training days</p>
-            <p className="text-2xl sm:text-3xl leading-none text-[#f7f6f2] font-semibold font-['Montserrat']">{completedTrainingDays}/{totalTrainingDays}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="px-4 pb-[100px] space-y-6">
-
-        {/* Blocks List */}
-        <div className="space-y-6">
-          {mockProgram.blocks.map((block) => (
-            <div 
-              key={block.id}
-              className={cn(
-                "transition-all duration-200",
-                block.status === "locked" && "opacity-60"
-              )}
+    <div className="min-h-screen bg-[#0d0d0c]">
+      {/* Compact Header */}
+      <div className="sticky top-0 z-50 border-b border-[#292928] bg-[#0d0d0c]">
+        <div className="flex h-14 items-center justify-between px-5">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation("/programs")}
+              className="text-[#f7f6f2] hover:bg-[#171716] font-['Montserrat']"
             >
-              <div className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center">
-                      {block.status === "locked" ? (
-                        <Lock className="h-6 w-6 text-[#979795]" />
-                      ) : (
-                        <span className="text-lg font-bold text-[#f7f6f2] font-['Montserrat']">
-                          {block.id}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">{block.name}</h3>
-                      <p className="text-sm text-[#979795] font-['Montserrat'] font-medium">
-                        {formatDate(block.startDate)} - {formatDate(block.endDate)}
-                      </p>
-                    </div>
-                  </div>
-                  {block.status === "active" && (
-                    <Badge variant="default" className="bg-[#c4af6c] text-[#0d0d0c] font-['Montserrat'] font-medium">Active</Badge>
-                  )}
-                  {block.status === "locked" && (
-                    <Badge variant="secondary" className="bg-[#292928] text-[#979795] font-['Montserrat'] font-medium">Locked</Badge>
-                  )}
-                </div>
-              </div>
-              <div className="pt-0">
-                <p className="text-sm text-[#979795] font-['Montserrat'] font-medium mb-4">{block.description}</p>
-                
-                {/* Weeks List */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">Weekly breakdown:</h4>
-                  <div className="space-y-2">
-                    {block.weeks.map((weekData) => {
-                      const isCurrent = isCurrentWeek(weekData.startDate);
-                      const isClickable = block.status === "active";
-                      
-                      return (
-                        <div 
-                          key={weekData.week}
-                          className={cn(
-                            "flex items-center justify-between p-3 rounded-xl transition-all duration-200",
-                            block.status === "locked" ? "bg-[#171716]" : "bg-[#171716]",
-                            isCurrent && "ring-2 ring-[#c4af6c]/50 bg-[#c4af6c]/5",
-                            isClickable && "cursor-pointer hover:bg-[#292928]"
-                          )}
-                          onClick={() => isClickable && handleWeekClick(block.id, weekData.week)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">
-                                  Week {weekData.week}
-                                </span>
-                                {isCurrent && (
-                                  <Badge variant="default" className="text-xs bg-[#c4af6c] text-[#0d0d0c] font-['Montserrat'] font-medium">
-                                    Current
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-xs text-[#979795] font-['Montserrat'] font-medium">
-                                {formatDate(weekData.startDate)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-right">
-                              <span className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">
-                                {weekData.trainingDays} training days
-                              </span>
-                            </div>
-                            {isClickable && (
-                              <ChevronRight className="h-4 w-4 text-[#979795]" />
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div className="flex items-center gap-3">
+              <h1 className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">
+                {programData.programId}
+              </h1>
+              <span className="text-sm text-[#979795]">•</span>
+              <span className="text-sm text-[#979795] font-['Montserrat']">{programData.athleteName}</span>
+              <span className="text-sm text-[#979795]">•</span>
+              <span className="text-sm text-[#979795] font-['Montserrat']">
+                {format(new Date(programData.startDate), "MM/dd/yyyy")} - {format(new Date(programData.endDate), "MM/dd/yyyy")}
+              </span>
+              <span className="text-sm text-[#979795]">•</span>
+              <div className="flex gap-1">
+                {programData.routineTypes.map((type) => (
+                  <Badge key={type} variant="outline" className="text-xs capitalize bg-[#292928] border-[#292928] text-[#979795] font-['Montserrat']">
+                    {type}
+                  </Badge>
+                ))}
               </div>
             </div>
-          ))}
+          </div>
+          <Button
+            variant="secondary"
+            onClick={() => setLocation(`/add-program?edit=${programId}`)}
+            className="bg-[#171716] text-[#f7f6f2] hover:bg-[#1a1a19] border-[#292928] font-['Montserrat']"
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Program
+          </Button>
         </div>
       </div>
 
-      {/* Calendar Modal */}
-      {showCalendar && (
-        <ProgramCalendarModal
-          onClose={() => setShowCalendar(false)}
-          onWeekSelect={handleWeekClick}
-        />
-      )}
+      <main className="px-5 py-6 flex flex-col h-[calc(100vh-3.5rem)] bg-[#0d0d0c]">
+        {blocks.length > 0 && (
+          <div className="flex flex-col h-full space-y-4">
+            {/* Block Selector */}
+            <div className="flex items-center gap-4 flex-shrink-0">
+              <span className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">Block:</span>
+              <select
+                value={selectedBlockIndex}
+                onChange={(e) => {
+                  setSelectedBlockIndex(parseInt(e.target.value));
+                }}
+                className="rounded-md border border-[#292928] bg-[#171716] px-3 py-1.5 text-sm text-[#f7f6f2] font-['Montserrat']"
+              >
+                {blocks.map((block, index) => (
+                  <option key={index} value={index} className="bg-[#171716]">
+                    {block.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      <MobileTabBar />
+            {/* Table-like Calendar */}
+            {selectedBlock && allDays.length > 0 && (
+              <div className="border border-[#292928] rounded-lg overflow-x-auto overflow-y-auto flex-1 bg-[#0d0d0c]">
+                <Table className="min-w-max">
+                  <TableHeader className="sticky top-0 z-10 bg-[#0d0d0c]">
+                    <TableRow className="border-b border-[#292928] hover:bg-transparent">
+                      {allDays.map((day, index) => {
+                        const dayName = format(day, 'EEE');
+                        const dayDate = format(day, 'MM/dd/yyyy');
+                        const sessionData = getSessionData(day.getDate());
+                        const hasSession = sessionData.routines.length > 0;
+                        
+                        return (
+                          <TableHead 
+                            key={index}
+                            className={cn(
+                              "text-center min-w-[180px] px-3 py-2 border-r border-[#292928] last:border-r-0",
+                              hasSession && "cursor-pointer hover:bg-[#171716]"
+                            )}
+                            onClick={() => hasSession && handleDayClick(day)}
+                          >
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">{dayName}</span>
+                              <span className="text-xs text-[#979795] font-['Montserrat']">{dayDate}</span>
+                            </div>
+                          </TableHead>
+                        );
+                      })}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* Exercises Row */}
+                    <TableRow className="hover:bg-transparent">
+                      {allDays.map((day, index) => {
+                        const sessionData = getSessionData(day.getDate());
+                        const hasSession = sessionData.routines.length > 0;
+                        
+                        return (
+                          <TableCell 
+                            key={index}
+                            className={cn(
+                              "px-3 py-2 align-top border-r border-[#292928] last:border-r-0",
+                              hasSession && "cursor-pointer hover:bg-[#171716]"
+                            )}
+                            onClick={() => hasSession && handleDayClick(day)}
+                          >
+                            {hasSession ? (
+                              <div className="space-y-2">
+                                {sessionData.routines.map((routine, routineIdx) => (
+                                  <div key={routineIdx} className="space-y-1">
+                                    <div className="rounded-md bg-[#171716] p-2">
+                                      <p className="text-xs font-medium capitalize mb-1 text-[#f7f6f2] font-['Montserrat']">{routine.name}</p>
+                                      <div className="space-y-1">
+                                        {routine.exercises.map((exercise, exerciseIdx) => (
+                                          <div key={exerciseIdx} className="text-xs text-[#979795] font-['Montserrat']">
+                                            <span className="font-medium text-[#f7f6f2]">{exercise.name}</span>
+                                            <span className="ml-1">
+                                              {exercise.sets} × {exercise.reps}
+                                              {exercise.weight && ` @ ${exercise.weight}`}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-[#979795] text-center font-['Montserrat']">Rest</p>
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
