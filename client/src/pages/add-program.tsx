@@ -108,6 +108,146 @@ const buildTypeOptions = [
   { id: "custom", label: "Custom", tooltip: "Custom program type" },
 ];
 
+// Template definitions
+interface ProgramTemplate {
+  id: string;
+  name: string;
+  description: string;
+  suitableFor: {
+    levelOfPlay?: string[];
+    position?: string[];
+    trainingSplit?: string[];
+    season?: string[];
+  };
+}
+
+const programTemplates: ProgramTemplate[] = [
+  {
+    id: "college-pitcher-offseason-4x2",
+    name: "College Pitcher Off-Season 4x2",
+    description: "4x2 split for college pitchers in off-season",
+    suitableFor: {
+      levelOfPlay: ["College"],
+      position: ["Pitcher"],
+      trainingSplit: ["4x2"],
+      season: ["Off-Season"],
+    },
+  },
+  {
+    id: "college-hitter-preseason-3x2",
+    name: "College Hitter Pre-Season 3x2",
+    description: "3x2 split for college hitters in pre-season",
+    suitableFor: {
+      levelOfPlay: ["College"],
+      position: ["Catcher", "Infielder", "Outfielder", "First Base"],
+      trainingSplit: ["3x2"],
+      season: ["Pre-Season"],
+    },
+  },
+  {
+    id: "pro-pitcher-season-2x1",
+    name: "Pro Pitcher In-Season 2x1",
+    description: "2x1 split for professional pitchers during season",
+    suitableFor: {
+      levelOfPlay: ["Professional"],
+      position: ["Pitcher"],
+      trainingSplit: ["2x1"],
+      season: ["In-Season"],
+    },
+  },
+  {
+    id: "highschool-general-4x1",
+    name: "High School General 4x1",
+    description: "4x1 split for high school athletes",
+    suitableFor: {
+      levelOfPlay: ["High School"],
+      trainingSplit: ["4x1"],
+    },
+  },
+  {
+    id: "college-pitcher-preseason-4x2",
+    name: "College Pitcher Pre-Season 4x2",
+    description: "4x2 split for college pitchers in pre-season",
+    suitableFor: {
+      levelOfPlay: ["College"],
+      position: ["Pitcher"],
+      trainingSplit: ["4x2"],
+      season: ["Pre-Season"],
+    },
+  },
+  {
+    id: "college-hitter-offseason-3x1",
+    name: "College Hitter Off-Season 3x1",
+    description: "3x1 split for college hitters in off-season",
+    suitableFor: {
+      levelOfPlay: ["College"],
+      position: ["Catcher", "Infielder", "Outfielder", "First Base"],
+      trainingSplit: ["3x1"],
+      season: ["Off-Season"],
+    },
+  },
+  {
+    id: "pro-hitter-season-3x2",
+    name: "Pro Hitter In-Season 3x2",
+    description: "3x2 split for professional hitters during season",
+    suitableFor: {
+      levelOfPlay: ["Professional"],
+      position: ["Catcher", "Infielder", "Outfielder", "First Base"],
+      trainingSplit: ["3x2"],
+      season: ["In-Season"],
+    },
+  },
+  {
+    id: "highschool-pitcher-3x1",
+    name: "High School Pitcher 3x1",
+    description: "3x1 split for high school pitchers",
+    suitableFor: {
+      levelOfPlay: ["High School"],
+      position: ["Pitcher"],
+      trainingSplit: ["3x1"],
+    },
+  },
+  {
+    id: "college-general-4x2",
+    name: "College General 4x2",
+    description: "4x2 split for college athletes",
+    suitableFor: {
+      levelOfPlay: ["College"],
+      trainingSplit: ["4x2"],
+    },
+  },
+  {
+    id: "pro-pitcher-offseason-4x1",
+    name: "Pro Pitcher Off-Season 4x1",
+    description: "4x1 split for professional pitchers in off-season",
+    suitableFor: {
+      levelOfPlay: ["Professional"],
+      position: ["Pitcher"],
+      trainingSplit: ["4x1"],
+      season: ["Off-Season"],
+    },
+  },
+  {
+    id: "college-hitter-season-2x2",
+    name: "College Hitter In-Season 2x2",
+    description: "2x2 split for college hitters during season",
+    suitableFor: {
+      levelOfPlay: ["College"],
+      position: ["Catcher", "Infielder", "Outfielder", "First Base"],
+      trainingSplit: ["2x2"],
+      season: ["In-Season"],
+    },
+  },
+  {
+    id: "general-3x2",
+    name: "General 3x2",
+    description: "3x2 split for general use",
+    suitableFor: {
+      trainingSplit: ["3x2"],
+    },
+  },
+];
+
 const routineTypeOptions = [
   { id: "movement", label: "Movement" },
   { id: "throwing", label: "Throwing" },
@@ -255,6 +395,9 @@ export default function AddProgram() {
   
   // Routine settings state - stores settings at block level by default
   const [blockSettings, setBlockSettings] = useState<Map<number, Partial<RoutineSettings>>>(new Map());
+  
+  // Template selection state - one template per block
+  const [blockTemplates, setBlockTemplates] = useState<Map<number, string>>(new Map());
   
   // Track overrides at week and day levels
   const [settingsOverrides, setSettingsOverrides] = useState<SettingsOverride[]>([]);
@@ -548,6 +691,108 @@ export default function AddProgram() {
     // Note: The actual block recalculation will happen in the next render
     // when the blocks useMemo runs with the updated blockDurations
   };
+
+  // Get recommended templates based on athlete demographics and block settings
+  const getRecommendedTemplates = (blockIndex: number): ProgramTemplate[] => {
+    if (!selectedAthlete) return programTemplates;
+    
+    const blockSetting = blockSettings.get(blockIndex);
+    const trainingSplit = blockSetting?.lifting?.["training-split"] as string || "";
+    const season = blockSetting?.schedule?.season as string || "";
+    const position = selectedAthlete.position || "";
+    const levelOfPlay = selectedAthlete.levelOfPlay || "";
+    
+    // Filter templates based on suitability
+    return programTemplates.filter(template => {
+      const { suitableFor } = template;
+      
+      // Check level of play match
+      if (suitableFor.levelOfPlay && suitableFor.levelOfPlay.length > 0) {
+        if (!levelOfPlay || !suitableFor.levelOfPlay.includes(levelOfPlay)) {
+          return false;
+        }
+      }
+      
+      // Check position match
+      if (suitableFor.position && suitableFor.position.length > 0) {
+        const isPitcher = position.toLowerCase().includes("pitcher");
+        const isHitter = !isPitcher;
+        const templateForPitcher = suitableFor.position.some(p => p.toLowerCase().includes("pitcher"));
+        const templateForHitter = suitableFor.position.some(p => !p.toLowerCase().includes("pitcher"));
+        
+        if (isPitcher && !templateForPitcher) return false;
+        if (isHitter && !templateForHitter) return false;
+      }
+      
+      // Check training split match
+      if (suitableFor.trainingSplit && suitableFor.trainingSplit.length > 0 && trainingSplit) {
+        if (!suitableFor.trainingSplit.includes(trainingSplit)) {
+          return false;
+        }
+      }
+      
+      // Check season match
+      if (suitableFor.season && suitableFor.season.length > 0 && season) {
+        if (!suitableFor.season.includes(season)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  };
+
+  // Initialize default values for blocks when athlete is selected and blocks are created
+  useEffect(() => {
+    if (!selectedAthlete || blocks.length === 0) return;
+    
+    const isPitcher = selectedAthlete.position?.toLowerCase().includes("pitcher") || false;
+    
+    // Initialize xRole defaults for each block
+    setBlockSettings(prev => {
+      const newMap = new Map(prev);
+      let needsUpdate = false;
+      
+      blocks.forEach((_, blockIndex) => {
+        const existing = newMap.get(blockIndex) || {};
+        if (!existing.xrole) {
+          newMap.set(blockIndex, {
+            ...existing,
+            xrole: {
+              ...existing.xrole,
+              hitter: isPitcher ? undefined : "everyday-player",
+              pitcher: isPitcher ? "rotation-starter" : undefined,
+            },
+          });
+          needsUpdate = true;
+        } else {
+          // Ensure defaults are set if not present
+          if (!existing.xrole.hitter && !isPitcher) {
+            newMap.set(blockIndex, {
+              ...existing,
+              xrole: {
+                ...existing.xrole,
+                hitter: "everyday-player",
+              },
+            });
+            needsUpdate = true;
+          }
+          if (!existing.xrole.pitcher && isPitcher) {
+            newMap.set(blockIndex, {
+              ...existing,
+              xrole: {
+                ...existing.xrole,
+                pitcher: "rotation-starter",
+              },
+            });
+            needsUpdate = true;
+          }
+        }
+      });
+      
+      return needsUpdate ? newMap : prev;
+    });
+  }, [selectedAthlete, blocks.length]);
 
   // Check if step 1 is complete (all required fields filled)
   // Note: blockDuration is fixed at 4 weeks, so we don't need to check it
@@ -1385,32 +1630,39 @@ export default function AddProgram() {
               </ToggleGroup>
             </div>
 
-            {/* Right side: Block Navigation Arrows */}
-            {viewMode === "blocks" && blocks.length > 0 && (
+            {/* Center: Template Selector (for block view) */}
+            {viewMode === "blocks" && blocks.length > 0 && selectedAthlete && (
               <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => setSelectedBlockIndex(Math.max(0, selectedBlockIndex - 1))}
-                  disabled={selectedBlockIndex === 0}
+                <span className="text-xs font-medium text-muted-foreground">Template:</span>
+                <Select
+                  value={blockTemplates.get(selectedBlockIndex) || ""}
+                  onValueChange={(value) => {
+                    setBlockTemplates(prev => {
+                      const newMap = new Map(prev);
+                      newMap.set(selectedBlockIndex, value);
+                      return newMap;
+                    });
+                  }}
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-xs text-muted-foreground min-w-[100px] text-center">
-                  Block {selectedBlockIndex + 1} of {blocks.length}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => setSelectedBlockIndex(Math.min(blocks.length - 1, selectedBlockIndex + 1))}
-                  disabled={selectedBlockIndex >= blocks.length - 1}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                  <SelectTrigger className="w-[280px] h-8 text-xs">
+                    <SelectValue placeholder="Select template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getRecommendedTemplates(selectedBlockIndex).map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{template.name}</span>
+                          <span className="text-xs text-muted-foreground">{template.description}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                    {getRecommendedTemplates(selectedBlockIndex).length === 0 && (
+                      <SelectItem value="none" disabled>
+                        No templates available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>
@@ -2917,7 +3169,6 @@ export default function AddProgram() {
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-xs font-medium">
                                   <span className={cn("text-foreground", isDayOff && "line-through opacity-50")}>{column.title}</span>
-                                  <span className="text-muted-foreground">{column.subtitle}</span>
                                 </div>
                                 {column.type === "block" && (
                                   <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -2958,16 +3209,9 @@ export default function AddProgram() {
                                 )}
                               </div>
                               <div className="flex items-center justify-between mt-0.5">
-                                <div className="flex flex-col gap-0.5">
-                                  <p className={cn("text-xs text-foreground", isDayOff && "opacity-50")}>
-                                    {column.dateRange}
-                                  </p>
-                                  {column.type === "block" && column.subtitle && (
-                                    <p className="text-xs text-muted-foreground">
-                                      Season Phase: {column.subtitle}
-                                    </p>
-                                  )}
-                                </div>
+                                <p className={cn("text-xs text-foreground", isDayOff && "opacity-50")}>
+                                  {column.dateRange}
+                                </p>
                                 {column.type === "block" && column.duration && (
                                   <div className="text-xs text-muted-foreground">
                                     {column.duration.weeks}w | {column.duration.days}d
@@ -3167,7 +3411,7 @@ export default function AddProgram() {
                                     disabled={isPitcher}
                                   >
                                     <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent disabled:opacity-50">
-                                      <SelectValue placeholder={!isPitcher ? "Select..." : "--"} />
+                                      <SelectValue placeholder={!isPitcher ? "Everyday Player" : "--"} />
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="everyday-player">Everyday Player</SelectItem>
