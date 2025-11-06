@@ -1547,7 +1547,7 @@ export default function AddProgram() {
                 {/* Athlete Profile Card */}
                 {selectedAthlete && (
                   <div className="border border-[#292928] rounded-lg p-4 bg-[#171716] space-y-4">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start">
                       <div className="flex items-center gap-3">
                         {selectedAthlete.photo ? (
                           <img src={selectedAthlete.photo} alt={selectedAthlete.name} className="w-12 h-12 rounded-full" />
@@ -1563,13 +1563,26 @@ export default function AddProgram() {
                           )}
                         </div>
                       </div>
-                      {selectedAthlete.status === "not cleared" && (
-                        <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                      )}
-                      {selectedAthlete.status === "injured" && (
-                        <AlertTriangle className="h-5 w-5 text-red-500" />
-                      )}
                     </div>
+
+                    {selectedAthlete.status && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-[#979795] font-['Montserrat']">Status:</span>
+                        {selectedAthlete.status === "cleared" ? (
+                          <Badge variant="default" icon={<Check className="h-3 w-3" />}>
+                            Cleared
+                          </Badge>
+                        ) : selectedAthlete.status === "not cleared" ? (
+                          <Badge variant="secondary" icon={<AlertTriangle className="h-3 w-3" />}>
+                            Not Cleared
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" icon={<AlertTriangle className="h-3 w-3" />}>
+                            Injured
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                     
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       {selectedAthlete.position && (
@@ -1627,27 +1640,6 @@ export default function AddProgram() {
                         </div>
                       )}
                     </div>
-
-                    {selectedAthlete.status && (
-                      <div className="pt-2 border-t border-[#292928]">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-[#979795] font-['Montserrat']">Status:</span>
-                          {selectedAthlete.status === "cleared" ? (
-                            <Badge variant="default" icon={<Check className="h-3 w-3" />}>
-                              Cleared
-                            </Badge>
-                          ) : selectedAthlete.status === "not cleared" ? (
-                            <Badge variant="secondary" icon={<AlertTriangle className="h-3 w-3" />}>
-                              Not Cleared
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" icon={<AlertTriangle className="h-3 w-3" />}>
-                              Injured
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    )}
 
                     {selectedAthlete.availability && (
                       <div className="pt-2 border-t border-[#292928]">
@@ -2546,6 +2538,7 @@ export default function AddProgram() {
                   <div className="rounded-md border p-3">
                     <div className="flex items-center justify-between mb-2">
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
                         onClick={() => setCalendarMonth((prev) => addMonths(prev, -1))}
@@ -2557,6 +2550,7 @@ export default function AddProgram() {
                         {format(calendarMonth, "MMMM yyyy")}
                       </div>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
                         onClick={() => setCalendarMonth((prev) => addMonths(prev, 1))}
