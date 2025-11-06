@@ -7,7 +7,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const toggleGroupVariants = cva(
-  "inline-flex items-center justify-center",
+  "inline-flex items-center justify-center h-10",
   {
     variants: {
       variant: {
@@ -27,11 +27,11 @@ const toggleGroupItemVariants = cva(
     variants: {
       variant: {
         default: "rounded-md text-sm font-medium ring-offset-background hover:bg-muted hover:text-muted-foreground data-[state=on]:bg-accent data-[state=on]:text-accent-foreground",
-        segmented: "rounded-full px-3 py-1 h-6 text-[#979795] data-[state=on]:text-[#f7f6f2] data-[state=on]:bg-[#292928] hover:text-[#f7f6f2]",
+        segmented: "rounded-full px-3 py-1 h-10 text-[#979795] data-[state=on]:text-[#f7f6f2] data-[state=on]:bg-[#292928] hover:text-[#f7f6f2]",
       },
       size: {
         default: "h-10 px-3 min-w-10",
-        sm: "h-9 px-2.5 min-w-9",
+        sm: "h-10 px-2.5 min-w-10",
         lg: "h-11 px-5 min-w-11",
       },
     },
