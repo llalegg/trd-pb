@@ -69,7 +69,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Athlete, Program } from "@shared/schema";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 // Extended athlete interface with demographics
 interface ExtendedAthlete extends Athlete {
@@ -90,15 +90,15 @@ interface ExtendedAthlete extends Athlete {
 }
 
 const mockAthletes: ExtendedAthlete[] = [
-  { id: "1", name: "Sarah Johnson", position: "Pitcher", age: 22, height: "5'8\"", weight: "145 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Starting Pitcher", status: "cleared", location: "Austin, TX" },
+  { id: "1", name: "Samuel Johnson", position: "Pitcher", age: 22, height: "5'8\"", weight: "145 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Starting Pitcher", status: "cleared", location: "Austin, TX" },
   { id: "2", name: "Michael Chen", position: "Catcher", age: 21, height: "6'0\"", weight: "180 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Starting Catcher", status: "cleared", location: "Dallas, TX" },
-  { id: "3", name: "Emma Rodriguez", position: "Outfielder", age: 20, height: "5'6\"", weight: "135 lbs", levelOfPlay: "High School", team: "Central High", league: "Varsity", season: "2024-25", xRole: "Center Field", status: "not cleared", location: "Houston, TX" },
+  { id: "3", name: "Ethan Rodriguez", position: "Outfielder", age: 20, height: "5'6\"", weight: "135 lbs", levelOfPlay: "High School", team: "Central High", league: "Varsity", season: "2024-25", xRole: "Center Field", status: "not cleared", location: "Houston, TX" },
   { id: "4", name: "James Williams", position: "Infielder", age: 23, height: "6'2\"", weight: "195 lbs", levelOfPlay: "Professional", team: "Minor League A", league: "MiLB", season: "2024-25", xRole: "Shortstop", status: "cleared", location: "San Antonio, TX" },
-  { id: "5", name: "Olivia Martinez", position: "Pitcher", age: 19, height: "5'7\"", weight: "140 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Relief Pitcher", status: "cleared", location: "Austin, TX" },
+  { id: "5", name: "Oliver Martinez", position: "Pitcher", age: 19, height: "5'7\"", weight: "140 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Relief Pitcher", status: "cleared", location: "Austin, TX" },
   { id: "6", name: "Daniel Anderson", position: "First Base", age: 22, height: "6'1\"", weight: "190 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "First Baseman", status: "cleared", location: "Dallas, TX" },
-  { id: "7", name: "Sophia Taylor", position: "Outfielder", age: 21, height: "5'5\"", weight: "130 lbs", levelOfPlay: "High School", team: "East High", league: "Varsity", season: "2024-25", xRole: "Left Field", status: "injured", location: "Houston, TX" },
+  { id: "7", name: "Sebastian Taylor", position: "Outfielder", age: 21, height: "5'5\"", weight: "130 lbs", levelOfPlay: "High School", team: "East High", league: "Varsity", season: "2024-25", xRole: "Left Field", status: "injured", location: "Houston, TX" },
   { id: "8", name: "Liam Brown", position: "Catcher", age: 20, height: "5'11\"", weight: "175 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Backup Catcher", status: "cleared", location: "Austin, TX" },
-  { id: "9", name: "Ava Davis", position: "Infielder", age: 18, height: "5'4\"", weight: "125 lbs", levelOfPlay: "High School", team: "West High", league: "Varsity", season: "2024-25", xRole: "Second Base", status: "cleared", location: "Dallas, TX" },
+  { id: "9", name: "Alexander Davis", position: "Infielder", age: 18, height: "5'4\"", weight: "125 lbs", levelOfPlay: "High School", team: "West High", league: "Varsity", season: "2024-25", xRole: "Second Base", status: "cleared", location: "Dallas, TX" },
   { id: "10", name: "Noah Wilson", position: "Pitcher", age: 24, height: "6'0\"", weight: "185 lbs", levelOfPlay: "Professional", team: "Minor League AA", league: "MiLB", season: "2024-25", xRole: "Starting Pitcher", status: "cleared", location: "San Antonio, TX" },
 ];
 
@@ -252,7 +252,6 @@ const routineTypeOptions = [
   { id: "movement", label: "Movement" },
   { id: "throwing", label: "Throwing" },
   { id: "lifting", label: "Lifting" },
-  { id: "nutrition", label: "Nutrition" },
 ];
 
 // Removed split selection from Settings step; default training logic uses a 4-day split
@@ -380,6 +379,10 @@ export default function AddProgram() {
   // Block durations state
   const [blockDurations, setBlockDurations] = useState<Map<number, number>>(new Map());
   
+  // Block season and sub-season state
+  const [blockSeasons, setBlockSeasons] = useState<Map<number, string>>(new Map());
+  const [blockSubSeasons, setBlockSubSeasons] = useState<Map<number, string>>(new Map());
+  
   // Block start/end dates state for individual block date control
   const [blockStartDates, setBlockStartDates] = useState<Map<number, Date>>(new Map());
   const [blockEndDates, setBlockEndDates] = useState<Map<number, Date>>(new Map());
@@ -424,6 +427,14 @@ export default function AddProgram() {
   const [reviewWeekIndex, setReviewWeekIndex] = useState(0);
   const [liftingData, setLiftingData] = useState<Map<string, LiftingDayData>>(new Map());
   
+  // Step completion tracking
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  
+  // Save as draft state
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [legendExpanded, setLegendExpanded] = useState(false);
+  
   const { toast } = useToast();
 
   const form = useForm<ProgramFormValues>({
@@ -461,7 +472,7 @@ export default function AddProgram() {
         title: "Success",
         description: "Program created successfully",
       });
-      setLocation("/");
+      setLocation("/programs");
     },
     onError: () => {
       toast({
@@ -616,7 +627,6 @@ export default function AddProgram() {
 
   // Calculate blocks based on start date, end date, and block duration
   // Block duration is fixed at 4 weeks (DEFAULT_BLOCK_DURATION)
-  // Blocks can only start on Monday
   const blocks = useMemo(() => {
     if (!startDate || !endDate) {
       return [];
@@ -629,15 +639,8 @@ export default function AddProgram() {
 
     const generatedBlocks: Array<{ name: string; startDate: Date; endDate: Date }> = [];
     
-    // Find the first Monday from the start date (or use start date if it's already a Monday)
+    // Start from the selected start date
     let currentStart = new Date(startDate);
-    const dayOfWeek = currentStart.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-    if (dayOfWeek !== 1) {
-      // If not Monday, find the next Monday
-      // Sunday (0) -> 1 day, Tuesday (2) -> 6 days, ..., Saturday (6) -> 2 days
-      const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
-      currentStart = addDays(currentStart, daysUntilMonday);
-    }
     
     // Ensure we don't start after the end date
     if (currentStart > endDate) {
@@ -660,17 +663,8 @@ export default function AddProgram() {
         endDate: blockEnd,
       });
 
-      // Next block starts the next Monday after this one ends
-      const dayAfterBlockEnd = addDays(blockEnd, 1);
-      const nextDayOfWeek = dayAfterBlockEnd.getDay();
-      if (nextDayOfWeek !== 1) {
-        // Find the next Monday
-        // Sunday (0) -> 1 day, Tuesday (2) -> 6 days, ..., Saturday (6) -> 2 days
-        const daysUntilMonday = nextDayOfWeek === 0 ? 1 : (8 - nextDayOfWeek);
-        currentStart = addDays(dayAfterBlockEnd, daysUntilMonday);
-      } else {
-        currentStart = dayAfterBlockEnd;
-      }
+      // Next block starts the day after this one ends
+      currentStart = addDays(blockEnd, 1);
       blockNumber++;
     }
 
@@ -748,7 +742,7 @@ export default function AddProgram() {
     
     const isPitcher = selectedAthlete.position?.toLowerCase().includes("pitcher") || false;
     
-    // Initialize xRole defaults for each block
+    // Initialize xRole defaults for each block (pitcher only)
     setBlockSettings(prev => {
       const newMap = new Map(prev);
       let needsUpdate = false;
@@ -760,23 +754,12 @@ export default function AddProgram() {
             ...existing,
             xrole: {
               ...existing.xrole,
-              hitter: isPitcher ? undefined : "everyday-player",
               pitcher: isPitcher ? "rotation-starter" : undefined,
             },
           });
           needsUpdate = true;
         } else {
           // Ensure defaults are set if not present
-          if (!existing.xrole.hitter && !isPitcher) {
-            newMap.set(blockIndex, {
-              ...existing,
-              xrole: {
-                ...existing.xrole,
-                hitter: "everyday-player",
-              },
-            });
-            needsUpdate = true;
-          }
           if (!existing.xrole.pitcher && isPitcher) {
             newMap.set(blockIndex, {
               ...existing,
@@ -792,6 +775,24 @@ export default function AddProgram() {
       
       return needsUpdate ? newMap : prev;
     });
+    
+    // Initialize season and sub-season defaults (all blocks default to Off-Season / General Off-Season)
+    blocks.forEach((_, blockIndex) => {
+      if (!blockSeasons.has(blockIndex)) {
+        setBlockSeasons(prev => {
+          const newMap = new Map(prev);
+          newMap.set(blockIndex, "off-season");
+          return newMap;
+        });
+      }
+      if (!blockSubSeasons.has(blockIndex)) {
+        setBlockSubSeasons(prev => {
+          const newMap = new Map(prev);
+          newMap.set(blockIndex, "general-off-season");
+          return newMap;
+        });
+      }
+    });
   }, [selectedAthlete, blocks.length]);
 
   // Check if step 1 is complete (all required fields filled)
@@ -805,6 +806,17 @@ export default function AddProgram() {
     const blockingIssues: Array<{ type: 'error' | 'warning'; category: string; description: string; affected: string; action?: string }> = [];
     const warnings: Array<{ type: 'error' | 'warning'; category: string; description: string; affected: string; action?: string }> = [];
 
+    // Athlete Selection Issue
+    if (!selectedAthleteId) {
+      blockingIssues.push({
+        type: 'error',
+        category: 'Athlete Selection',
+        description: 'Please select an athlete before proceeding',
+        affected: 'Athlete Selection',
+        action: 'Select Athlete'
+      });
+    }
+
     // Athlete Status Issues
     if (selectedAthlete?.status === "not cleared") {
       blockingIssues.push({
@@ -817,18 +829,7 @@ export default function AddProgram() {
     }
 
     // Date Validation Issues
-    if (startDate) {
-      const startDayOfWeek = startDate.getDay();
-      if (startDayOfWeek !== 1) {
-        blockingIssues.push({
-          type: 'error',
-          category: 'Date Validation',
-          description: `Program must start on Monday. Current: ${format(startDate, "EEEE, MMM d, yyyy")}`,
-          affected: 'Program Duration',
-          action: 'Adjust to Monday'
-        });
-      }
-    }
+    // (Monday requirement removed)
 
     // Block Validation Issues
     blocks.forEach((block, index) => {
@@ -871,17 +872,7 @@ export default function AddProgram() {
       }
 
       // Warnings
-      const endDayOfWeek = blockEndDate.getDay();
-      if (endDayOfWeek !== 0 && endDayOfWeek !== 1 && index < blocks.length - 1) {
-        const nextMonday = addDays(blockEndDate, endDayOfWeek === 0 ? 1 : (8 - endDayOfWeek));
-        warnings.push({
-          type: 'warning',
-          category: 'Block End Date',
-          description: `Block ${index + 1} ends mid-week, creating gap to next Monday (${format(nextMonday, "EEE, MMM d")})`,
-          affected: `Block ${index + 1}`,
-          action: 'Extend to Sunday'
-        });
-      }
+      // (Mid-week end date warnings removed - blocks can end on any day)
 
       if (duration < 4 && duration >= 1) {
         warnings.push({
@@ -933,8 +924,94 @@ export default function AddProgram() {
       });
     }
 
-    return { blockingIssues, warnings, total: blockingIssues.length + warnings.length };
+    return { 
+      blocking: blockingIssues, 
+      warnings, 
+      total: blockingIssues.length + warnings.length 
+    };
   }, [selectedAthlete, startDate, endDate, blocks, blockStartDates, blockEndDates, routineTypes]);
+
+  // Helper function to handle step navigation
+  const handleStepNavigation = (targetStep: number) => {
+    // Can navigate to current step or any completed step
+    if (targetStep === currentStep || completedSteps.has(targetStep)) {
+      setCurrentStep(targetStep);
+    }
+  };
+
+  // Helper function to handle Next button click
+  const handleNext = () => {
+    // Check for any issues (blocking or warnings) or if no athlete is selected
+    if ((issues?.total || 0) > 0 || !selectedAthleteId) {
+      setIssueModalOpen(true);
+      return;
+    }
+
+    // If on Step 3, submit the form
+    if (currentStep === 3) {
+      form.handleSubmit(handleSubmit)();
+      return;
+    }
+
+    // Mark current step as complete
+    setCompletedSteps(prev => new Set(prev).add(currentStep));
+    
+    // Auto-save before advancing
+    handleSaveAsDraft();
+    
+    // Advance to next step
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  // Helper function to save as draft
+  const handleSaveAsDraft = () => {
+    // In a real implementation, this would save to backend
+    // For now, just update the timestamp
+    setLastSaved(new Date());
+    toast({
+      title: "Saved",
+      description: "Program saved as draft",
+    });
+  };
+
+  // Helper function to get next button text
+  const getNextButtonText = () => {
+    switch (currentStep) {
+      case 1:
+        return "Next";
+      case 2:
+        return "Next";
+      case 3:
+        return "Save Program";
+      default:
+        return "Next";
+    }
+  };
+
+  // Helper function to format last saved time
+  const getLastSavedText = () => {
+    if (!lastSaved) return null;
+    const minutesAgo = Math.floor((new Date().getTime() - lastSaved.getTime()) / 60000);
+    if (minutesAgo < 1) return "Just now";
+    if (minutesAgo === 1) return "1 min ago";
+    return `${minutesAgo} min ago`;
+  };
+
+  // Helper function to check if there are unsaved changes
+  const hasUnsavedChanges = () => {
+    return selectedAthleteId || startDate || endDate || routineTypes.length > 0;
+  };
+
+  // Helper function to handle back button
+  const handleBack = () => {
+    if (hasUnsavedChanges()) {
+      setShowDiscardModal(true);
+    } else {
+      setLocation("/programs");
+    }
+  };
 
   // Helper to get phase display name
   const getPhaseDisplayName = (phaseValue: string): string => {
@@ -1499,113 +1576,123 @@ export default function AddProgram() {
 
   return (
     <div className="min-h-screen bg-surface-base">
-      <div className="sticky top-0 z-50 border-b bg-surface-base">
-        <div className="flex h-16 items-center justify-between px-5">
-          {/* Left side: Title and Step Tabs */}
-            <div className="flex items-center gap-4">
-            <h1 className="text-xs font-medium text-foreground" data-testid="text-page-title">
-              New program
-            </h1>
-            <span className="text-xs font-medium text-muted-foreground" data-testid="text-program-id">
-              {programId}
-            </span>
-            
-            {/* Step Tabs */}
+      {/* Fixed Header Component */}
+      <div className="fixed top-0 left-0 right-0 z-50 border-b bg-surface-base">
+        <div className="flex h-16 items-center px-5">
+          {/* Left Section (30%) */}
+          <div className="flex items-center w-[30%]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="h-8 px-2 hover:bg-muted/50"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </div>
+
+          {/* Center Section (40%) */}
+          <div className="flex flex-col items-center justify-center flex-1 w-[40%]">
+            {/* Progress Indicator */}
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCurrentStep(1)}
-                className={cn(
-                  "rounded-md px-4 py-2 text-xs font-medium transition-colors",
-                  currentStep === 1
-                    ? "bg-muted text-foreground"
-                    : "text-foreground hover:bg-muted/50"
-                )}
-                data-testid="tab-step-1"
-              >
-                1. Settings
-              </button>
-              <button
-                type="button"
-                onClick={() => isStep1Complete && setCurrentStep(2)}
-                disabled={!isStep1Complete}
-                className={cn(
-                  "rounded-md px-4 py-2 text-xs font-medium transition-colors flex items-center gap-2",
-                  currentStep === 2
-                    ? "bg-muted text-foreground"
-                    : isStep1Complete
-                    ? "text-foreground hover:bg-muted/50"
-                    : "text-muted-foreground cursor-not-allowed opacity-50"
-                )}
-                data-testid="tab-step-2"
-              >
-                {!isStep1Complete && <Lock className="h-3.5 w-3.5" />}
-                2. Configuration
-              </button>
-              <button
-                type="button"
-                onClick={() => isStep1Complete && setCurrentStep(3)}
-                disabled={!isStep1Complete}
-                className={cn(
-                  "rounded-md px-4 py-2 text-xs font-medium transition-colors flex items-center gap-2",
-                  currentStep === 3
-                    ? "bg-muted text-foreground"
-                    : isStep1Complete
-                    ? "text-foreground hover:bg-muted/50"
-                    : "text-muted-foreground cursor-not-allowed opacity-50"
-                )}
-                data-testid="tab-step-3"
-              >
-                {!isStep1Complete && <Lock className="h-3.5 w-3.5" />}
-                3. Review
-              </button>
+              {[1, 2, 3].map((step) => {
+                const isActive = currentStep === step;
+                const isCompleted = completedSteps.has(step);
+                const canNavigate = isActive || isCompleted;
+                const stepNames = ["Scope", "Blocks", "Review"];
+                
+                return (
+                  <div key={step} className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => canNavigate && handleStepNavigation(step)}
+                      disabled={!canNavigate}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                        isActive && "bg-muted text-foreground",
+                        isCompleted && !isActive && "text-foreground hover:bg-muted/50 cursor-pointer",
+                        !isActive && !isCompleted && "text-muted-foreground cursor-not-allowed opacity-50"
+                      )}
+                    >
+                      {isCompleted && !isActive && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
+                      <span>{step}: {stepNames[step - 1]}</span>
+                    </button>
+                    {step < 3 && <span className="text-muted-foreground">→</span>}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Right side: Action Buttons */}
-          <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  if (issues.total > 0) {
-                    setIssueModalOpen(true);
-                  } else {
-                    setLocation("/");
-                  }
-                }}
-                data-testid="button-save-back"
-                className="relative"
-              >
-                Save & back
-                {issues.total > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold">
-                    {issues.total}
-                  </span>
-                )}
-              </Button>
-            {currentStep < 3 ? (
-              <Button
-                type="button"
-                onClick={() => setCurrentStep(currentStep + 1)}
-                disabled={currentStep === 1 && !isStep1Complete}
-                data-testid="button-next"
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                form="program-form"
-                disabled={createProgramMutation.isPending || selectedAthlete?.status === "not cleared"}
-                data-testid="button-submit"
-              >
-                {createProgramMutation.isPending ? "Publishing..." : "Publish"}
-              </Button>
-            )}
-            </div>
+          {/* Right Section (30%) */}
+          <div className="flex items-center justify-end gap-2 w-[30%]">
+            {/* Cancel Button */}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setShowDiscardModal(true)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+
+            {/* Save as Draft Button */}
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleSaveAsDraft}
+              className="text-xs"
+            >
+              Save as Draft
+            </Button>
+
+            {/* Next Button */}
+            <Button
+              type="button"
+              onClick={handleNext}
+              className="text-xs relative"
+            >
+              {getNextButtonText()}
+              {(issues?.total || 0) > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold">
+                  {issues.total}
+                </span>
+              )}
+            </Button>
           </div>
         </div>
+      </div>
+
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
+
+      {/* Discard Confirmation Modal */}
+      <AlertDialog open={showDiscardModal} onOpenChange={setShowDiscardModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Are you sure you want to discard them?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDiscardModal(false)}>
+              Keep Editing
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowDiscardModal(false);
+                setLocation("/programs");
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Step 2 Sub-Header */}
       {currentStep === 2 && (
@@ -1629,42 +1716,6 @@ export default function AddProgram() {
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
-
-            {/* Center: Template Selector (for block view) */}
-            {viewMode === "blocks" && blocks.length > 0 && selectedAthlete && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground">Template:</span>
-                <Select
-                  value={blockTemplates.get(selectedBlockIndex) || ""}
-                  onValueChange={(value) => {
-                    setBlockTemplates(prev => {
-                      const newMap = new Map(prev);
-                      newMap.set(selectedBlockIndex, value);
-                      return newMap;
-                    });
-                  }}
-                >
-                  <SelectTrigger className="w-[280px] h-8 text-xs">
-                    <SelectValue placeholder="Select template..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getRecommendedTemplates(selectedBlockIndex).map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{template.name}</span>
-                          <span className="text-xs text-muted-foreground">{template.description}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                    {getRecommendedTemplates(selectedBlockIndex).length === 0 && (
-                      <SelectItem value="none" disabled>
-                        No templates available
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -1682,7 +1733,7 @@ export default function AddProgram() {
                   name="athleteId"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Athlete</FormLabel>
+                      <FormLabel className="text-xs">Athlete</FormLabel>
                       <Popover
                         open={athleteComboboxOpen}
                         onOpenChange={setAthleteComboboxOpen}
@@ -1777,7 +1828,7 @@ export default function AddProgram() {
                             Cleared
                           </Badge>
                         ) : selectedAthlete.status === "not cleared" ? (
-                          <Badge variant="secondary" icon={<AlertTriangle className="h-3 w-3" />}>
+                          <Badge variant="destructive" icon={<AlertTriangle className="h-3 w-3" />}>
                             Not Cleared
                           </Badge>
                         ) : (
@@ -1785,6 +1836,16 @@ export default function AddProgram() {
                             Injured
                           </Badge>
                         )}
+                      </div>
+                    )}
+
+                    {selectedAthlete.status === "injured" && (
+                      <div className="pt-2 border-t border-[#292928]">
+                        <span className="text-xs text-[#979795] font-['Montserrat'] mb-2 block">Injuries:</span>
+                        <ul className="list-disc list-inside space-y-1 text-xs text-[#f7f6f2] font-['Montserrat']">
+                          <li>Right shoulder strain</li>
+                          <li>Lower back tightness</li>
+                        </ul>
                       </div>
                     )}
                     
@@ -1854,16 +1915,6 @@ export default function AddProgram() {
                   </div>
                 )}
 
-                {/* Validation Warnings */}
-                {selectedAthlete?.status === "not cleared" && (
-                  <Alert variant="destructive" className="border-red-500 bg-red-500/10">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription className="font-['Montserrat']">
-                      Program creation is blocked for athletes with "Not cleared" status.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
                 {/* Phase End Date Warning */}
                 {selectedAthlete?.phaseEndDate && endDate && (() => {
                   const phaseEnd = new Date(selectedAthlete.phaseEndDate);
@@ -1887,7 +1938,7 @@ export default function AddProgram() {
                   name="buildType"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Build Type</FormLabel>
+                      <FormLabel className="text-xs">Build Type</FormLabel>
                       <FormControl>
                         <div className="grid grid-cols-3 gap-3">
                           {buildTypeOptions.map((option) => {
@@ -1940,7 +1991,7 @@ export default function AddProgram() {
                   name="routineTypes"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Routine type</FormLabel>
+                      <FormLabel className="text-xs">Routine type</FormLabel>
                       <FormControl>
                         <div className="grid grid-cols-4 gap-3">
                           {routineTypeOptions.map((option) => {
@@ -1987,7 +2038,7 @@ export default function AddProgram() {
                   name="startDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Start date</FormLabel>
+                      <FormLabel className="text-xs">Start date</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
@@ -2020,15 +2071,6 @@ export default function AddProgram() {
                                   return;
                                 }
                                 
-                                // Check if date is Monday (required for program start)
-                                const dayOfWeek = date.getDay();
-                                if (dayOfWeek !== 1) {
-                                  // Auto-correct to next Monday
-                                  const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
-                                  const nextMonday = addDays(date, daysUntilMonday);
-                                  date = nextMonday;
-                                }
-                                
                                 // Check if date is in active programming (requires override)
                                 const { blocked, program } = isDateInActiveProgramming(date);
                                 if (blocked && program) {
@@ -2058,30 +2100,10 @@ export default function AddProgram() {
                                 // Block past dates
                                 if (isDateInPast(date)) return true;
                                 
-                                // Block non-Monday dates (programs must start on Monday)
-                                const dayOfWeek = date.getDay();
-                                return dayOfWeek !== 1;
+                                return false;
                               }}
                               modifiers={{
                                 today: new Date(),
-                                monday: (() => {
-                                  // Generate all future Mondays for highlighting
-                                  const mondays: Date[] = [];
-                                  const today = new Date();
-                                  today.setHours(0, 0, 0, 0);
-                                  let current = new Date(today);
-                                  const dayOfWeek = current.getDay();
-                                  const daysUntilMonday = dayOfWeek === 0 ? 1 : (dayOfWeek === 1 ? 0 : (8 - dayOfWeek));
-                                  if (daysUntilMonday > 0) {
-                                    current = addDays(current, daysUntilMonday);
-                                  }
-                                  // Generate next 12 months of Mondays
-                                  for (let i = 0; i < 52; i++) {
-                                    mondays.push(new Date(current));
-                                    current = addDays(current, 7);
-                                  }
-                                  return mondays;
-                                })(),
                                 recommended: calculateDefaultStartDate ? [calculateDefaultStartDate] : [],
                                 hasProgramming: activePrograms.flatMap((p) => {
                                   const start = new Date(p.startDate);
@@ -2097,7 +2119,6 @@ export default function AddProgram() {
                               }}
                               modifiersClassNames={{
                                 today: "font-bold border-2 border-[#f7f6f2]",
-                                monday: "bg-green-500/20 border border-green-500",
                                 recommended: "bg-green-500/20 border border-green-500",
                                 hasProgramming: "bg-[#292928] line-through",
                               }}
@@ -2123,7 +2144,7 @@ export default function AddProgram() {
                       name="programDuration"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Duration (weeks)</FormLabel>
+                          <FormLabel className="text-xs">Duration (weeks)</FormLabel>
                           <FormControl>
                             <div className="flex items-center gap-2">
                               <Button
@@ -2178,7 +2199,7 @@ export default function AddProgram() {
                       name="endDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>End date</FormLabel>
+                          <FormLabel className="text-xs">End date</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -2272,8 +2293,7 @@ export default function AddProgram() {
                             key={program.id}
                             className={cn(
                               "border rounded-lg p-3 text-xs",
-                              overlapsWithNew ? "border-yellow-500 bg-yellow-500/10" : "border-[#292928] bg-[#171716]",
-                              isCurrent && "border-blue-500 bg-blue-500/10"
+                              overlapsWithNew ? "border-yellow-500 bg-yellow-500/10" : "border-[#292928] bg-[#171716]"
                             )}
                           >
                             <div className="flex items-center justify-between mb-1">
@@ -2315,18 +2335,8 @@ export default function AddProgram() {
                 })()}
 
                 {selectedAthleteId && activePrograms.length > 0 && startDate && (() => {
-                  const latestEnd = activePrograms.reduce((latest, program) => {
-                    const programEnd = new Date(program.endDate);
-                    return programEnd > latest ? programEnd : latest;
-                  }, new Date(0));
-                  return (
-                    <Alert className="border-blue-500 bg-blue-500/10 mt-4">
-                      <AlertTriangle className="h-4 w-4 text-blue-500" />
-                      <AlertDescription className="font-['Montserrat']">
-                        Notice: Existing programming ends {format(latestEnd, "MMM d, yyyy")}.
-                      </AlertDescription>
-                    </Alert>
-                  );
+                  // Removed - this notice is now only shown in the issues modal
+                  return null;
                 })()}
 
                 {/* Override Confirmation Modal */}
@@ -2366,27 +2376,27 @@ export default function AddProgram() {
                   <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                     <AlertDialogHeader>
                       <AlertDialogTitle className="font-['Montserrat']">
-                        {issues.blockingIssues.length > 0 
+                        {issues.blocking.length > 0 
                           ? "Cannot Continue - Issues Found" 
                           : "Review Issues - Warnings Found"}
                       </AlertDialogTitle>
                       <AlertDialogDescription className="font-['Montserrat']">
-                        {issues.blockingIssues.length > 0
-                          ? `Please resolve the following ${issues.blockingIssues.length} blocking issue${issues.blockingIssues.length > 1 ? 's' : ''} before proceeding.`
+                        {issues.blocking.length > 0
+                          ? `Please resolve the following ${issues.blocking.length} blocking issue${issues.blocking.length > 1 ? 's' : ''} before proceeding.`
                           : `Please review the following ${issues.warnings.length} warning${issues.warnings.length > 1 ? 's' : ''}.`}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     
                     <div className="space-y-4 mt-4">
                       {/* Blocking Issues */}
-                      {issues.blockingIssues.length > 0 && (
+                      {issues.blocking.length > 0 && (
                         <div>
                           <h4 className="text-xs font-semibold text-red-400 mb-2 flex items-center gap-2">
                             <AlertTriangle className="h-4 w-4" />
-                            Blocking Issues ({issues.blockingIssues.length})
+                            Blocking Issues ({issues.blocking.length})
                           </h4>
                           <div className="space-y-3">
-                            {issues.blockingIssues.map((issue, idx) => (
+                            {issues.blocking.map((issue, idx) => (
                               <div key={idx} className="border border-red-500/30 rounded-lg p-3 bg-red-500/10">
                                 <div className="flex items-start gap-3">
                                   <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
@@ -2404,16 +2414,6 @@ export default function AddProgram() {
                                         className="text-xs"
                                         onClick={() => {
                                           // Handle action based on issue type
-                                          if (issue.category === 'Date Validation' && issue.action === 'Adjust to Monday') {
-                                            if (startDate) {
-                                              const dayOfWeek = startDate.getDay();
-                                              if (dayOfWeek !== 1) {
-                                                const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
-                                                const nextMonday = addDays(startDate, daysUntilMonday);
-                                                form.setValue("startDate", nextMonday);
-                                              }
-                                            }
-                                          }
                                           // Add more action handlers as needed
                                         }}
                                       >
@@ -2468,16 +2468,26 @@ export default function AddProgram() {
                     <AlertDialogFooter className="mt-6">
                       <div className="flex items-center justify-between w-full">
                         <div className="text-xs text-muted-foreground">
-                          {issues.blockingIssues.length} Blocking Issue{issues.blockingIssues.length !== 1 ? 's' : ''}, {issues.warnings.length} Warning{issues.warnings.length !== 1 ? 's' : ''}
+                          {issues.blocking.length} Blocking Issue{issues.blocking.length !== 1 ? 's' : ''}, {issues.warnings.length} Warning{issues.warnings.length !== 1 ? 's' : ''}
                         </div>
                         <div className="flex gap-2">
                           <AlertDialogCancel onClick={() => setIssueModalOpen(false)}>
                             Close
                           </AlertDialogCancel>
-                          {issues.blockingIssues.length === 0 && (
+                          {issues.blocking.length === 0 && (
                             <AlertDialogAction onClick={() => {
                               setIssueModalOpen(false);
-                              setLocation("/");
+                              // Mark current step as complete
+                              setCompletedSteps(prev => new Set(prev).add(currentStep));
+                              // Auto-save before advancing
+                              handleSaveAsDraft();
+                              // Advance to next step
+                              if (currentStep < 3) {
+                                setCurrentStep(currentStep + 1);
+                              } else if (currentStep === 3) {
+                                // If on Step 3, submit the form
+                                form.handleSubmit(handleSubmit)();
+                              }
                             }}>
                               Continue Anyway
                             </AlertDialogAction>
@@ -2495,10 +2505,12 @@ export default function AddProgram() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Block</TableHead>
-                          <TableHead>Start Date</TableHead>
-                          <TableHead>End Date</TableHead>
-                          <TableHead>Duration (weeks)</TableHead>
+                          <TableHead className="text-xs">Block</TableHead>
+                          <TableHead className="text-xs">Start Date</TableHead>
+                          <TableHead className="text-xs">End Date</TableHead>
+                          <TableHead className="text-xs">Season</TableHead>
+                          <TableHead className="text-xs">Sub-Season</TableHead>
+                          <TableHead className="text-xs">Duration (weeks)</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2510,6 +2522,10 @@ export default function AddProgram() {
                           const isMidWeek = endDayOfWeek !== 0 && endDayOfWeek !== 1;
                           const isRecentlyChanged = recentlyChangedBlocks.has(index);
                           const isSelected = editingBlockIndex === index;
+                          
+                          // Ensure season and sub-season values are initialized
+                          const currentSeason = blockSeasons.get(index) || "off-season";
+                          const currentSubSeason = blockSubSeasons.get(index) || "general-off-season";
                           
                           // Validation: check if block is invalid
                           const duration = differenceInWeeks(blockEndDate, blockStartDate);
@@ -2541,14 +2557,16 @@ export default function AddProgram() {
                                   <button
                                     type="button"
                                     className={cn(
-                                      "flex h-8 w-full items-center justify-start rounded-lg border px-3 py-2 text-xs font-['Montserrat'] ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
-                                      isSunday && "border-green-500 bg-green-500/20 text-green-400",
-                                      isMidWeek && "border-yellow-500 bg-yellow-500/20 text-yellow-400",
-                                      !isSunday && !isMidWeek && "border-[#292928] bg-[#292928] text-[#f7f6f2]",
-                                      isInvalid && "border-red-500 bg-red-500/20 text-red-400"
+                                      "flex h-8 w-full items-center justify-start gap-2 rounded-lg border border-[#292928] bg-[#292928] px-3 py-2 text-xs font-['Montserrat'] ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors text-[#f7f6f2]"
                                     )}
                                   >
-                                    {format(blockEndDate, "EEE, MM/dd/yy")}
+                                    <span>{format(blockEndDate, "EEE, MM/dd/yy")}</span>
+                                    {isMidWeek && !isInvalid && (
+                                      <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                                    )}
+                                    {isInvalid && (
+                                      <AlertCircle className="h-4 w-4 text-red-500" />
+                                    )}
                                   </button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
@@ -2595,20 +2613,9 @@ export default function AddProgram() {
                                           });
                                         }, 2000);
                                         
-                                        // Cascade: Update next block's start date to next Monday after this block ends
+                                        // Cascade: Update next block's start date to the day after this block ends
                                         if (index < blocks.length - 1) {
-                                          const dayAfterBlockEnd = addDays(date, 1);
-                                          const nextDayOfWeek = dayAfterBlockEnd.getDay();
-                                          let nextBlockStart: Date;
-                                          
-                                          if (nextDayOfWeek === 1) {
-                                            // Already Monday
-                                            nextBlockStart = dayAfterBlockEnd;
-                                          } else {
-                                            // Find next Monday
-                                            const daysUntilMonday = nextDayOfWeek === 0 ? 1 : (8 - nextDayOfWeek);
-                                            nextBlockStart = addDays(dayAfterBlockEnd, daysUntilMonday);
-                                          }
+                                          const nextBlockStart = addDays(date, 1);
                                           
                                           // Update next block's start date
                                           setBlockStartDates(prevStarts => {
@@ -2666,6 +2673,50 @@ export default function AddProgram() {
                                 </PopoverContent>
                               </Popover>
                             </TableCell>
+                            <TableCell>
+                              <Select
+                                value={currentSeason}
+                                onValueChange={(value) => {
+                                  setBlockSeasons(prev => {
+                                    const newMap = new Map(prev);
+                                    newMap.set(index, value);
+                                    return newMap;
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue placeholder="Off-Season" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="season">Season</SelectItem>
+                                  <SelectItem value="off-season">Off-Season</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={currentSubSeason}
+                                onValueChange={(value) => {
+                                  setBlockSubSeasons(prev => {
+                                    const newMap = new Map(prev);
+                                    newMap.set(index, value);
+                                    return newMap;
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue placeholder="General Off-Season (GOS)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="general-off-season">General Off-Season (GOS)</SelectItem>
+                                  <SelectItem value="early-off-season">Early Off-Season (EOS)</SelectItem>
+                                  <SelectItem value="late-off-season">Late Off-Season (LOS)</SelectItem>
+                                  <SelectItem value="pre-season">Pre-Season</SelectItem>
+                                  <SelectItem value="in-season">In-Season</SelectItem>
+                                  <SelectItem value="post-season">Post-Season</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
                             <TableCell data-testid={`block-duration-${index + 1}`}>
                               <div className={cn(
                                 "text-xs",
@@ -2698,13 +2749,6 @@ export default function AddProgram() {
                       
                       if (blockEndDate < blockStartDate) {
                         validationErrors.push(`Block ${index + 1} end date is before start date`);
-                      }
-                      
-                      const endDayOfWeek = blockEndDate.getDay();
-                      if (endDayOfWeek !== 0 && endDayOfWeek !== 1 && index < blocks.length - 1) {
-                        const daysUntilMonday = endDayOfWeek === 0 ? 1 : (8 - endDayOfWeek);
-                        const nextMonday = addDays(blockEndDate, daysUntilMonday);
-                        validationWarnings.push(`Block ${index + 1} ends mid-week. Next block will start on ${format(nextMonday, "EEE, MMM d")}`);
                       }
                       
                       if (duration < 4 && duration >= 1) {
@@ -2766,7 +2810,7 @@ export default function AddProgram() {
 
                     {/* Weekday headers */}
                     <div className="grid grid-cols-7 gap-1 text-[11px] text-muted-foreground mb-1">
-                      {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
+                      {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d) => (
                         <div key={d} className="text-center py-1">{d}</div>
                       ))}
                     </div>
@@ -2774,8 +2818,8 @@ export default function AddProgram() {
                     {/* Month grid with large cells */}
                     <div className="grid grid-cols-7 gap-1">
                       {(() => {
-                        const start = startOfWeek(startOfMonth(calendarMonth), { weekStartsOn: 0 });
-                        const end = endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 0 });
+                        const start = startOfWeek(startOfMonth(calendarMonth), { weekStartsOn: 1 });
+                        const end = endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 1 });
                         const days: Date[] = [];
                         let cursor = new Date(start);
                         while (cursor <= end) {
@@ -2783,11 +2827,35 @@ export default function AddProgram() {
                           cursor = addDays(cursor, 1);
                         }
 
-                        // All blocks use the same color
-                        const blockColor = "bg-blue-500";
+                        // Generate different shades of blue for each block
+                        const blockColors = [
+                          "bg-blue-500",
+                          "bg-blue-600",
+                          "bg-blue-400",
+                          "bg-blue-700",
+                          "bg-blue-300",
+                          "bg-blue-800",
+                        ];
+                        
+                        const getBlockColor = (blockIndex: number) => {
+                          return blockColors[blockIndex % blockColors.length];
+                        };
 
                         const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-
+                        
+                        // Calculate week numbers for each day
+                        const getWeekNumber = (day: Date) => {
+                          if (!startDate) return null;
+                          const weekStart = startOfWeek(day, { weekStartsOn: 1 });
+                          const programStart = startOfWeek(startDate, { weekStartsOn: 1 });
+                          const diffInMs = weekStart.getTime() - programStart.getTime();
+                          const diffInWeeks = Math.floor(diffInMs / (7 * 24 * 60 * 60 * 1000));
+                          return diffInWeeks >= 0 ? diffInWeeks + 1 : null;
+                        };
+                        
+                        // Track which week we're in to show week label only once per week
+                        let currentWeekNumber: number | null = null;
+                        
                         // Get key dates for the calendar
                         const getKeyDates = () => {
                           const currentYear = new Date().getFullYear();
@@ -2847,11 +2915,18 @@ export default function AddProgram() {
 
                         // Only get key dates if athlete is selected
                         const keyDates = selectedAthleteId ? getKeyDates() : [];
-
-                        return days.map((day) => {
+                        
+                        return days.map((day, dayIndex) => {
                           const inMonth = day.getMonth() === calendarMonth.getMonth();
                           const dayOfWeek = day.getDay();
-                          const isMonday = dayOfWeek === 1;
+                          
+                          // Check if this is the start of a new week (Monday)
+                          const isWeekStart = dayOfWeek === 1;
+                          const weekNumber = getWeekNumber(day);
+                          const showWeekLabel = isWeekStart && weekNumber !== null && weekNumber !== currentWeekNumber;
+                          if (showWeekLabel) {
+                            currentWeekNumber = weekNumber;
+                          }
                           
                           // Check if day is in program duration (for overlay)
                           const isInProgramDuration = startDate && endDate && 
@@ -2890,6 +2965,13 @@ export default function AddProgram() {
                                 isPhaseBoundary && "border-l-2 border-l-orange-500 border-dashed"
                               )}
                             >
+                              {/* Week Number Label */}
+                              {showWeekLabel && (
+                                <div className="absolute top-0 left-0 bg-muted/80 text-xs font-medium px-1.5 py-0.5 rounded-br-md z-20">
+                                  Week {weekNumber}
+                                </div>
+                              )}
+                              
                               {/* Program Duration Overlay */}
                               {isInProgramDuration && (
                                 <div className="absolute inset-0 bg-blue-500/20 pointer-events-none rounded-md" />
@@ -2918,13 +3000,6 @@ export default function AddProgram() {
                                 )}
                               </div>
                               
-                              {/* Monday Indicator */}
-                              {isMonday && (
-                                <div className="absolute bottom-1 left-1 z-10">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full" title="Monday - Valid start date" />
-                                </div>
-                              )}
-                              
                               {/* Program Duration Label */}
                               {isProgramStart && startDate && (
                                 <div className="absolute top-1 left-1 z-10 bg-blue-500/80 text-white text-[9px] px-1.5 py-0.5 rounded">
@@ -2936,6 +3011,8 @@ export default function AddProgram() {
                                 {dayBlocks.slice(0, dayKeyDate ? 2 : 3).map((b, idx) => {
                                   const isStart = isSameDay(day, b.startDate);
                                   const isEnd = isSameDay(day, b.endDate);
+                                  const blockIndex = blocks.findIndex(block => block.name === b.name);
+                                  const blockColor = getBlockColor(blockIndex);
                                   return (
                                     <div
                                       key={`${b.name}-${idx}`}
@@ -2989,17 +3066,105 @@ export default function AddProgram() {
                       })()}
                     </div>
 
-                    {/* Legend */}
-                    {blocks.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-sm inline-block bg-blue-500" />
-                          <span className="text-xs text-muted-foreground">Blocks</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                          <span className="text-xs text-muted-foreground">Key Dates</span>
-                        </div>
+                    {/* Comprehensive Legend */}
+                    {(blocks.length > 0 || selectedAthleteId || activePrograms.length > 0) && (
+                      <div className="mt-3 border-t pt-3">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setLegendExpanded(!legendExpanded);
+                          }}
+                          className="flex items-center justify-between w-full text-left hover:bg-muted/50 rounded-md px-1 py-1 transition-colors"
+                        >
+                          <h4 className="text-xs font-semibold">Legend</h4>
+                          <ChevronDown className={cn("h-4 w-4 transition-transform", legendExpanded && "rotate-180")} />
+                        </button>
+                        
+                        {legendExpanded && (
+                          <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3">
+                            {/* Column 1: Program Blocks */}
+                            <div className="space-y-2">
+                              {blocks.length > 0 && (
+                                <div className="space-y-1.5">
+                                  <p className="text-xs font-medium text-muted-foreground mb-1">Program Blocks:</p>
+                                  <div className="space-y-1">
+                                    {blocks.map((block, index) => {
+                                      const blockColors = [
+                                        "bg-blue-500",
+                                        "bg-blue-600",
+                                        "bg-blue-400",
+                                        "bg-blue-700",
+                                        "bg-blue-300",
+                                        "bg-blue-800",
+                                      ];
+                                      const blockColor = blockColors[index % blockColors.length];
+                                      return (
+                                        <div key={index} className="flex items-center gap-2">
+                                          <span className={cn("h-3 w-3 rounded-sm inline-block", blockColor)} />
+                                          <span className="text-xs text-muted-foreground">{block.name}</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Program Duration */}
+                              {startDate && endDate && (
+                                <div className="flex items-center gap-2">
+                                  <div className="h-3 w-3 rounded-sm bg-blue-500/20 border border-blue-500" />
+                                  <span className="text-xs text-muted-foreground">Program Duration</span>
+                                </div>
+                              )}
+                              
+                              {/* Existing Programming */}
+                              {activePrograms.length > 0 && (
+                                <div className="flex items-center gap-2">
+                                  <div 
+                                    className="h-3 w-3 rounded-sm"
+                                    style={{
+                                      backgroundImage: 'repeating-linear-gradient(45deg, #808080, #808080 10px, transparent 10px, transparent 20px)'
+                                    }}
+                                  />
+                                  <span className="text-xs text-muted-foreground">Existing Programming</span>
+                                </div>
+                              )}
+                              
+                              {/* Phase Boundary */}
+                              {selectedAthlete?.phaseEndDate && (
+                                <div className="flex items-center gap-2">
+                                  <div className="h-3 w-3 rounded-sm bg-orange-500/20 border border-orange-500 border-dashed" />
+                                  <span className="text-xs text-muted-foreground">Phase Boundary</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Column 2: Key Dates */}
+                            <div className="space-y-2">
+                              {selectedAthleteId && (
+                                <div className="space-y-1.5">
+                                  <p className="text-xs font-medium text-muted-foreground mb-1">Key Dates:</p>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <Star className="h-3 w-3 text-blue-400 fill-blue-400" />
+                                      <span className="text-xs text-muted-foreground">Game</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+                                      <span className="text-xs text-muted-foreground">Assessment</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Star className="h-3 w-3 text-green-400 fill-green-400" />
+                                      <span className="text-xs text-muted-foreground">Training</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -3170,9 +3335,6 @@ export default function AddProgram() {
                                 <div className="flex items-center gap-2 text-xs font-medium">
                                   <span className={cn("text-foreground", isDayOff && "line-through opacity-50")}>{column.title}</span>
                                 </div>
-                                {column.type === "block" && (
-                                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
                                 {column.type === "day" && (
                                   <TooltipProvider>
                                     <Tooltip>
@@ -3227,13 +3389,15 @@ export default function AddProgram() {
                     {/* Schedule Section */}
                     <div className="flex min-w-max px-0 my-2 relative">
                       {/* Category Label (Rotated) */}
-                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
-                        <div className="flex items-center justify-center h-20 w-10 border-r bg-green-500/10">
-                          <div className="-rotate-90 whitespace-nowrap">
-                            <span className="text-xs font-medium text-green-700">Schedule</span>
+                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background overflow-hidden">
+                        <div className="flex items-center justify-center w-10 border-r bg-muted/10 relative" style={{ height: '40px' }}>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="-rotate-90 whitespace-nowrap transform origin-center">
+                              <span className="text-xs font-medium text-foreground">Schedule</span>
+                            </div>
                           </div>
                         </div>
-                        <div className="w-10 border-r bg-background" />
+                        <div className="w-10 border-r bg-muted/10 flex-1" />
                       </div>
 
                       {/* Row Headers */}
@@ -3250,74 +3414,30 @@ export default function AddProgram() {
                       {displayColumns.map((column, columnIndex) => {
                         const isDayOff = column.type === "day" && calculatedDaysOff.has((column as any).index);
                         const blockIndex = column.type === "block" ? column.index : undefined;
-                        const weekIndex = column.type === "week" ? (column as any).weekIndex : undefined;
-                        const dayIndex = column.type === "day" ? (column as any).index : undefined;
                         
                         return (
                           <div key={`schedule-${columnIndex}`} className="flex flex-col shrink-0 w-[236px] border-l mx-1">
-                            {/* Season Dropdown */}
+                            {/* Season Display (Read-only) */}
                             <div className={cn(
                               "h-10 flex items-center border-b relative",
-                              isDayOff ? "bg-muted/30" : "bg-green-500/10 hover:bg-green-500/20 transition-colors"
+                              isDayOff ? "bg-muted/30" : "bg-muted/10"
                             )}>
                               {!isDayOff && (
-                                <>
-                                  <Select 
-                                    value={getCellValue("schedule", "season", blockIndex || 0, weekIndex || 0, dayIndex || 0) || "season"}
-                                    onValueChange={(value) => {
-                                      if (blockIndex !== undefined) {
-                                        handleValueChange("schedule", "season", value, blockIndex, weekIndex || 0, dayIndex || 0, "block");
-                                      }
-                                    }}
-                                  >
-                                    <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="season">Season</SelectItem>
-                                      <SelectItem value="off-season">Off-Season</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  {blockIndex !== undefined && hasOverrides("schedule", "season", blockIndex, "block") && (
-                                    <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-500" 
-                                         title="Customized at lower level" />
-                                  )}
-                                </>
+                                <div className="px-3 text-xs text-muted-foreground">
+                                  Off-Season
+                                </div>
                               )}
                             </div>
 
-                            {/* Sub-Season Dropdown */}
+                            {/* Sub-Season Display (Read-only) */}
                             <div className={cn(
                               "h-10 flex items-center relative",
-                              isDayOff ? "bg-muted/30" : "bg-green-500/10 hover:bg-green-500/20 transition-colors"
+                              isDayOff ? "bg-muted/30" : "bg-muted/10"
                             )}>
                               {!isDayOff && (
-                                <>
-                                  <Select 
-                                    value={getCellValue("schedule", "subSeason", blockIndex || 0, weekIndex || 0, dayIndex || 0) || "general-off-season"}
-                                    onValueChange={(value) => {
-                                      if (blockIndex !== undefined) {
-                                        handleValueChange("schedule", "subSeason", value, blockIndex, weekIndex || 0, dayIndex || 0, "block");
-                                      }
-                                    }}
-                                  >
-                                    <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="general-off-season">General Off-Season (GOS)</SelectItem>
-                                      <SelectItem value="early-off-season">Early Off-Season (EOS)</SelectItem>
-                                      <SelectItem value="late-off-season">Late Off-Season (LOS)</SelectItem>
-                                      <SelectItem value="pre-season">Pre-Season</SelectItem>
-                                      <SelectItem value="in-season">In-Season</SelectItem>
-                                      <SelectItem value="post-season">Post-Season</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  {blockIndex !== undefined && hasOverrides("schedule", "subSeason", blockIndex, "block") && (
-                                    <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-500" 
-                                         title="Customized at lower level" />
-                                  )}
-                                </>
+                                <div className="px-3 text-xs text-muted-foreground">
+                                  General Off-Season (GOS)
+                                </div>
                               )}
                             </div>
                           </div>
@@ -3328,22 +3448,21 @@ export default function AddProgram() {
                     {/* xRole Section */}
                     <div className="flex min-w-max px-0 my-2 relative">
                       {/* Category Label (Rotated) */}
-                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
-                        <div className="flex items-center justify-center h-20 w-10 border-r bg-cyan-500/10">
-                          <div className="-rotate-90 whitespace-nowrap">
-                            <span className="text-xs font-medium text-cyan-700">xRole</span>
+                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background overflow-hidden">
+                        <div className="flex items-center justify-center w-10 border-r bg-cyan-500/10 relative" style={{ height: '40px' }}>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="-rotate-90 whitespace-nowrap transform origin-center">
+                              <span className="text-xs font-medium text-cyan-700">xRole</span>
+                            </div>
                           </div>
                         </div>
-                        <div className="w-10 border-r bg-background" />
+                        <div className="w-10 border-r bg-cyan-500/10 flex-1" />
                       </div>
 
                       {/* Row Headers */}
                       <div className="flex flex-col shrink-0 w-32 sticky left-10 z-20 bg-background border-r">
-                        <div className="h-10 flex items-center px-3 border-b">
-                          <p className="text-xs font-medium text-muted-foreground">xRole (Pitcher)</p>
-                        </div>
                         <div className="h-10 flex items-center px-3">
-                          <p className="text-xs font-medium text-muted-foreground">xRole (Hitter)</p>
+                          <p className="text-xs font-medium text-muted-foreground">xRole (Pitcher)</p>
                         </div>
                       </div>
 
@@ -3361,7 +3480,7 @@ export default function AddProgram() {
                           <div key={`xrole-${columnIndex}`} className="flex flex-col shrink-0 w-[236px] border-l mx-1">
                             {/* xRole (Pitcher) Dropdown */}
                             <div className={cn(
-                              "h-10 flex items-center border-b relative",
+                              "h-10 flex items-center relative",
                               isDayOff ? "bg-muted/30" : "bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors"
                             )}>
                               {!isDayOff && (
@@ -3393,40 +3512,6 @@ export default function AddProgram() {
                                 </>
                               )}
                             </div>
-
-                            {/* xRole (Hitter) Dropdown */}
-                            <div className={cn(
-                              "h-10 flex items-center relative",
-                              isDayOff ? "bg-muted/30" : "bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors"
-                            )}>
-                              {!isDayOff && (
-                                <>
-                                  <Select 
-                                    value={getCellValue("xrole", "hitter", blockIndex || 0, weekIndex || 0, dayIndex || 0) || (!isPitcher ? "everyday-player" : "")}
-                                    onValueChange={(value) => {
-                                      if (blockIndex !== undefined) {
-                                        handleValueChange("xrole", "hitter", value, blockIndex, weekIndex || 0, dayIndex || 0, "block");
-                                      }
-                                    }}
-                                    disabled={isPitcher}
-                                  >
-                                    <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent disabled:opacity-50">
-                                      <SelectValue placeholder={!isPitcher ? "Everyday Player" : "--"} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="everyday-player">Everyday Player</SelectItem>
-                                      <SelectItem value="platoon-player">Platoon Player</SelectItem>
-                                      <SelectItem value="bench-player">Bench Player</SelectItem>
-                                      <SelectItem value="designated-hitter">Designated Hitter</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  {blockIndex !== undefined && hasOverrides("xrole", "hitter", blockIndex, "block") && (
-                                    <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-cyan-500" 
-                                         title="Customized at lower level" />
-                                  )}
-                                </>
-                              )}
-                            </div>
                           </div>
                         );
                       })}
@@ -3436,13 +3521,15 @@ export default function AddProgram() {
                     {routineTypes.includes("throwing") && (
                     <div className="flex min-w-max px-0 relative">
                       {/* Category Label (Rotated) */}
-                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
-                        <div className="flex items-center justify-center h-20 w-10 border-r bg-blue-500/10">
-                          <div className="-rotate-90 whitespace-nowrap">
-                            <p className="text-xs font-medium text-foreground">Throwing</p>
+                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background overflow-hidden">
+                        <div className="flex items-center justify-center w-10 border-r bg-blue-500/10 relative" style={{ height: '40px' }}>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="-rotate-90 whitespace-nowrap transform origin-center">
+                              <p className="text-xs font-medium text-blue-700">Throwing</p>
                             </div>
+                          </div>
                         </div>
-                        <div className="w-10 border-r bg-background" />
+                        <div className="w-10 border-r bg-blue-500/10 flex-1" />
                       </div>
 
                       {/* Row Headers */}
@@ -3542,22 +3629,19 @@ export default function AddProgram() {
                     {routineTypes.includes("movement") && (
                     <div className="flex min-w-max px-0 my-2 relative">
                       {/* Category Label (Rotated) */}
-                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
-                        <div className="flex items-center justify-center h-40 w-10 border-r bg-violet-500/10">
-                          <div className="-rotate-90 whitespace-nowrap">
-                            <p className="text-xs font-medium text-foreground">Movement</p>
+                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background overflow-hidden">
+                        <div className="flex items-center justify-center w-10 border-r bg-violet-500/10 relative" style={{ height: '40px' }}>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="-rotate-90 whitespace-nowrap transform origin-center">
+                              <p className="text-xs font-medium text-foreground">Movement</p>
+                            </div>
                           </div>
                         </div>
+                        <div className="w-10 border-r bg-violet-500/10 flex-1" />
                       </div>
 
                       {/* Row Headers */}
                       <div className="flex flex-col shrink-0 w-32 sticky left-10 z-20 bg-background border-r">
-                        <div className="h-10 flex items-center px-3 border-b">
-                          <p className="text-xs font-medium text-muted-foreground">R-focus</p>
-                        </div>
-                        <div className="h-10 flex items-center px-3 border-b">
-                          <p className="text-xs font-medium text-muted-foreground">Movement Type</p>
-                        </div>
                         <div className="h-10 flex items-center px-3 border-b">
                           <p className="text-xs font-medium text-muted-foreground">Intensity</p>
                         </div>
@@ -3581,68 +3665,6 @@ export default function AddProgram() {
                         
                             return (
                         <div key={`movement-${columnIndex}`} className="flex flex-col shrink-0 w-[236px] border-l mx-1">
-                          {/* R-focus Dropdown */}
-                          <div className={cn(
-                            "h-10 flex items-center border-b relative",
-                            isDayOff ? "bg-muted/20" : "bg-violet-500/10 hover:bg-violet-500/20 transition-colors"
-                          )}>
-                            {!isDayOff && (
-                            <>
-                              <Select 
-                                value={getCellValue("movement", "rFocus", blockIndex, weekIndex, dayIndex) || "r1"}
-                                onValueChange={(value) => handleValueChange("movement", "rFocus", value, blockIndex, weekIndex, dayIndex, level)}
-                              >
-                                <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="r1">R1</SelectItem>
-                                  <SelectItem value="r2">R2</SelectItem>
-                                  <SelectItem value="r3">R3</SelectItem>
-                                  <SelectItem value="r4">R4</SelectItem>
-                                  <SelectItem value="r5">R5</SelectItem>
-                                  <SelectItem value="r6">R6</SelectItem>
-                                  <SelectItem value="r7">R7</SelectItem>
-                                  <SelectItem value="r8">R8</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {hasOverrides("movement", "rFocus", blockIndex, level) && (
-                                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-violet-500" 
-                                     title="Customized at lower level" />
-                              )}
-                            </>
-                            )}
-                          </div>
-
-                          {/* Movement Type Dropdown */}
-                          <div className={cn(
-                            "h-10 flex items-center border-b relative",
-                            isDayOff ? "bg-muted/20" : "bg-violet-500/10 hover:bg-violet-500/20 transition-colors"
-                          )}>
-                            {!isDayOff && (
-                            <>
-                              <Select 
-                                value={getCellValue("movement", "movementType", blockIndex, weekIndex, dayIndex) || "strength"}
-                                onValueChange={(value) => handleValueChange("movement", "movementType", value, blockIndex, weekIndex, dayIndex, level)}
-                              >
-                                <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="strength">Strength & Conditioning</SelectItem>
-                                  <SelectItem value="power">Power</SelectItem>
-                                  <SelectItem value="endurance">Endurance</SelectItem>
-                                  <SelectItem value="mobility">Mobility</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {hasOverrides("movement", "movementType", blockIndex, level) && (
-                                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-violet-500" 
-                                     title="Customized at lower level" />
-                              )}
-                            </>
-                            )}
-                          </div>
-
                           {/* Intensity Dropdown */}
                           <div className={cn(
                             "h-10 flex items-center border-b relative",
@@ -3700,9 +3722,9 @@ export default function AddProgram() {
                             </>
                             )}
                           </div>
-                              </div>
-                            );
-                          })}
+                        </div>
+                      );
+                      })}
                     </div>
                     )}
 
@@ -3710,12 +3732,15 @@ export default function AddProgram() {
                     {routineTypes.includes("lifting") && (
                     <div className="flex min-w-max px-0 my-2 relative">
                       {/* Category Label (Rotated) */}
-                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
-                        <div className="flex items-center justify-center h-50 w-10 border-r bg-orange-500/10">
-                          <div className="-rotate-90 whitespace-nowrap">
-                            <p className="text-xs font-medium text-foreground">Lifting</p>
+                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background overflow-hidden">
+                        <div className="flex items-center justify-center w-10 border-r bg-orange-500/10 relative" style={{ height: '40px' }}>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="-rotate-90 whitespace-nowrap transform origin-center">
+                              <p className="text-xs font-medium text-orange-700">Lifting</p>
+                            </div>
                           </div>
                         </div>
+                        <div className="w-10 border-r bg-orange-500/10 flex-1" />
                       </div>
 
                       {/* Row Headers */}
@@ -3917,12 +3942,15 @@ export default function AddProgram() {
                     {/* Conditioning Section */}
                     <div className="flex min-w-max px-0 my-2 relative">
                       {/* Category Label (Rotated) */}
-                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
-                        <div className="flex items-center justify-center h-30 w-10 border-r bg-teal-500/10">
-                          <div className="-rotate-90 whitespace-nowrap">
-                            <span className="text-xs font-medium text-teal-700">Conditioning</span>
+                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background overflow-hidden">
+                        <div className="flex items-center justify-center w-10 border-r bg-teal-500/10 relative" style={{ height: '40px' }}>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="-rotate-90 whitespace-nowrap transform origin-center">
+                              <span className="text-xs font-medium text-teal-700">Conditioning</span>
+                            </div>
                           </div>
                         </div>
+                        <div className="w-10 border-r bg-teal-500/10 flex-1" />
                       </div>
 
                       {/* Row Headers */}
