@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
-import { CalendarIcon, X, ChevronDown, ChevronRight, ChevronLeft, EyeOff, Lock, Shuffle, Trash2, Moon, Plus } from "lucide-react";
+import { CalendarIcon, X, ChevronDown, ChevronRight, ChevronLeft, EyeOff, Lock, Shuffle, Trash2, Moon, Plus, Star, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -62,42 +64,74 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Athlete } from "@shared/schema";
+import type { Athlete, Program } from "@shared/schema";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
-const mockAthletes: Athlete[] = [
-  { id: "1", name: "Sarah Johnson" },
-  { id: "2", name: "Michael Chen" },
-  { id: "3", name: "Emma Rodriguez" },
-  { id: "4", name: "James Williams" },
-  { id: "5", name: "Olivia Martinez" },
-  { id: "6", name: "Daniel Anderson" },
-  { id: "7", name: "Sophia Taylor" },
-  { id: "8", name: "Liam Brown" },
-  { id: "9", name: "Ava Davis" },
-  { id: "10", name: "Noah Wilson" },
+// Extended athlete interface with demographics
+interface ExtendedAthlete extends Athlete {
+  photo?: string;
+  location?: string;
+  position?: string;
+  age?: number;
+  height?: string;
+  weight?: string;
+  levelOfPlay?: string;
+  team?: string;
+  league?: string;
+  season?: string;
+  xRole?: string;
+  status?: "cleared" | "not cleared" | "injured";
+  availability?: string;
+  phaseEndDate?: string;
+}
+
+const mockAthletes: ExtendedAthlete[] = [
+  { id: "1", name: "Sarah Johnson", position: "Pitcher", age: 22, height: "5'8\"", weight: "145 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Starting Pitcher", status: "cleared", location: "Austin, TX" },
+  { id: "2", name: "Michael Chen", position: "Catcher", age: 21, height: "6'0\"", weight: "180 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Starting Catcher", status: "cleared", location: "Dallas, TX" },
+  { id: "3", name: "Emma Rodriguez", position: "Outfielder", age: 20, height: "5'6\"", weight: "135 lbs", levelOfPlay: "High School", team: "Central High", league: "Varsity", season: "2024-25", xRole: "Center Field", status: "not cleared", location: "Houston, TX" },
+  { id: "4", name: "James Williams", position: "Infielder", age: 23, height: "6'2\"", weight: "195 lbs", levelOfPlay: "Professional", team: "Minor League A", league: "MiLB", season: "2024-25", xRole: "Shortstop", status: "cleared", location: "San Antonio, TX" },
+  { id: "5", name: "Olivia Martinez", position: "Pitcher", age: 19, height: "5'7\"", weight: "140 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Relief Pitcher", status: "cleared", location: "Austin, TX" },
+  { id: "6", name: "Daniel Anderson", position: "First Base", age: 22, height: "6'1\"", weight: "190 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "First Baseman", status: "cleared", location: "Dallas, TX" },
+  { id: "7", name: "Sophia Taylor", position: "Outfielder", age: 21, height: "5'5\"", weight: "130 lbs", levelOfPlay: "High School", team: "East High", league: "Varsity", season: "2024-25", xRole: "Left Field", status: "injured", location: "Houston, TX" },
+  { id: "8", name: "Liam Brown", position: "Catcher", age: 20, height: "5'11\"", weight: "175 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Backup Catcher", status: "cleared", location: "Austin, TX" },
+  { id: "9", name: "Ava Davis", position: "Infielder", age: 18, height: "5'4\"", weight: "125 lbs", levelOfPlay: "High School", team: "West High", league: "Varsity", season: "2024-25", xRole: "Second Base", status: "cleared", location: "Dallas, TX" },
+  { id: "10", name: "Noah Wilson", position: "Pitcher", age: 24, height: "6'0\"", weight: "185 lbs", levelOfPlay: "Professional", team: "Minor League AA", league: "MiLB", season: "2024-25", xRole: "Starting Pitcher", status: "cleared", location: "San Antonio, TX" },
+];
+
+const buildTypeOptions = [
+  { id: "standard", label: "Standard", tooltip: "Standard program type" },
+  { id: "intervention", label: "Intervention", tooltip: "Intervention program type" },
+  { id: "custom", label: "Custom", tooltip: "Custom program type" },
 ];
 
 const routineTypeOptions = [
   { id: "movement", label: "Movement" },
   { id: "throwing", label: "Throwing" },
   { id: "lifting", label: "Lifting" },
+  { id: "nutrition", label: "Nutrition" },
 ];
 
 // Removed split selection from Settings step; default training logic uses a 4-day split
 
 const DEFAULT_BLOCK_DURATION = 4;
+const DEFAULT_PROGRAM_DURATION = 6; // weeks
+const MIN_PROGRAM_DURATION = 1; // weeks
+const MAX_PROGRAM_DURATION = 16; // weeks
 
 const programFormSchema = z.object({
   athleteId: z.string().min(1, "Please select an athlete"),
+  buildType: z.string().default("standard"),
   startDate: z.date({
     required_error: "Please select a start date",
   }),
   endDate: z.date({
     required_error: "Please select an end date",
   }),
+  programDuration: z.coerce.number().int().min(MIN_PROGRAM_DURATION, `Minimum duration is ${MIN_PROGRAM_DURATION} week`).max(MAX_PROGRAM_DURATION, `Maximum duration is ${MAX_PROGRAM_DURATION} weeks`).default(DEFAULT_PROGRAM_DURATION),
   blockDuration: z.coerce.number().int().default(DEFAULT_BLOCK_DURATION),
   routineTypes: z.array(z.string()).min(1, "Please select at least one routine type"),
 });
@@ -182,7 +216,13 @@ const generateProgramId = () => {
 export default function AddProgram() {
   const [, setLocation] = useLocation();
   const [athleteComboboxOpen, setAthleteComboboxOpen] = useState(false);
-  const [routineTypesOpen, setRoutineTypesOpen] = useState(false);
+  const [overrideConfirmation, setOverrideConfirmation] = useState<{
+    show: boolean;
+    programId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    onConfirm?: () => void;
+  }>({ show: false });
   const [currentStep, setCurrentStep] = useState(1);
   const [viewMode, setViewMode] = useState<"blocks" | "weeks" | "days">("blocks");
   const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
@@ -203,6 +243,15 @@ export default function AddProgram() {
   // Block start/end dates state for individual block date control
   const [blockStartDates, setBlockStartDates] = useState<Map<number, Date>>(new Map());
   const [blockEndDates, setBlockEndDates] = useState<Map<number, Date>>(new Map());
+  
+  // Track recently changed blocks for visual feedback
+  const [recentlyChangedBlocks, setRecentlyChangedBlocks] = useState<Set<number>>(new Set());
+  
+  // Track editing block in blocks table
+  const [editingBlockIndex, setEditingBlockIndex] = useState<number | null>(null);
+  
+  // Issue Resolution Modal state
+  const [issueModalOpen, setIssueModalOpen] = useState(false);
   
   // Routine settings state - stores settings at block level by default
   const [blockSettings, setBlockSettings] = useState<Map<number, Partial<RoutineSettings>>>(new Map());
@@ -238,11 +287,18 @@ export default function AddProgram() {
     resolver: zodResolver(programFormSchema),
     defaultValues: {
       athleteId: "",
+      buildType: "standard",
       blockDuration: DEFAULT_BLOCK_DURATION,
+      programDuration: DEFAULT_PROGRAM_DURATION,
       startDate: new Date(),
       endDate: undefined,
       routineTypes: ["movement", "throwing", "lifting"],
     },
+  });
+
+  // Fetch all programs to check for existing programming
+  const { data: allPrograms = [] } = useQuery<Program[]>({
+    queryKey: ["/api/programs"],
   });
 
   const createProgramMutation = useMutation({
@@ -274,8 +330,18 @@ export default function AddProgram() {
   });
 
   const handleSubmit = (values: ProgramFormValues) => {
-    const athlete = mockAthletes.find((a) => a.id === values.athleteId);
+    const athlete = mockAthletes.find((a) => a.id === values.athleteId) as ExtendedAthlete | undefined;
     if (!athlete) return;
+
+    // Block submission if athlete is not cleared
+    if (athlete.status === "not cleared") {
+      toast({
+        title: "Error",
+        description: "Cannot create program for athlete with 'Not cleared' status",
+        variant: "destructive",
+      });
+      return;
+    }
 
     createProgramMutation.mutate({
       athleteId: values.athleteId,
@@ -288,18 +354,128 @@ export default function AddProgram() {
   };
 
   const selectedAthleteId = form.watch("athleteId");
-  const selectedAthlete = mockAthletes.find((a) => a.id === selectedAthleteId);
+  const selectedAthlete = mockAthletes.find((a) => a.id === selectedAthleteId) as ExtendedAthlete | undefined;
   const startDate = form.watch("startDate");
   const endDate = form.watch("endDate");
+  const programDuration = form.watch("programDuration");
   const blockDuration = form.watch("blockDuration");
   const routineTypes = form.watch("routineTypes");
+
+  // Get existing programs for selected athlete
+  const athletePrograms = useMemo(() => {
+    if (!selectedAthleteId) return [];
+    return allPrograms.filter((p) => p.athleteId === selectedAthleteId);
+  }, [allPrograms, selectedAthleteId]);
+
+  // Get active programs (In Progress or Scheduled)
+  const activePrograms = useMemo(() => {
+    if (!selectedAthleteId) return [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return athletePrograms.filter((program) => {
+      const programStart = new Date(program.startDate);
+      const programEnd = new Date(program.endDate);
+      programStart.setHours(0, 0, 0, 0);
+      programEnd.setHours(0, 0, 0, 0);
+      return programEnd >= today;
+    });
+  }, [athletePrograms, selectedAthleteId]);
+
+  // Calculate default start date: today if no existing programs, or day after latest program ends
+  const calculateDefaultStartDate = useMemo(() => {
+    if (activePrograms.length === 0) {
+      return new Date();
+    }
+    // Find the latest end date
+    const latestEndDate = activePrograms.reduce((latest, program) => {
+      const programEndDate = new Date(program.endDate);
+      return programEndDate > latest ? programEndDate : latest;
+    }, new Date(0));
+    // Return day after latest program ends
+    return addDays(latestEndDate, 1);
+  }, [activePrograms]);
+
+  // Check if date is in active programming
+  const isDateInActiveProgramming = (date: Date): { blocked: boolean; program?: Program } => {
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+    for (const program of activePrograms) {
+      const programStart = new Date(program.startDate);
+      const programEnd = new Date(program.endDate);
+      programStart.setHours(0, 0, 0, 0);
+      programEnd.setHours(0, 0, 0, 0);
+      if (checkDate >= programStart && checkDate <= programEnd) {
+        return { blocked: true, program };
+      }
+    }
+    return { blocked: false };
+  };
+
+  // Check if date is in the past
+  const isDateInPast = (date: Date): boolean => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+    return checkDate < today;
+  };
+
+  // Update start date when athlete changes
+  useEffect(() => {
+    if (selectedAthleteId) {
+      const defaultStart = calculateDefaultStartDate;
+      const currentStart = form.getValues("startDate");
+      const currentEnd = form.getValues("endDate");
+      // Only update if start date hasn't been manually set or is the old default
+      if (!currentStart || currentStart.getTime() === new Date().getTime()) {
+        form.setValue("startDate", defaultStart);
+        // Auto-populate end date to +6 weeks if not set
+        if (!currentEnd && defaultStart) {
+          const defaultEnd = addDays(addWeeks(defaultStart, DEFAULT_PROGRAM_DURATION), -1);
+          form.setValue("endDate", defaultEnd);
+          form.setValue("programDuration", DEFAULT_PROGRAM_DURATION);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAthleteId, calculateDefaultStartDate]);
+
+  // Update end date when start date or program duration changes
+  // Auto-populate to +6 weeks when start date is selected (if end date not set)
+  useEffect(() => {
+    if (startDate && programDuration) {
+      const newEndDate = addDays(addWeeks(startDate, programDuration), -1);
+      const currentEndDate = form.getValues("endDate");
+      // Auto-populate to +6 weeks if start date just changed and no end date set
+      if (!currentEndDate || currentEndDate.getTime() === addDays(addWeeks(startDate, DEFAULT_PROGRAM_DURATION), -1).getTime()) {
+        form.setValue("endDate", newEndDate);
+      } else {
+        // Otherwise update based on duration
+        form.setValue("endDate", newEndDate);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, programDuration]);
+
+  // Update program duration when end date changes (if start date exists)
+  useEffect(() => {
+    if (startDate && endDate && endDate > startDate) {
+      const newDuration = differenceInWeeks(endDate, startDate) + 1;
+      if (newDuration >= MIN_PROGRAM_DURATION && newDuration <= MAX_PROGRAM_DURATION) {
+        form.setValue("programDuration", newDuration);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endDate]);
 
   const weeksCount =
     startDate && endDate ? differenceInWeeks(endDate, startDate) : 0;
 
   // Calculate blocks based on start date, end date, and block duration
+  // Block duration is fixed at 4 weeks (DEFAULT_BLOCK_DURATION)
+  // Blocks can only start on Monday
   const blocks = useMemo(() => {
-    if (!startDate || !endDate || !blockDuration) {
+    if (!startDate || !endDate) {
       return [];
     }
 
@@ -309,14 +485,30 @@ export default function AddProgram() {
     }
 
     const generatedBlocks: Array<{ name: string; startDate: Date; endDate: Date }> = [];
-    let currentStart = startDate;
+    
+    // Find the first Monday from the start date (or use start date if it's already a Monday)
+    let currentStart = new Date(startDate);
+    const dayOfWeek = currentStart.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    if (dayOfWeek !== 1) {
+      // If not Monday, find the next Monday
+      // Sunday (0) -> 1 day, Tuesday (2) -> 6 days, ..., Saturday (6) -> 2 days
+      const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
+      currentStart = addDays(currentStart, daysUntilMonday);
+    }
+    
+    // Ensure we don't start after the end date
+    if (currentStart > endDate) {
+      return [];
+    }
+    
     let blockNumber = 1;
 
     while (currentStart < endDate) {
-      // Calculate the end date for this block (blockDuration weeks from start)
-      const potentialEnd = addDays(addWeeks(currentStart, blockDuration), -1);
+      // Calculate the end date for this block (4 weeks from start - fixed duration)
+      const potentialEnd = addDays(addWeeks(currentStart, DEFAULT_BLOCK_DURATION), -1);
       
       // If the potential end is after the program end date, cap it at program end date
+      // This handles the last block which may have less than 4 weeks
       const blockEnd = potentialEnd > endDate ? endDate : potentialEnd;
 
       generatedBlocks.push({
@@ -325,13 +517,22 @@ export default function AddProgram() {
         endDate: blockEnd,
       });
 
-      // Next block starts the day after this one ends
-      currentStart = addDays(blockEnd, 1);
+      // Next block starts the next Monday after this one ends
+      const dayAfterBlockEnd = addDays(blockEnd, 1);
+      const nextDayOfWeek = dayAfterBlockEnd.getDay();
+      if (nextDayOfWeek !== 1) {
+        // Find the next Monday
+        // Sunday (0) -> 1 day, Tuesday (2) -> 6 days, ..., Saturday (6) -> 2 days
+        const daysUntilMonday = nextDayOfWeek === 0 ? 1 : (8 - nextDayOfWeek);
+        currentStart = addDays(dayAfterBlockEnd, daysUntilMonday);
+      } else {
+        currentStart = dayAfterBlockEnd;
+      }
       blockNumber++;
     }
 
     return generatedBlocks;
-  }, [startDate, endDate, blockDuration]);
+  }, [startDate, endDate]);
 
   // Function to recalculate blocks when duration changes
   const recalculateBlocks = (changedBlockIndex: number, newDuration: number) => {
@@ -349,9 +550,146 @@ export default function AddProgram() {
   };
 
   // Check if step 1 is complete (all required fields filled)
+  // Note: blockDuration is fixed at 4 weeks, so we don't need to check it
   const isStep1Complete = useMemo(() => {
-    return !!(selectedAthleteId && startDate && endDate && blockDuration && routineTypes.length > 0 && blocks.length > 0);
-  }, [selectedAthleteId, startDate, endDate, blockDuration, routineTypes, blocks.length]);
+    return !!(selectedAthleteId && startDate && endDate && routineTypes.length > 0 && blocks.length > 0);
+  }, [selectedAthleteId, startDate, endDate, routineTypes, blocks.length]);
+
+  // Detect issues for Issue Resolution Modal
+  const issues = useMemo(() => {
+    const blockingIssues: Array<{ type: 'error' | 'warning'; category: string; description: string; affected: string; action?: string }> = [];
+    const warnings: Array<{ type: 'error' | 'warning'; category: string; description: string; affected: string; action?: string }> = [];
+
+    // Athlete Status Issues
+    if (selectedAthlete?.status === "not cleared") {
+      blockingIssues.push({
+        type: 'error',
+        category: 'Athlete Status',
+        description: `${selectedAthlete.name} has status "Not Cleared" and cannot receive programming`,
+        affected: 'Athlete Selection',
+        action: 'Change Athlete'
+      });
+    }
+
+    // Date Validation Issues
+    if (startDate) {
+      const startDayOfWeek = startDate.getDay();
+      if (startDayOfWeek !== 1) {
+        blockingIssues.push({
+          type: 'error',
+          category: 'Date Validation',
+          description: `Program must start on Monday. Current: ${format(startDate, "EEEE, MMM d, yyyy")}`,
+          affected: 'Program Duration',
+          action: 'Adjust to Monday'
+        });
+      }
+    }
+
+    // Block Validation Issues
+    blocks.forEach((block, index) => {
+      const blockEndDate = blockEndDates.get(index) || block.endDate;
+      const blockStartDate = blockStartDates.get(index) || block.startDate;
+      const duration = differenceInWeeks(blockEndDate, blockStartDate);
+
+      if (duration < 1) {
+        blockingIssues.push({
+          type: 'error',
+          category: 'Block Duration',
+          description: `Block ${index + 1} has duration of ${duration} weeks (minimum 1 week required)`,
+          affected: `Block ${index + 1}`,
+          action: 'Extend Block'
+        });
+      }
+
+      if (blockEndDate < blockStartDate) {
+        blockingIssues.push({
+          type: 'error',
+          category: 'Block Date',
+          description: `Block ${index + 1} end date is before start date`,
+          affected: `Block ${index + 1}`,
+          action: 'Edit Block'
+        });
+      }
+
+      // Check for overlaps
+      if (index < blocks.length - 1) {
+        const nextBlockStart = blockStartDates.get(index + 1) || blocks[index + 1].startDate;
+        if (blockEndDate >= nextBlockStart) {
+          blockingIssues.push({
+            type: 'error',
+            category: 'Block Overlap',
+            description: `Block ${index + 1} end date (${format(blockEndDate, "MMM d")}) overlaps with Block ${index + 2} start date (${format(nextBlockStart, "MMM d")})`,
+            affected: `Blocks ${index + 1} and ${index + 2}`,
+            action: 'Auto-fix Dates'
+          });
+        }
+      }
+
+      // Warnings
+      const endDayOfWeek = blockEndDate.getDay();
+      if (endDayOfWeek !== 0 && endDayOfWeek !== 1 && index < blocks.length - 1) {
+        const nextMonday = addDays(blockEndDate, endDayOfWeek === 0 ? 1 : (8 - endDayOfWeek));
+        warnings.push({
+          type: 'warning',
+          category: 'Block End Date',
+          description: `Block ${index + 1} ends mid-week, creating gap to next Monday (${format(nextMonday, "EEE, MMM d")})`,
+          affected: `Block ${index + 1}`,
+          action: 'Extend to Sunday'
+        });
+      }
+
+      if (duration < 4 && duration >= 1) {
+        warnings.push({
+          type: 'warning',
+          category: 'Block Duration',
+          description: `Block ${index + 1} is only ${duration} weeks (recommended minimum 4 weeks)`,
+          affected: `Block ${index + 1}`,
+          action: 'Extend Block'
+        });
+      }
+    });
+
+    // Program Duration Issues
+    if (startDate && endDate) {
+      const programDuration = differenceInWeeks(endDate, startDate) + 1;
+      if (programDuration > 16) {
+        blockingIssues.push({
+          type: 'error',
+          category: 'Program Duration',
+          description: `Program duration is ${programDuration} weeks (maximum 16 weeks allowed)`,
+          affected: 'Program Duration',
+          action: 'Reduce Duration'
+        });
+      }
+    }
+
+    // Phase Boundary Warnings
+    if (selectedAthlete?.phaseEndDate && endDate) {
+      const phaseEnd = new Date(selectedAthlete.phaseEndDate);
+      if (endDate > phaseEnd) {
+        warnings.push({
+          type: 'warning',
+          category: 'Phase Boundary',
+          description: `Program ends ${format(endDate, "MMM d, yyyy")} but current phase ends ${format(phaseEnd, "MMM d, yyyy")}`,
+          affected: 'Program Duration',
+          action: 'Adjust to Phase End'
+        });
+      }
+    }
+
+    // Routine Type Issues
+    if (routineTypes.length === 0) {
+      blockingIssues.push({
+        type: 'error',
+        category: 'Routine Type',
+        description: 'At least one routine type must be selected',
+        affected: 'Routine Type Selection',
+        action: 'Select Routine Type'
+      });
+    }
+
+    return { blockingIssues, warnings, total: blockingIssues.length + warnings.length };
+  }, [selectedAthlete, startDate, endDate, blocks, blockStartDates, blockEndDates, routineTypes]);
 
   // Helper to get phase display name
   const getPhaseDisplayName = (phaseValue: string): string => {
@@ -915,8 +1253,8 @@ export default function AddProgram() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-50 border-b bg-background">
+    <div className="min-h-screen bg-surface-base">
+      <div className="sticky top-0 z-50 border-b bg-surface-base">
         <div className="flex h-16 items-center justify-between px-5">
           {/* Left side: Title and Step Tabs */}
             <div className="flex items-center gap-4">
@@ -983,11 +1321,23 @@ export default function AddProgram() {
           <div className="flex items-center gap-2">
               <Button
                 type="button"
-              variant="secondary"
-                onClick={() => setLocation("/")}
-              data-testid="button-save-back"
+                variant="secondary"
+                onClick={() => {
+                  if (issues.total > 0) {
+                    setIssueModalOpen(true);
+                  } else {
+                    setLocation("/");
+                  }
+                }}
+                data-testid="button-save-back"
+                className="relative"
               >
-              Save & back
+                Save & back
+                {issues.total > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold">
+                    {issues.total}
+                  </span>
+                )}
               </Button>
             {currentStep < 3 ? (
               <Button
@@ -1002,7 +1352,7 @@ export default function AddProgram() {
               <Button
                 type="submit"
                 form="program-form"
-                disabled={createProgramMutation.isPending}
+                disabled={createProgramMutation.isPending || selectedAthlete?.status === "not cleared"}
                 data-testid="button-submit"
               >
                 {createProgramMutation.isPending ? "Publishing..." : "Publish"}
@@ -1014,53 +1364,28 @@ export default function AddProgram() {
 
       {/* Step 2 Sub-Header */}
       {currentStep === 2 && (
-        <div className="sticky top-16 z-40 border-b bg-background">
+        <div className="sticky top-16 z-40 border-b bg-surface-base">
           <div className="flex h-16 items-center justify-between px-5">
             {/* Left side: View Mode Tabs */}
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium text-foreground">View by</span>
               
-              <div className="flex items-center gap-1 rounded-md bg-muted p-1">
-                <button
-                  type="button"
-                  onClick={() => setViewMode("blocks")}
-                  className={cn(
-                    "rounded-sm px-3 py-1.5 text-sm font-medium transition-colors",
-                    viewMode === "blocks"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  data-testid="view-blocks"
-                >
+              <ToggleGroup
+                type="single"
+                value={viewMode}
+                onValueChange={(value) => value && setViewMode(value as "blocks" | "weeks" | "days")}
+                variant="segmented"
+              >
+                <ToggleGroupItem value="blocks" aria-label="View by blocks" data-testid="view-blocks">
                   Blocks
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("weeks")}
-                  className={cn(
-                    "rounded-sm px-3 py-1.5 text-sm font-medium transition-colors",
-                    viewMode === "weeks"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  data-testid="view-weeks"
-                >
+                </ToggleGroupItem>
+                <ToggleGroupItem value="weeks" aria-label="View by weeks" data-testid="view-weeks">
                   Weeks
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("days")}
-                  className={cn(
-                    "rounded-sm px-3 py-1.5 text-sm font-medium transition-colors",
-                    viewMode === "days"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  data-testid="view-days"
-                >
+                </ToggleGroupItem>
+                <ToggleGroupItem value="days" aria-label="View by days" data-testid="view-days">
                   Days
-                </button>
-      </div>
+                </ToggleGroupItem>
+              </ToggleGroup>
 
               {/* Days View Navigation */}
               {viewMode === "days" && blocks.length > 0 && (
@@ -1074,7 +1399,7 @@ export default function AddProgram() {
                       setSelectedDayWeekIndex(0);
                     }}
                   >
-                    <SelectTrigger className="w-[140px] h-10">
+                      <SelectTrigger className="w-[140px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1145,9 +1470,9 @@ export default function AddProgram() {
           <form id="program-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
             {/* Step 1: General Settings */}
             {currentStep === 1 && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-[20px]">
-                {/* Left: Form + Blocks table */}
-                <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 py-[20px]">
+                {/* Left: Form + Blocks table (40% - 2 columns) */}
+                <div className="lg:col-span-2 space-y-6">
                 <FormField
                   control={form.control}
                   name="athleteId"
@@ -1160,18 +1485,23 @@ export default function AddProgram() {
                       >
                         <PopoverTrigger asChild>
                           <FormControl>
-                            <Button
-                              variant="outline"
+                            <button
+                              type="button"
                               role="combobox"
                               aria-expanded={athleteComboboxOpen}
-                              className="w-full justify-between"
+                              className={cn(
+                                "flex h-8 w-full items-center justify-between rounded-lg border border-[#292928] bg-transparent px-3 py-2 text-sm text-[#f7f6f2] font-['Montserrat'] ring-offset-background placeholder:text-[#979795] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-[#f7f6f2] disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+                                !selectedAthlete && "text-[#979795]"
+                              )}
                               data-testid="button-athlete-select"
                             >
-                              {selectedAthlete
-                                ? selectedAthlete.name
-                                : "Select athlete..."}
+                              <span className="text-left">
+                                {selectedAthlete
+                                  ? selectedAthlete.name
+                                  : "Select athlete..."}
+                              </span>
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
+                            </button>
                           </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-full p-0" align="start">
@@ -1209,168 +1539,277 @@ export default function AddProgram() {
                           </Command>
                         </PopoverContent>
                       </Popover>
-                    {selectedAthlete && (
-                      <Badge 
-                        variant="default" 
-                        className="w-fit bg-green-600 hover:bg-green-600 mt-2"
-                        data-testid="badge-athlete-cleared"
-                      >
-                        <Check className="mr-1 h-3 w-3" />
-                        Athlete cleared
-                      </Badge>
-                    )}
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Athlete Profile Card */}
+                {selectedAthlete && (
+                  <div className="border border-[#292928] rounded-lg p-4 bg-[#171716] space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        {selectedAthlete.photo ? (
+                          <img src={selectedAthlete.photo} alt={selectedAthlete.name} className="w-12 h-12 rounded-full" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-[#292928] flex items-center justify-center text-[#f7f6f2] font-semibold">
+                            {selectedAthlete.name.split(' ').map(n => n[0]).join('')}
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-semibold text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.name}</h3>
+                          {selectedAthlete.location && (
+                            <p className="text-sm text-[#979795] font-['Montserrat']">{selectedAthlete.location}</p>
+                          )}
+                        </div>
+                      </div>
+                      {selectedAthlete.status === "not cleared" && (
+                        <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                      )}
+                      {selectedAthlete.status === "injured" && (
+                        <AlertTriangle className="h-5 w-5 text-red-500" />
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      {selectedAthlete.position && (
+                        <div>
+                          <span className="text-[#979795] font-['Montserrat']">Position:</span>
+                          <span className="ml-2 text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.position}</span>
+                        </div>
+                      )}
+                      {selectedAthlete.age && (
+                        <div>
+                          <span className="text-[#979795] font-['Montserrat']">Age:</span>
+                          <span className="ml-2 text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.age}</span>
+                        </div>
+                      )}
+                      {selectedAthlete.height && (
+                        <div>
+                          <span className="text-[#979795] font-['Montserrat']">Height:</span>
+                          <span className="ml-2 text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.height}</span>
+                        </div>
+                      )}
+                      {selectedAthlete.weight && (
+                        <div>
+                          <span className="text-[#979795] font-['Montserrat']">Weight:</span>
+                          <span className="ml-2 text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.weight}</span>
+                        </div>
+                      )}
+                      {selectedAthlete.levelOfPlay && (
+                        <div>
+                          <span className="text-[#979795] font-['Montserrat']">Level:</span>
+                          <span className="ml-2 text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.levelOfPlay}</span>
+                        </div>
+                      )}
+                      {selectedAthlete.team && (
+                        <div>
+                          <span className="text-[#979795] font-['Montserrat']">Team:</span>
+                          <span className="ml-2 text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.team}</span>
+                        </div>
+                      )}
+                      {selectedAthlete.league && (
+                        <div>
+                          <span className="text-[#979795] font-['Montserrat']">League:</span>
+                          <span className="ml-2 text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.league}</span>
+                        </div>
+                      )}
+                      {selectedAthlete.season && (
+                        <div>
+                          <span className="text-[#979795] font-['Montserrat']">Season:</span>
+                          <span className="ml-2 text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.season}</span>
+                        </div>
+                      )}
+                      {selectedAthlete.xRole && (
+                        <div>
+                          <span className="text-[#979795] font-['Montserrat']">Role:</span>
+                          <span className="ml-2 text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.xRole}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedAthlete.status && (
+                      <div className="pt-2 border-t border-[#292928]">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-[#979795] font-['Montserrat']">Status:</span>
+                          {selectedAthlete.status === "cleared" ? (
+                            <Badge variant="default" icon={<Check className="h-3 w-3" />}>
+                              Cleared
+                            </Badge>
+                          ) : selectedAthlete.status === "not cleared" ? (
+                            <Badge variant="secondary" icon={<AlertTriangle className="h-3 w-3" />}>
+                              Not Cleared
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" icon={<AlertTriangle className="h-3 w-3" />}>
+                              Injured
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedAthlete.availability && (
+                      <div className="pt-2 border-t border-[#292928]">
+                        <span className="text-sm text-[#979795] font-['Montserrat']">Availability:</span>
+                        <span className="ml-2 text-sm text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.availability}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Validation Warnings */}
+                {selectedAthlete?.status === "not cleared" && (
+                  <Alert variant="destructive" className="border-red-500 bg-red-500/10">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="font-['Montserrat']">
+                      Program creation is blocked for athletes with "Not cleared" status.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Phase End Date Warning */}
+                {selectedAthlete?.phaseEndDate && endDate && (() => {
+                  const phaseEnd = new Date(selectedAthlete.phaseEndDate);
+                  const programEnd = endDate;
+                  if (programEnd > phaseEnd) {
+                    return (
+                      <Alert className="border-yellow-500 bg-yellow-500/10">
+                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                        <AlertDescription className="font-['Montserrat']">
+                          Warning: New program extends beyond current Phase End Date ({format(phaseEnd, "MMM d, yyyy")}).
+                        </AlertDescription>
+                      </Alert>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* Build Type */}
+                <FormField
+                  control={form.control}
+                  name="buildType"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Build Type</FormLabel>
+                      <FormControl>
+                        <div className="grid grid-cols-3 gap-3">
+                          {buildTypeOptions.map((option) => {
+                            const isSelected = field.value === option.id;
+                            return (
+                              <TooltipProvider key={option.id}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        field.onChange(option.id);
+                                      }}
+                                      className={cn(
+                                        "flex items-center justify-between rounded-lg border h-10 px-4 transition-colors w-full",
+                                        isSelected
+                                          ? "border-transparent bg-[#292928] text-[#f7f6f2]"
+                                          : "border-[#292928] bg-transparent text-[#979795] hover:border-[#292928] hover:bg-[#171716]"
+                                      )}
+                                      data-testid={`build-type-card-${option.id}`}
+                                    >
+                                      <span className="text-sm font-['Montserrat'] font-medium text-left">
+                                        {option.label}
+                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <Info className="h-4 w-4 shrink-0 text-[#979795]" />
+                                        {isSelected && (
+                                          <Check className="h-4 w-4 shrink-0 text-[#f7f6f2]" />
+                                        )}
+                                      </div>
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="font-['Montserrat']">{option.tooltip}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          })}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Routine Type */}
                 <FormField
                   control={form.control}
                   name="routineTypes"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Routine type</FormLabel>
-                      <Popover open={routineTypesOpen} onOpenChange={setRoutineTypesOpen}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={routineTypesOpen}
-                              className={cn(
-                                "w-full justify-between min-h-9 h-auto",
-                                field.value.length === 0 && "text-muted-foreground"
-                              )}
-                              data-testid="button-routine-types-select"
-                            >
-                              <div className="flex flex-wrap gap-1">
-                                {field.value.length > 0 ? (
-                                  field.value.map((typeId) => {
-                                    const option = routineTypeOptions.find(
-                                      (o) => o.id === typeId
-                                    );
-                                    return (
-                                      <Badge
-                                        key={typeId}
-                                        variant="secondary"
-                                        className="mr-1"
-                                        data-testid={`badge-selected-${typeId}`}
-                                      >
-                                        {option?.label}
-                                        <button
-                                          type="button"
-                                          className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            field.onChange(
-                                              field.value.filter((val) => val !== typeId)
-                                            );
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                              e.preventDefault();
-                                              e.stopPropagation();
-                                              field.onChange(
-                                                field.value.filter((val) => val !== typeId)
-                                              );
-                                            }
-                                          }}
-                                          aria-label={`Remove ${option?.label}`}
-                                          data-testid={`button-remove-${typeId}`}
-                                        >
-                                          <X className="h-3 w-3" />
-                                        </button>
-                                      </Badge>
-                                    );
-                                  })
-                                ) : (
-                                  <span>Select routine types...</span>
+                      <FormControl>
+                        <div className="grid grid-cols-4 gap-3">
+                          {routineTypeOptions.map((option) => {
+                            const isSelected = field.value.includes(option.id);
+                            return (
+                              <button
+                                key={option.id}
+                                type="button"
+                                onClick={() => {
+                                  const isSelected = field.value.includes(option.id);
+                                  field.onChange(
+                                    isSelected
+                                      ? field.value.filter((val) => val !== option.id)
+                                      : [...field.value, option.id]
+                                  );
+                                }}
+                                className={cn(
+                                  "flex items-center justify-between rounded-lg border h-10 px-4 transition-colors w-full",
+                                  isSelected
+                                    ? "border-transparent bg-[#292928] text-[#f7f6f2]"
+                                    : "border-[#292928] bg-transparent text-[#979795] hover:border-[#292928] hover:bg-[#171716]"
                                 )}
-                              </div>
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0" align="start">
-                          <Command>
-                            <CommandInput
-                              placeholder="Search routine types..."
-                              data-testid="input-routine-search"
-                            />
-                            <CommandList>
-                              <CommandEmpty>No routine type found.</CommandEmpty>
-                              <CommandGroup>
-                                {routineTypeOptions.map((option) => (
-                                  <CommandItem
-                                    key={option.id}
-                                    value={option.label}
-                                    onSelect={() => {
-                                      const isSelected = field.value.includes(option.id);
-                                      field.onChange(
-                                        isSelected
-                                          ? field.value.filter((val) => val !== option.id)
-                                          : [...field.value, option.id]
-                                      );
-                                    }}
-                                    data-testid={`option-routine-${option.id}`}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        field.value.includes(option.id)
-                                          ? "opacity-100"
-                                          : "opacity-0"
-                                      )}
-                                    />
-                                    {option.label}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
+                                data-testid={`routine-card-${option.id}`}
+                              >
+                                <span className="text-sm font-['Montserrat'] font-medium text-left">
+                                  {option.label}
+                                </span>
+                                {isSelected && (
+                                  <Check className="h-4 w-4 shrink-0 text-[#f7f6f2]" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <FormLabel>Program duration</FormLabel>
-                    {weeksCount > 0 && (
-                      <span
-                        className="text-sm text-muted-foreground"
-                        data-testid="text-weeks-count"
-                      >
-                        {weeksCount} {weeksCount === 1 ? "week" : "weeks"}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
+                {/* Start Date */}
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Start date</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
-                              <Button
-                                variant="outline"
+                              <button
+                                type="button"
                                 className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !field.value && "text-muted-foreground"
+                                  "flex h-8 w-full items-center justify-start rounded-lg border border-[#292928] bg-transparent px-3 py-2 text-sm text-[#f7f6f2] font-['Montserrat'] ring-offset-background placeholder:text-[#979795] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-[#f7f6f2] disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+                                  !field.value && "text-[#979795]"
                                 )}
                                 data-testid="button-start-date"
                               >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value
-                                  ? format(field.value, "MMM dd, yyyy")
-                                  : "Pick start date"}
-                              </Button>
+                                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                                <span className="text-left">
+                                  {field.value
+                                    ? format(field.value, "MMM dd, yyyy")
+                                    : "Pick start date"}
+                                </span>
+                              </button>
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
@@ -1378,10 +1817,97 @@ export default function AddProgram() {
                               mode="single"
                               selected={field.value}
                               onSelect={(date) => {
+                                if (!date) return;
+                                
+                                // Check if date is in past (blocked, no override)
+                                if (isDateInPast(date)) {
+                                  return;
+                                }
+                                
+                                // Check if date is Monday (required for program start)
+                                const dayOfWeek = date.getDay();
+                                if (dayOfWeek !== 1) {
+                                  // Auto-correct to next Monday
+                                  const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
+                                  const nextMonday = addDays(date, daysUntilMonday);
+                                  date = nextMonday;
+                                }
+                                
+                                // Check if date is in active programming (requires override)
+                                const { blocked, program } = isDateInActiveProgramming(date);
+                                if (blocked && program) {
+                                  setOverrideConfirmation({
+                                    show: true,
+                                    programId: program.programId,
+                                    startDate: new Date(program.startDate),
+                                    endDate: new Date(program.endDate),
+                                    onConfirm: () => {
+                                      field.onChange(date);
+                                      if (date) {
+                                        setCalendarMonth(date);
+                                      }
+                                      setOverrideConfirmation({ show: false });
+                                    },
+                                  });
+                                  return;
+                                }
+                                
+                                // Date is valid, set it
                                 field.onChange(date);
                                 if (date) {
                                   setCalendarMonth(date);
                                 }
+                              }}
+                              disabled={(date) => {
+                                // Block past dates
+                                if (isDateInPast(date)) return true;
+                                
+                                // Block non-Monday dates (programs must start on Monday)
+                                const dayOfWeek = date.getDay();
+                                return dayOfWeek !== 1;
+                              }}
+                              modifiers={{
+                                today: new Date(),
+                                monday: (() => {
+                                  // Generate all future Mondays for highlighting
+                                  const mondays: Date[] = [];
+                                  const today = new Date();
+                                  today.setHours(0, 0, 0, 0);
+                                  let current = new Date(today);
+                                  const dayOfWeek = current.getDay();
+                                  const daysUntilMonday = dayOfWeek === 0 ? 1 : (dayOfWeek === 1 ? 0 : (8 - dayOfWeek));
+                                  if (daysUntilMonday > 0) {
+                                    current = addDays(current, daysUntilMonday);
+                                  }
+                                  // Generate next 12 months of Mondays
+                                  for (let i = 0; i < 52; i++) {
+                                    mondays.push(new Date(current));
+                                    current = addDays(current, 7);
+                                  }
+                                  return mondays;
+                                })(),
+                                recommended: calculateDefaultStartDate ? [calculateDefaultStartDate] : [],
+                                hasProgramming: activePrograms.flatMap((p) => {
+                                  const start = new Date(p.startDate);
+                                  const end = new Date(p.endDate);
+                                  const dates: Date[] = [];
+                                  let current = new Date(start);
+                                  while (current <= end) {
+                                    dates.push(new Date(current));
+                                    current = addDays(current, 1);
+                                  }
+                                  return dates;
+                                }),
+                              }}
+                              modifiersClassNames={{
+                                today: "font-bold border-2 border-[#f7f6f2]",
+                                monday: "bg-green-500/20 border border-green-500",
+                                recommended: "bg-green-500/20 border border-green-500",
+                                hasProgramming: "bg-[#292928] line-through",
+                              }}
+                              classNames={{
+                                day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                                day_disabled: "opacity-30 cursor-not-allowed",
                               }}
                               initialFocus
                               data-testid="calendar-start-date"
@@ -1393,52 +1919,378 @@ export default function AddProgram() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="endDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
+                  {/* Duration and End Date in one row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Duration in weeks */}
+                    <FormField
+                      control={form.control}
+                      name="programDuration"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Duration (weeks)</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-2">
                               <Button
+                                type="button"
                                 variant="outline"
-                                className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                                data-testid="button-end-date"
+                                size="sm"
+                                onClick={() => {
+                                  const newValue = Math.max(MIN_PROGRAM_DURATION, (field.value || DEFAULT_PROGRAM_DURATION) - 1);
+                                  field.onChange(newValue);
+                                }}
+                                disabled={(field.value || DEFAULT_PROGRAM_DURATION) <= MIN_PROGRAM_DURATION}
                               >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value
-                                  ? format(field.value, "MMM dd, yyyy")
-                                  : "Pick end date"}
+                                -
                               </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={(date) => {
-                                field.onChange(date);
-                                if (date && date < calendarMonth) {
-                                  // keep month in visible range
-                                  setCalendarMonth(date);
-                                }
-                              }}
-                              initialFocus
-                              data-testid="calendar-end-date"
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+                              <Input
+                                type="number"
+                                min={MIN_PROGRAM_DURATION}
+                                max={MAX_PROGRAM_DURATION}
+                                value={field.value || DEFAULT_PROGRAM_DURATION}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || MIN_PROGRAM_DURATION;
+                                  const clampedValue = Math.max(MIN_PROGRAM_DURATION, Math.min(MAX_PROGRAM_DURATION, value));
+                                  field.onChange(clampedValue);
+                                }}
+                                className="flex-1 text-center"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const newValue = Math.min(MAX_PROGRAM_DURATION, (field.value || DEFAULT_PROGRAM_DURATION) + 1);
+                                  field.onChange(newValue);
+                                }}
+                                disabled={(field.value || DEFAULT_PROGRAM_DURATION) >= MAX_PROGRAM_DURATION}
+                              >
+                                +
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <div className="text-xs text-[#979795] font-['Montserrat'] mt-1">
+                            Min: {MIN_PROGRAM_DURATION} week, Max: {MAX_PROGRAM_DURATION} weeks
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
+                    {/* End Date */}
+                    <FormField
+                      control={form.control}
+                      name="endDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>End date</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <button
+                                  type="button"
+                                  className={cn(
+                                    "flex h-8 w-full items-center justify-start rounded-lg border border-[#292928] bg-transparent px-3 py-2 text-sm text-[#f7f6f2] font-['Montserrat'] ring-offset-background placeholder:text-[#979795] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-[#f7f6f2] disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+                                    !field.value && "text-[#979795]"
+                                  )}
+                                  data-testid="button-end-date"
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                                  <span className="text-left">
+                                    {field.value
+                                      ? format(field.value, "MMM dd, yyyy")
+                                      : "Pick end date"}
+                                  </span>
+                                </button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={(date) => {
+                                  if (!date || !startDate) return;
+                                  
+                                  // Check if date is before start date
+                                  if (date < startDate) {
+                                    return;
+                                  }
+                                  
+                                  // Check if duration would be < 1 week or > 16 weeks
+                                  const duration = differenceInWeeks(date, startDate) + 1;
+                                  if (duration < MIN_PROGRAM_DURATION || duration > MAX_PROGRAM_DURATION) {
+                                    return;
+                                  }
+                                  
+                                  field.onChange(date);
+                                  if (date && date < calendarMonth) {
+                                    // keep month in visible range
+                                    setCalendarMonth(date);
+                                  }
+                                }}
+                                disabled={(date) => {
+                                  if (!startDate) return true;
+                                  // Block dates before start date
+                                  if (date < startDate) return true;
+                                  // Block dates that result in invalid duration
+                                  const duration = differenceInWeeks(date, startDate) + 1;
+                                  return duration < MIN_PROGRAM_DURATION || duration > MAX_PROGRAM_DURATION;
+                                }}
+                                modifiers={{
+                                  recommended: startDate ? [addDays(addWeeks(startDate, DEFAULT_PROGRAM_DURATION), -1)] : [],
+                                  phaseEnd: selectedAthlete?.phaseEndDate ? [new Date(selectedAthlete.phaseEndDate)] : [],
+                                }}
+                                modifiersClassNames={{
+                                  recommended: "bg-green-500/20 border border-green-500",
+                                  phaseEnd: "border-2 border-red-500",
+                                }}
+                                initialFocus
+                                data-testid="calendar-end-date"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                {/* Programming History */}
+                {selectedAthleteId && athletePrograms.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-[#f7f6f2] font-['Montserrat']">Programming History</h4>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {athletePrograms.map((program) => {
+                        const programStart = new Date(program.startDate);
+                        const programEnd = new Date(program.endDate);
+                        const today = new Date();
+                        const isPast = programEnd < today;
+                        const isCurrent = programStart <= today && programEnd >= today;
+                        const overlapsWithNew = startDate && (
+                          (programStart <= startDate && programEnd >= startDate) ||
+                          (programStart <= endDate && programEnd >= endDate) ||
+                          (programStart >= startDate && programEnd <= endDate)
+                        );
+                        
+                        return (
+                          <div
+                            key={program.id}
+                            className={cn(
+                              "border rounded-lg p-3 text-sm",
+                              overlapsWithNew ? "border-yellow-500 bg-yellow-500/10" : "border-[#292928] bg-[#171716]",
+                              isCurrent && "border-blue-500 bg-blue-500/10"
+                            )}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-semibold text-[#f7f6f2] font-['Montserrat']">{program.programId}</span>
+                              <Badge variant={isPast ? "tertiary" : "default"} className="text-xs">
+                                {isPast ? "Past" : isCurrent ? "Current" : "Upcoming"}
+                              </Badge>
+                            </div>
+                            <div className="text-[#979795] font-['Montserrat'] text-xs">
+                              {format(programStart, "MMM d, yyyy")} - {format(programEnd, "MMM d, yyyy")}
+                            </div>
+                            {overlapsWithNew && (
+                              <div className="mt-2 text-xs text-yellow-500 font-['Montserrat'] flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Overlaps with proposed program
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Validation Messages */}
+                {startDate && endDate && selectedAthlete?.phaseEndDate && (() => {
+                  const phaseEnd = new Date(selectedAthlete.phaseEndDate);
+                  if (endDate > phaseEnd) {
+                    return (
+                      <Alert className="border-yellow-500 bg-yellow-500/10 mt-4">
+                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                        <AlertDescription className="font-['Montserrat']">
+                          Warning: Program extends beyond Phase end date ({format(phaseEnd, "MMM d, yyyy")}).
+                        </AlertDescription>
+                      </Alert>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {selectedAthleteId && activePrograms.length > 0 && startDate && (() => {
+                  const latestEnd = activePrograms.reduce((latest, program) => {
+                    const programEnd = new Date(program.endDate);
+                    return programEnd > latest ? programEnd : latest;
+                  }, new Date(0));
+                  return (
+                    <Alert className="border-blue-500 bg-blue-500/10 mt-4">
+                      <AlertTriangle className="h-4 w-4 text-blue-500" />
+                      <AlertDescription className="font-['Montserrat']">
+                        Notice: Existing programming ends {format(latestEnd, "MMM d, yyyy")}.
+                      </AlertDescription>
+                    </Alert>
+                  );
+                })()}
+
+                {/* Override Confirmation Modal */}
+                <AlertDialog open={overrideConfirmation.show} onOpenChange={(open) => {
+                  if (!open) {
+                    setOverrideConfirmation({ show: false });
+                  }
+                }}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="font-['Montserrat']">Override Existing Programming?</AlertDialogTitle>
+                      <AlertDialogDescription className="font-['Montserrat']">
+                        This will replace existing programming from {overrideConfirmation.startDate && format(overrideConfirmation.startDate, "MMM d, yyyy")} to {overrideConfirmation.endDate && format(overrideConfirmation.endDate, "MMM d, yyyy")}.
+                        <br /><br />
+                        Program ID: {overrideConfirmation.programId}
+                        <br /><br />
+                        Continue?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setOverrideConfirmation({ show: false })}>
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction onClick={() => {
+                        if (overrideConfirmation.onConfirm) {
+                          overrideConfirmation.onConfirm();
+                        }
+                      }}>
+                        Continue
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                {/* Issue Resolution Modal */}
+                <AlertDialog open={issueModalOpen} onOpenChange={setIssueModalOpen}>
+                  <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="font-['Montserrat']">
+                        {issues.blockingIssues.length > 0 
+                          ? "Cannot Continue - Issues Found" 
+                          : "Review Issues - Warnings Found"}
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="font-['Montserrat']">
+                        {issues.blockingIssues.length > 0
+                          ? `Please resolve the following ${issues.blockingIssues.length} blocking issue${issues.blockingIssues.length > 1 ? 's' : ''} before proceeding.`
+                          : `Please review the following ${issues.warnings.length} warning${issues.warnings.length > 1 ? 's' : ''}.`}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    
+                    <div className="space-y-4 mt-4">
+                      {/* Blocking Issues */}
+                      {issues.blockingIssues.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-red-400 mb-2 flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4" />
+                            Blocking Issues ({issues.blockingIssues.length})
+                          </h4>
+                          <div className="space-y-3">
+                            {issues.blockingIssues.map((issue, idx) => (
+                              <div key={idx} className="border border-red-500/30 rounded-lg p-3 bg-red-500/10">
+                                <div className="flex items-start gap-3">
+                                  <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-xs font-semibold text-red-400 uppercase">{issue.category}</span>
+                                      <span className="text-xs text-muted-foreground">•</span>
+                                      <span className="text-xs text-muted-foreground">Affected: {issue.affected}</span>
+                                    </div>
+                                    <p className="text-sm text-foreground mb-2">{issue.description}</p>
+                                    {issue.action && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-xs"
+                                        onClick={() => {
+                                          // Handle action based on issue type
+                                          if (issue.category === 'Date Validation' && issue.action === 'Adjust to Monday') {
+                                            if (startDate) {
+                                              const dayOfWeek = startDate.getDay();
+                                              if (dayOfWeek !== 1) {
+                                                const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
+                                                const nextMonday = addDays(startDate, daysUntilMonday);
+                                                form.setValue("startDate", nextMonday);
+                                              }
+                                            }
+                                          }
+                                          // Add more action handlers as needed
+                                        }}
+                                      >
+                                        {issue.action}
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Warnings */}
+                      {issues.warnings.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-yellow-400 mb-2 flex items-center gap-2">
+                            <Info className="h-4 w-4" />
+                            Warnings ({issues.warnings.length})
+                          </h4>
+                          <div className="space-y-3">
+                            {issues.warnings.map((warning, idx) => (
+                              <div key={idx} className="border border-yellow-500/30 rounded-lg p-3 bg-yellow-500/10">
+                                <div className="flex items-start gap-3">
+                                  <Info className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-xs font-semibold text-yellow-400 uppercase">{warning.category}</span>
+                                      <span className="text-xs text-muted-foreground">•</span>
+                                      <span className="text-xs text-muted-foreground">Affected: {warning.affected}</span>
+                                    </div>
+                                    <p className="text-sm text-foreground mb-2">{warning.description}</p>
+                                    {warning.action && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
+                                        {warning.action}
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <AlertDialogFooter className="mt-6">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="text-xs text-muted-foreground">
+                          {issues.blockingIssues.length} Blocking Issue{issues.blockingIssues.length !== 1 ? 's' : ''}, {issues.warnings.length} Warning{issues.warnings.length !== 1 ? 's' : ''}
+                        </div>
+                        <div className="flex gap-2">
+                          <AlertDialogCancel onClick={() => setIssueModalOpen(false)}>
+                            Close
+                          </AlertDialogCancel>
+                          {issues.blockingIssues.length === 0 && (
+                            <AlertDialogAction onClick={() => {
+                              setIssueModalOpen(false);
+                              setLocation("/");
+                            }}>
+                              Continue Anyway
+                            </AlertDialogAction>
+                          )}
+                        </div>
+                      </div>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
 
               {blocks.length > 0 && (
                 <div className="space-y-4">
@@ -1451,65 +2303,167 @@ export default function AddProgram() {
                           <TableHead>Start Date</TableHead>
                           <TableHead>End Date</TableHead>
                           <TableHead>Duration (weeks)</TableHead>
-                          <TableHead>Phase</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {blocks.map((block, index) => (
-                          <TableRow key={index} data-testid={`block-row-${index + 1}`}>
+                        {blocks.map((block, index) => {
+                          const blockEndDate = blockEndDates.get(index) || block.endDate;
+                          const blockStartDate = blockStartDates.get(index) || block.startDate;
+                          const endDayOfWeek = blockEndDate.getDay();
+                          const isSunday = endDayOfWeek === 0;
+                          const isMidWeek = endDayOfWeek !== 0 && endDayOfWeek !== 1;
+                          const isRecentlyChanged = recentlyChangedBlocks.has(index);
+                          const isSelected = editingBlockIndex === index;
+                          
+                          // Validation: check if block is invalid
+                          const duration = differenceInWeeks(blockEndDate, blockStartDate);
+                          const isInvalid = duration < 1 || blockEndDate < blockStartDate;
+                          
+                          return (
+                          <TableRow 
+                            key={index} 
+                            data-testid={`block-row-${index + 1}`}
+                            className={cn(
+                              "transition-all",
+                              isSelected && "bg-blue-500/10 border-l-2 border-blue-500",
+                              isRecentlyChanged && "bg-yellow-500/10 border-l-2 border-yellow-500",
+                              isInvalid && "bg-red-500/10 border-l-2 border-red-500",
+                              "hover:bg-muted/50"
+                            )}
+                          >
                             <TableCell className="font-medium" data-testid={`block-name-${index + 1}`}>
                               {block.name}
                             </TableCell>
                             <TableCell data-testid={`block-start-date-${index + 1}`}>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    className="h-8 text-xs font-normal border-0 shadow-none focus:ring-0 focus:ring-offset-0 justify-start"
-                                  >
-                                    {format(blockStartDates.get(index) || block.startDate, "MM/dd/yy")}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar
-                                    mode="single"
-                                    selected={blockStartDates.get(index) || block.startDate}
-                                    onSelect={(date) => {
-                                      if (date) {
-                                        setBlockStartDates(prev => {
-                                          const newMap = new Map(prev);
-                                          newMap.set(index, date);
-                                          return newMap;
-                                        });
-                                      }
-                                    }}
-                                    initialFocus
-                                  />
-                                </PopoverContent>
-                              </Popover>
+                              <div className="flex h-8 w-full items-center justify-start rounded-lg border border-[#292928] bg-[#292928] px-3 py-2 text-xs text-[#f7f6f2] font-['Montserrat']">
+                                {format(blockStartDate, "EEE, MM/dd/yy")}
+                              </div>
                             </TableCell>
                             <TableCell data-testid={`block-end-date-${index + 1}`}>
-                              <Popover>
+                              <Popover onOpenChange={(open) => open && setEditingBlockIndex(index)}>
                                 <PopoverTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    className="h-8 text-xs font-normal border-0 shadow-none focus:ring-0 focus:ring-offset-0 justify-start"
+                                  <button
+                                    type="button"
+                                    className={cn(
+                                      "flex h-8 w-full items-center justify-start rounded-lg border px-3 py-2 text-xs font-['Montserrat'] ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+                                      isSunday && "border-green-500 bg-green-500/20 text-green-400",
+                                      isMidWeek && "border-yellow-500 bg-yellow-500/20 text-yellow-400",
+                                      !isSunday && !isMidWeek && "border-[#292928] bg-[#292928] text-[#f7f6f2]",
+                                      isInvalid && "border-red-500 bg-red-500/20 text-red-400"
+                                    )}
                                   >
-                                    {format(blockEndDates.get(index) || block.endDate, "MM/dd/yy")}
-                                  </Button>
+                                    {format(blockEndDate, "EEE, MM/dd/yy")}
+                                  </button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
                                   <Calendar
                                     mode="single"
                                     selected={blockEndDates.get(index) || block.endDate}
                                     onSelect={(date) => {
-                                      if (date) {
-                                        setBlockEndDates(prev => {
-                                          const newMap = new Map(prev);
-                                          newMap.set(index, date);
-                                          return newMap;
-                                        });
+                                      if (!date) return;
+                                      
+                                      const currentStartDate = blockStartDates.get(index) || block.startDate;
+                                      
+                                      // End date can't be less than start date
+                                      if (date < currentStartDate) {
+                                        return;
                                       }
+                                      
+                                      // End date can't be less than previous block's start date
+                                      if (index > 0) {
+                                        const prevBlockStartDate = blockStartDates.get(index - 1) || blocks[index - 1].startDate;
+                                        if (date < prevBlockStartDate) {
+                                          return;
+                                        }
+                                      }
+                                      
+                                      // End date can't be more than next block's start date
+                                      if (index < blocks.length - 1) {
+                                        const nextBlockStartDate = blockStartDates.get(index + 1) || blocks[index + 1].startDate;
+                                        if (date >= nextBlockStartDate) {
+                                          return;
+                                        }
+                                      }
+                                      
+                                      setBlockEndDates(prev => {
+                                        const newMap = new Map(prev);
+                                        newMap.set(index, date);
+                                        
+                                        // Mark this block as recently changed
+                                        setRecentlyChangedBlocks(prev => new Set(prev).add(index));
+                                        setTimeout(() => {
+                                          setRecentlyChangedBlocks(prev => {
+                                            const newSet = new Set(prev);
+                                            newSet.delete(index);
+                                            return newSet;
+                                          });
+                                        }, 2000);
+                                        
+                                        // Cascade: Update next block's start date to next Monday after this block ends
+                                        if (index < blocks.length - 1) {
+                                          const dayAfterBlockEnd = addDays(date, 1);
+                                          const nextDayOfWeek = dayAfterBlockEnd.getDay();
+                                          let nextBlockStart: Date;
+                                          
+                                          if (nextDayOfWeek === 1) {
+                                            // Already Monday
+                                            nextBlockStart = dayAfterBlockEnd;
+                                          } else {
+                                            // Find next Monday
+                                            const daysUntilMonday = nextDayOfWeek === 0 ? 1 : (8 - nextDayOfWeek);
+                                            nextBlockStart = addDays(dayAfterBlockEnd, daysUntilMonday);
+                                          }
+                                          
+                                          // Update next block's start date
+                                          setBlockStartDates(prevStarts => {
+                                            const newStartMap = new Map(prevStarts);
+                                            newStartMap.set(index + 1, nextBlockStart);
+                                            return newStartMap;
+                                          });
+                                          
+                                          // Mark next block as recently changed
+                                          setRecentlyChangedBlocks(prev => new Set(prev).add(index + 1));
+                                          setTimeout(() => {
+                                            setRecentlyChangedBlocks(prev => {
+                                              const newSet = new Set(prev);
+                                              newSet.delete(index + 1);
+                                              return newSet;
+                                            });
+                                          }, 2000);
+                                          
+                                          // If next block's end date is now invalid (before start), adjust it
+                                          const nextBlockEnd = blockEndDates.get(index + 1) || blocks[index + 1].endDate;
+                                          if (nextBlockEnd < nextBlockStart) {
+                                            // Extend next block to maintain minimum 1 week, or use program end date
+                                            const minEnd = addDays(nextBlockStart, 6); // 1 week minimum
+                                            const programEnd = endDate;
+                                            const adjustedEnd = minEnd > programEnd ? programEnd : minEnd;
+                                            newMap.set(index + 1, adjustedEnd);
+                                          }
+                                        }
+                                        
+                                        return newMap;
+                                      });
+                                    }}
+                                    disabled={(date) => {
+                                      const currentStartDate = blockStartDates.get(index) || block.startDate;
+                                      
+                                      // Disable dates before start date
+                                      if (date < currentStartDate) return true;
+                                      
+                                      // Disable dates before previous block's start date
+                                      if (index > 0) {
+                                        const prevBlockStartDate = blockStartDates.get(index - 1) || blocks[index - 1].startDate;
+                                        if (date < prevBlockStartDate) return true;
+                                      }
+                                      
+                                      // Disable dates on or after next block's start date
+                                      if (index < blocks.length - 1) {
+                                        const nextBlockStartDate = blockStartDates.get(index + 1) || blocks[index + 1].startDate;
+                                        if (date >= nextBlockStartDate) return true;
+                                      }
+                                      
+                                      return false;
                                     }}
                                     initialFocus
                                   />
@@ -1517,46 +2471,78 @@ export default function AddProgram() {
                               </Popover>
                             </TableCell>
                             <TableCell data-testid={`block-duration-${index + 1}`}>
-                              <div className="text-xs text-muted-foreground">
-                                {differenceInWeeks(blockEndDates.get(index) || block.endDate, blockStartDates.get(index) || block.startDate)} weeks
+                              <div className={cn(
+                                "text-xs",
+                                isInvalid && "text-red-400",
+                                !isInvalid && "text-muted-foreground"
+                              )}>
+                                {duration} weeks
                               </div>
                             </TableCell>
-                            <TableCell data-testid={`block-phase-${index + 1}`}>
-                              <Select 
-                                value={blockPhases.get(index) || "pre-season"}
-                                onValueChange={(value) => {
-                                  setBlockPhases(prev => {
-                                    const newMap = new Map(prev);
-                                    newMap.set(index, value);
-                                    return newMap;
-                                  });
-                                }}
-                              >
-                                <SelectTrigger className="h-8 text-xs font-normal border-0 shadow-none focus:ring-0 focus:ring-offset-0">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="pre-season">Pre-Season</SelectItem>
-                                  <SelectItem value="in-season">In-Season</SelectItem>
-                                  <SelectItem value="off-season">Off-Season</SelectItem>
-                                  <SelectItem value="playoff">Playoff</SelectItem>
-                                  <SelectItem value="immediate-post-season">Immediate Post-Season</SelectItem>
-                                  <SelectItem value="return-to-training">Return-to-Training</SelectItem>
-                                  <SelectItem value="transition-phase">Transition Phase</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
                           </TableRow>
-                        ))}
+                          );
+                        })}
                       </TableBody>
                     </Table>
-              </div>
-                            </div>
-                          )}
+                  </div>
+                  
+                  {/* Validation Messages */}
+                  {(() => {
+                    const validationErrors: string[] = [];
+                    const validationWarnings: string[] = [];
+                    
+                    blocks.forEach((block, index) => {
+                      const blockEndDate = blockEndDates.get(index) || block.endDate;
+                      const blockStartDate = blockStartDates.get(index) || block.startDate;
+                      const duration = differenceInWeeks(blockEndDate, blockStartDate);
+                      
+                      if (duration < 1) {
+                        validationErrors.push(`Block ${index + 1} duration is less than 1 week`);
+                      }
+                      
+                      if (blockEndDate < blockStartDate) {
+                        validationErrors.push(`Block ${index + 1} end date is before start date`);
+                      }
+                      
+                      const endDayOfWeek = blockEndDate.getDay();
+                      if (endDayOfWeek !== 0 && endDayOfWeek !== 1 && index < blocks.length - 1) {
+                        const daysUntilMonday = endDayOfWeek === 0 ? 1 : (8 - endDayOfWeek);
+                        const nextMonday = addDays(blockEndDate, daysUntilMonday);
+                        validationWarnings.push(`Block ${index + 1} ends mid-week. Next block will start on ${format(nextMonday, "EEE, MMM d")}`);
+                      }
+                      
+                      if (duration < 4 && duration >= 1) {
+                        validationWarnings.push(`Block ${index + 1} is shorter than recommended 4 weeks`);
+                      }
+                    });
+                    
+                    if (validationErrors.length === 0 && validationWarnings.length === 0) {
+                      return null;
+                    }
+                    
+                    return (
+                      <div className="space-y-2 mt-4">
+                        {validationErrors.map((error, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs text-red-400">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span>{error}</span>
+                          </div>
+                        ))}
+                        {validationWarnings.map((warning, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs text-yellow-400">
+                            <Info className="h-4 w-4" />
+                            <span>{warning}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
+              )}
+              </div>
 
-                {/* Right: Monthly Calendar Visualization */}
-                <div className="lg:sticky lg:top-16">
+                {/* Right: Monthly Calendar Visualization (60% - 3 columns) */}
+                <div className="lg:col-span-3 lg:sticky lg:top-16">
                   <div className="rounded-md border p-3">
                     <div className="flex items-center justify-between mb-2">
                       <Button
@@ -1599,36 +2585,157 @@ export default function AddProgram() {
                           cursor = addDays(cursor, 1);
                         }
 
-                        const blockColors = [
-                          "bg-emerald-500",
-                          "bg-blue-500",
-                          "bg-amber-500",
-                          "bg-fuchsia-500",
-                          "bg-cyan-500",
-                          "bg-rose-500",
-                          "bg-lime-500",
-                        ];
+                        // All blocks use the same color
+                        const blockColor = "bg-blue-500";
 
                         const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
+                        // Get key dates for the calendar
+                        const getKeyDates = () => {
+                          const currentYear = new Date().getFullYear();
+                          const eventTypes = ["Game", "Assessment", "Training"] as const;
+                          const eventLabels: Record<string, string[]> = {
+                            Game: ["Game Day", "Championship Game", "Regular Season Game", "Playoff Game"],
+                            Assessment: ["Performance Assessment", "Fitness Test", "Medical Assessment"],
+                            Training: ["Training Camp", "Intensive Training", "Recovery Session"],
+                          };
+
+                          const generateRandomDate = (month: number, year: number) => {
+                            const daysInMonth = new Date(year, month + 1, 0).getDate();
+                            const day = Math.floor(Math.random() * daysInMonth) + 1;
+                            return new Date(year, month, day);
+                          };
+
+                          const mockEvents: Array<{ date: Date; type: string; label: string }> = [];
+                          
+                          // November events (month 10)
+                          for (let i = 0; i < 4; i++) {
+                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+                            const labels = eventLabels[type];
+                            mockEvents.push({
+                              date: generateRandomDate(10, currentYear),
+                              type,
+                              label: labels[Math.floor(Math.random() * labels.length)],
+                            });
+                          }
+
+                          // December events (month 11)
+                          for (let i = 0; i < 5; i++) {
+                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+                            const labels = eventLabels[type];
+                            mockEvents.push({
+                              date: generateRandomDate(11, currentYear),
+                              type,
+                              label: labels[Math.floor(Math.random() * labels.length)],
+                            });
+                          }
+
+                          // January events (month 0)
+                          for (let i = 0; i < 4; i++) {
+                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+                            const labels = eventLabels[type];
+                            mockEvents.push({
+                              date: generateRandomDate(0, currentYear),
+                              type,
+                              label: labels[Math.floor(Math.random() * labels.length)],
+                            });
+                          }
+
+                          // Remove duplicates
+                          return Array.from(
+                            new Map(mockEvents.map(event => [event.date.getTime(), event])).values()
+                          );
+                        };
+
+                        // Only get key dates if athlete is selected
+                        const keyDates = selectedAthleteId ? getKeyDates() : [];
+
                         return days.map((day) => {
                           const inMonth = day.getMonth() === calendarMonth.getMonth();
+                          const dayOfWeek = day.getDay();
+                          const isMonday = dayOfWeek === 1;
+                          
+                          // Check if day is in program duration (for overlay)
+                          const isInProgramDuration = startDate && endDate && 
+                            isWithinInterval(day, { start: startDate, end: endDate });
+                          const isProgramStart = startDate && isSameDay(day, startDate);
+                          
+                          // Check for existing active programming
+                          const existingProgram = activePrograms.find(p => {
+                            const progStart = new Date(p.startDate);
+                            const progEnd = new Date(p.endDate);
+                            return isWithinInterval(day, { start: progStart, end: progEnd });
+                          });
+                          
+                          // Check for phase boundaries (if phase end date exists)
+                          const isPhaseBoundary = selectedAthlete?.phaseEndDate && 
+                            isSameDay(day, new Date(selectedAthlete.phaseEndDate));
+                          
                           // For each day, find blocks that include this day
                           const dayBlocks = blocks.filter((b) => isWithinInterval(day, { start: b.startDate, end: b.endDate }));
+                          
+                          // Check if this day has a key date (only if athlete is selected)
+                          const dayKeyDate = selectedAthleteId ? keyDates.find(kd => {
+                            const kdDate = new Date(kd.date);
+                            kdDate.setHours(0, 0, 0, 0);
+                            const dayDate = new Date(day);
+                            dayDate.setHours(0, 0, 0, 0);
+                            return kdDate.getTime() === dayDate.getTime();
+                          }) : null;
+
                           return (
                             <div
                               key={day.toISOString()}
                               className={cn(
-                                "min-h-[96px] rounded-md border p-1 flex flex-col",
-                                inMonth ? "bg-background" : "bg-muted/30"
+                                "min-h-[96px] rounded-md border p-1 flex flex-col relative",
+                                inMonth ? "bg-background" : "bg-muted/30",
+                                isPhaseBoundary && "border-l-2 border-l-orange-500 border-dashed"
                               )}
                             >
-                              <div className="text-[11px] text-right mb-1 text-muted-foreground">
+                              {/* Program Duration Overlay */}
+                              {isInProgramDuration && (
+                                <div className="absolute inset-0 bg-blue-500/20 pointer-events-none rounded-md" />
+                              )}
+                              
+                              {/* Existing Programming Background */}
+                              {existingProgram && (
+                                <div 
+                                  className="absolute inset-0 opacity-30 pointer-events-none rounded-md"
+                                  style={{
+                                    backgroundImage: 'repeating-linear-gradient(45deg, #808080, #808080 10px, transparent 10px, transparent 20px)'
+                                  }}
+                                />
+                              )}
+                              
+                              <div className="text-[11px] text-right mb-1 text-muted-foreground flex items-center justify-end gap-1 relative z-10">
                                 {format(day, "d")}
+                                {dayKeyDate && (
+                                  <Star className={cn(
+                                    "h-3 w-3",
+                                    dayKeyDate.type === "Game" && "text-blue-400 fill-blue-400",
+                                    dayKeyDate.type === "Assessment" && "text-amber-400 fill-amber-400",
+                                    dayKeyDate.type === "Training" && "text-green-400 fill-green-400",
+                                    (!dayKeyDate.type || (!["Game", "Assessment", "Training"].includes(dayKeyDate.type))) && "text-yellow-500 fill-yellow-500"
+                                  )} />
+                                )}
                               </div>
-                              <div className="flex-1 flex flex-col gap-1">
-                                {dayBlocks.slice(0, 3).map((b, idx) => {
-                                  const color = blockColors[(blocks.indexOf(b)) % blockColors.length];
+                              
+                              {/* Monday Indicator */}
+                              {isMonday && (
+                                <div className="absolute bottom-1 left-1 z-10">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full" title="Monday - Valid start date" />
+                                </div>
+                              )}
+                              
+                              {/* Program Duration Label */}
+                              {isProgramStart && startDate && (
+                                <div className="absolute top-1 left-1 z-10 bg-blue-500/80 text-white text-[9px] px-1.5 py-0.5 rounded">
+                                  New Program
+                                </div>
+                              )}
+                              
+                              <div className="flex-1 flex flex-col gap-1 relative z-10">
+                                {dayBlocks.slice(0, dayKeyDate ? 2 : 3).map((b, idx) => {
                                   const isStart = isSameDay(day, b.startDate);
                                   const isEnd = isSameDay(day, b.endDate);
                                   return (
@@ -1636,7 +2743,7 @@ export default function AddProgram() {
                                       key={`${b.name}-${idx}`}
                                       className={cn(
                                         "h-5 rounded-sm text-[10px] px-1 text-black flex items-center",
-                                        color
+                                        blockColor
                                       )}
                                       title={`${b.name}: ${format(b.startDate, 'MMM d')} - ${format(b.endDate, 'MMM d')}`}
                                     >
@@ -1646,9 +2753,35 @@ export default function AddProgram() {
                                     </div>
                                   );
                                 })}
-                                {dayBlocks.length > 3 && (
+                                {dayBlocks.length > (dayKeyDate ? 2 : 3) && (
                                   <div className="h-5 rounded-sm text-[10px] px-1 bg-muted text-muted-foreground flex items-center justify-center">
-                                    +{dayBlocks.length - 3} more
+                                    +{dayBlocks.length - (dayKeyDate ? 2 : 3)} more
+                                  </div>
+                                )}
+                                {dayKeyDate && (
+                                  <div className={cn(
+                                    "h-5 rounded-sm text-[10px] px-1 border flex items-center gap-1",
+                                    dayKeyDate.type === "Game" && "bg-blue-500/20 text-blue-400 border-blue-500/30",
+                                    dayKeyDate.type === "Assessment" && "bg-amber-500/20 text-amber-400 border-amber-500/30",
+                                    dayKeyDate.type === "Training" && "bg-green-500/20 text-green-400 border-green-500/30"
+                                  )}>
+                                    <Star className={cn(
+                                      "h-3 w-3 flex-shrink-0",
+                                      dayKeyDate.type === "Game" && "text-blue-400 fill-blue-400",
+                                      dayKeyDate.type === "Assessment" && "text-amber-400 fill-amber-400",
+                                      dayKeyDate.type === "Training" && "text-green-400 fill-green-400"
+                                    )} />
+                                    <span className="truncate">{dayKeyDate.label}</span>
+                                  </div>
+                                )}
+                                {existingProgram && dayBlocks.length === 0 && (
+                                  <div className="h-5 rounded-sm text-[10px] px-1 bg-gray-500/30 text-gray-400 flex items-center gap-1">
+                                    <span className="truncate">{existingProgram.programId}</span>
+                                  </div>
+                                )}
+                                {isPhaseBoundary && (
+                                  <div className="h-5 rounded-sm text-[10px] px-1 bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center gap-1">
+                                    <span className="truncate">Phase Boundary</span>
                                   </div>
                                 )}
                               </div>
@@ -1660,18 +2793,143 @@ export default function AddProgram() {
 
                     {/* Legend */}
                     {blocks.length > 0 && (
-                      <div className="mt-3 grid grid-cols-2 gap-2">
-                        {blocks.slice(0, 8).map((b, i) => (
-                          <div key={b.name + i} className="flex items-center gap-2">
-                            <span className={cn("h-3 w-3 rounded-sm inline-block",
-                              ["bg-emerald-500","bg-blue-500","bg-amber-500","bg-fuchsia-500","bg-cyan-500","bg-rose-500","bg-lime-500"][i % 7]
-                            )} />
-                            <span className="text-xs text-muted-foreground truncate">{b.name}</span>
-                          </div>
-                        ))}
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="h-3 w-3 rounded-sm inline-block bg-blue-500" />
+                          <span className="text-xs text-muted-foreground">Blocks</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                          <span className="text-xs text-muted-foreground">Key Dates</span>
+                        </div>
                       </div>
                     )}
                   </div>
+
+                  {/* Key Dates Panel - Only show when athlete is selected */}
+                  {selectedAthleteId && (
+                    <div className="mt-4 rounded-md border p-3">
+                      <h3 className="text-sm font-medium mb-3">Key Dates</h3>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {(() => {
+                          // Generate mock athlete events randomly across November, December, and January
+                          const currentYear = new Date().getFullYear();
+                          const eventTypes = ["Game", "Assessment", "Training"] as const;
+                          const eventLabels: Record<string, string[]> = {
+                            Game: ["Game Day", "Championship Game", "Regular Season Game", "Playoff Game"],
+                            Assessment: ["Performance Assessment", "Fitness Test", "Medical Assessment"],
+                            Training: ["Training Camp", "Intensive Training", "Recovery Session"],
+                          };
+
+                          // Generate random dates across November (10), December (11), and January (0)
+                          const generateRandomDate = (month: number, year: number) => {
+                            const daysInMonth = new Date(year, month + 1, 0).getDate();
+                            const day = Math.floor(Math.random() * daysInMonth) + 1;
+                            return new Date(year, month, day);
+                          };
+
+                          const mockEvents: Array<{ date: Date; type: string; label: string }> = [];
+                          
+                          // November events (month 10)
+                          for (let i = 0; i < 4; i++) {
+                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+                            const labels = eventLabels[type];
+                            mockEvents.push({
+                              date: generateRandomDate(10, currentYear),
+                              type,
+                              label: labels[Math.floor(Math.random() * labels.length)],
+                            });
+                          }
+
+                          // December events (month 11)
+                          for (let i = 0; i < 5; i++) {
+                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+                            const labels = eventLabels[type];
+                            mockEvents.push({
+                              date: generateRandomDate(11, currentYear),
+                              type,
+                              label: labels[Math.floor(Math.random() * labels.length)],
+                            });
+                          }
+
+                          // January events (month 0)
+                          for (let i = 0; i < 4; i++) {
+                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+                            const labels = eventLabels[type];
+                            mockEvents.push({
+                              date: generateRandomDate(0, currentYear),
+                              type,
+                              label: labels[Math.floor(Math.random() * labels.length)],
+                            });
+                          }
+
+                          // Remove duplicates and filter events that fall within program date range if available
+                          const uniqueEvents = Array.from(
+                            new Map(mockEvents.map(event => [event.date.getTime(), event])).values()
+                          );
+
+                          const filteredEvents = startDate && endDate
+                            ? uniqueEvents.filter(event => {
+                                const eventDate = new Date(event.date);
+                                eventDate.setHours(0, 0, 0, 0);
+                                const start = new Date(startDate);
+                                start.setHours(0, 0, 0, 0);
+                                const end = new Date(endDate);
+                                end.setHours(0, 0, 0, 0);
+                                return eventDate >= start && eventDate <= end;
+                              })
+                            : uniqueEvents;
+
+                          // Sort by date
+                          const sortedEvents = filteredEvents.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+                          if (sortedEvents.length === 0) {
+                            return (
+                              <p className="text-xs text-muted-foreground text-center py-4">
+                                No key dates in the selected date range
+                              </p>
+                            );
+                          }
+
+                          return sortedEvents.map((event, index) => {
+                            const typeColors: Record<string, string> = {
+                              Game: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+                              Assessment: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+                              Training: "bg-green-500/20 text-green-400 border-green-500/30",
+                            };
+
+                            return (
+                              <div
+                                key={`${event.date.getTime()}-${index}`}
+                                className="flex items-center gap-2 p-2 rounded-md border bg-background hover:bg-muted/50 transition-colors"
+                              >
+                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs font-medium text-foreground">
+                                      {format(event.date, "MMM d, yyyy")}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-xs px-2 py-0.5",
+                                        typeColors[event.type] || "bg-gray-500/20 text-gray-400 border-gray-500/30"
+                                      )}
+                                    >
+                                      {event.type}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {event.label}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -396,7 +396,7 @@ export default function SessionView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d0d0c]">
+    <div className="min-h-screen bg-surface-base">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-[#0d0d0c] pt-3">
         {/* Navigation Bar */}

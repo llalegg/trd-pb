@@ -167,7 +167,7 @@ export default function WeekPage() {
 
   if (!weekData) {
     return (
-      <div className="min-h-screen bg-[#0d0d0c] flex items-center justify-center">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center">
         <div className="bg-[#171716] rounded-xl p-6 text-center">
           <h2 className="text-lg font-semibold mb-2 text-[#f7f6f2] font-['Montserrat']">Week not found</h2>
           <p className="text-[#979795] mb-4 font-['Montserrat'] font-medium">This week is not available yet.</p>
@@ -229,7 +229,7 @@ export default function WeekPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d0d0c] pb-20">
+    <div className="min-h-screen bg-surface-base pb-20">
       {/* Header (same styling as session-view) */}
       <div className="sticky top-0 z-50 bg-[#0d0d0c] pt-12 pb-4">
         <div className="flex items-center justify-between px-4 mb-4">

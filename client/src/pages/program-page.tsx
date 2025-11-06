@@ -85,7 +85,7 @@ export default function ProgramPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">Loading program...</p>
         </div>
@@ -95,7 +95,7 @@ export default function ProgramPage() {
 
   if (!programData) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">Program not found</p>
           <Button onClick={() => setLocation("/programs")} className="mt-4">
@@ -107,7 +107,7 @@ export default function ProgramPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0d0d0c]">
+    <div className="min-h-screen bg-surface-base">
       {/* Compact Header */}
       <div className="sticky top-0 z-50 border-b border-[#292928] bg-[#0d0d0c]">
         <div className="flex h-14 items-center justify-between px-5">
@@ -134,7 +134,7 @@ export default function ProgramPage() {
               <span className="text-sm text-[#979795]">•</span>
               <div className="flex gap-1">
                 {programData.routineTypes.map((type) => (
-                  <Badge key={type} variant="outline" className="text-xs capitalize bg-[#292928] border-[#292928] text-[#979795] font-['Montserrat']">
+                  <Badge key={type} variant="tertiary" className="text-xs capitalize font-['Montserrat']">
                     {type}
                   </Badge>
                 ))}

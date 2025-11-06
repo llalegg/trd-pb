@@ -15,6 +15,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { type Program } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +24,7 @@ type SortDirection = "asc" | "desc";
 
 export default function Programs() {
   const [, setLocation] = useLocation();
-  const [status, setStatus] = useState<"active" | "completed">("active");
+  const [status, setStatus] = useState<"current" | "past">("current");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("startDate");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -47,8 +48,8 @@ export default function Programs() {
       endDate.setHours(0, 0, 0, 0);
       const isActive = endDate >= today;
 
-      if (status === "active" && !isActive) return false;
-      if (status === "completed" && isActive) return false;
+      if (status === "current" && !isActive) return false;
+      if (status === "past" && isActive) return false;
 
       // Filter by search query
       if (searchQuery) {
@@ -190,8 +191,25 @@ export default function Programs() {
     nutrition: UtensilsCrossed,
   };
 
+  // Mock current phase for athletes (hardcoded)
+  const getCurrentPhase = (athleteId: string): string => {
+    const phaseMap: Record<string, string> = {
+      "1": "Pre-Season",
+      "2": "In-Season",
+      "3": "Off-Season",
+      "4": "Pre-Season",
+      "5": "In-Season",
+      "6": "Off-Season",
+      "7": "Pre-Season",
+      "8": "In-Season",
+      "9": "Off-Season",
+      "10": "Pre-Season",
+    };
+    return phaseMap[athleteId] || "Pre-Season";
+  };
+
   return (
-    <div className="min-h-screen bg-[#0d0d0c]">
+    <div className="min-h-screen bg-surface-base">
       <div className="max-w-7xl mx-auto">
         {/* Header - Figma Style */}
         <div className="flex items-center justify-between p-5 border-b border-[#292928]">
@@ -203,34 +221,34 @@ export default function Programs() {
             <ToggleGroup
               type="single"
               value={status}
-              onValueChange={(value) => value && setStatus(value as "active" | "completed")}
-              className="border border-[#292928] rounded-full p-0.5 h-7 bg-[#171716]"
+              onValueChange={(value) => value && setStatus(value as "current" | "past")}
+              variant="segmented"
             >
-              <ToggleGroupItem value="active" aria-label="Active programs" className="px-3 py-1 text-xs h-6 rounded-full text-[#979795] data-[state=on]:text-[#f7f6f2] data-[state=on]:bg-[#292928]">
-                Active
+              <ToggleGroupItem value="current" aria-label="Current programs">
+                Current
               </ToggleGroupItem>
-              <ToggleGroupItem value="completed" aria-label="Completed programs" className="px-3 py-1 text-xs h-6 rounded-full text-[#979795] data-[state=on]:text-[#f7f6f2] data-[state=on]:bg-[#292928]">
-                Completed
+              <ToggleGroupItem value="past" aria-label="Past programs">
+                Past
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
           <div className="flex items-center gap-3">
             {/* Search Field */}
-            <div className="bg-[#292928] flex items-center h-8 px-3 py-2 rounded-lg w-[337px]">
-              <Search className="h-4 w-4 text-[#979795] mr-2.5" />
-              <input
+            <div className="relative w-[337px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#979795] pointer-events-none" />
+              <Input
                 type="text"
                 placeholder="Search by program ID, athlete name"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-sm text-[#979795] font-['Montserrat'] placeholder:text-[#979795] border-none outline-none"
+                className="pl-9"
               />
             </div>
             {/* Filter Button */}
             <Button
               variant="outline"
               size="sm"
-              className="h-8 px-3 border-[#292928] bg-[#171716] text-[#f7f6f2] hover:bg-[#1a1a19] font-['Montserrat']"
+              className="h-8 px-3 rounded-full border-[#292928] bg-[#171716] text-[#f7f6f2] hover:bg-[#1a1a19] font-['Montserrat']"
               onClick={() => {
                 // TODO: Open filter modal
               }}
@@ -242,7 +260,7 @@ export default function Programs() {
             <Button
               onClick={() => setLocation("/add-program")}
               size="sm"
-              className="h-8 px-3 bg-[#e5e4e1] text-black hover:bg-[#d5d4d1] font-['Montserrat']"
+              className="h-8 px-3 rounded-full bg-[#e5e4e1] text-black hover:bg-[#d5d4d1] font-['Montserrat']"
             >
               <Plus className="h-4 w-4 mr-2" />
               <span className="text-xs font-semibold font-['Montserrat']">Add Program</span>
@@ -251,7 +269,7 @@ export default function Programs() {
         </div>
 
         {/* Content Area */}
-        <div className="p-5 bg-[#0d0d0c]">
+        <div className="p-5 bg-surface-base">
           {/* Table */}
           {isLoading ? (
             <div className="text-center py-12 text-[#979795] font-['Montserrat']">Loading programs...</div>
@@ -260,7 +278,7 @@ export default function Programs() {
               No {status} programs found
             </div>
           ) : (
-            <div className="border border-[#292928] rounded-lg overflow-x-auto w-full bg-[#0d0d0c]">
+            <div className="border border-[#292928] rounded-lg overflow-x-auto w-full bg-surface-base">
               <Table className="min-w-[800px] w-full">
                 <TableHeader>
                   <TableRow className="border-b border-[#292928] hover:bg-transparent">
@@ -268,6 +286,7 @@ export default function Programs() {
                     <TableHead className="text-xs font-['Montserrat'] text-[#979795]">Program ID</TableHead>
                     <SortableHeader field="startDate">Start</SortableHeader>
                     <SortableHeader field="endDate">End</SortableHeader>
+                    <TableHead className="text-xs font-['Montserrat'] text-[#979795]">Current Phase</TableHead>
                     <TableHead className="text-xs font-['Montserrat'] text-[#979795]">Routine Types</TableHead>
                     <TableHead className="w-[200px] text-xs font-['Montserrat'] text-[#979795]">Progress</TableHead>
                   </TableRow>
@@ -287,6 +306,7 @@ export default function Programs() {
                         <TableCell className="text-sm font-['Montserrat'] text-[#f7f6f2] py-2 whitespace-nowrap">{program.programId}</TableCell>
                         <TableCell className="py-2 whitespace-nowrap text-[#979795] font-['Montserrat']">{formatDate(program.startDate)}</TableCell>
                         <TableCell className="py-2 whitespace-nowrap text-[#979795] font-['Montserrat']">{formatDate(program.endDate)}</TableCell>
+                        <TableCell className="py-2 whitespace-nowrap text-[#979795] font-['Montserrat']">{getCurrentPhase(program.athleteId)}</TableCell>
                         <TableCell className="py-2 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             {program.routineTypes.map((type) => {
@@ -309,7 +329,7 @@ export default function Programs() {
                           </div>
                         </TableCell>
                         <TableCell className="py-2 whitespace-nowrap">
-                          {status === "active" ? (
+                          {status === "current" ? (
                             <div className="flex items-center gap-2">
                               <div className="flex-1 min-w-[60px]">
                                 <StackedProgressBar completed={progress.completed} total={progress.total} />
@@ -323,7 +343,7 @@ export default function Programs() {
                               <span className="text-xs text-[#979795] font-['Montserrat'] whitespace-nowrap">
                                 {progress.weeks} {progress.weeks === 1 ? 'week' : 'weeks'}
                               </span>
-                              <Badge variant="outline" className="text-xs bg-[#292928] border-[#292928] text-[#979795]">
+                              <Badge variant="tertiary" className="text-xs">
                                 {progress.total} days
                               </Badge>
                             </div>

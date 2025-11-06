@@ -794,7 +794,7 @@ export default function FocusView() {
   // Render superset view if in superset mode
   if (isSuperset && supersetData) {
     return (
-      <div className="min-h-screen bg-[#0d0d0c] flex flex-col relative">
+      <div className="min-h-screen bg-surface-base flex flex-col relative">
         {/* Video Section with Slider */}
         <div className="h-[377px] relative overflow-hidden">
           {/* Video Thumbnail Placeholder */}

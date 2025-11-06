@@ -6,7 +6,7 @@ import { useLocation } from "wouter";
 export default function MessagesPage() {
   const [, setLocation] = useLocation();
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-surface-base pb-20">
       <div className="sticky top-0 z-50 bg-background border-b border-border">
         <div className="flex items-center justify-between p-4">
           <Button variant="ghost" size="sm" onClick={() => setLocation("/home")} className="p-2">

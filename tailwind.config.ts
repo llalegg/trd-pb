@@ -81,6 +81,10 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
+        surface: {
+          base: "#0D0D0C",
+          raised: "#171716",
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)"],

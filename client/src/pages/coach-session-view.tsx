@@ -277,7 +277,7 @@ export default function CoachSessionView() {
 
   if (!selectedExercise) {
     return (
-      <div className="min-h-screen bg-[#0d0d0c] flex items-center justify-center">
+      <div className="min-h-screen bg-surface-base flex items-center justify-center">
         <p className="text-[#979795]">Loading...</p>
       </div>
     );
@@ -294,7 +294,7 @@ export default function CoachSessionView() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0d0d0c]">
+    <div className="min-h-screen bg-surface-base">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-[#0d0d0c] border-b border-[#292928] px-4 py-3">
@@ -461,18 +461,9 @@ export default function CoachSessionView() {
                     {enteredBy && (
                       <Badge 
                         variant={enteredBy === "coach" ? "default" : "secondary"}
-                        className={cn(
-                          "flex items-center gap-1 text-xs",
-                          enteredBy === "coach" 
-                            ? "bg-[#c4af6c] text-black" 
-                            : "bg-[#292928] text-[#979795]"
-                        )}
+                        icon={enteredBy === "coach" ? <Shield className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                        className="text-xs"
                       >
-                        {enteredBy === "coach" ? (
-                          <Shield className="h-3 w-3" />
-                        ) : (
-                          <User className="h-3 w-3" />
-                        )}
                         {enteredBy === "coach" ? "Coach" : "Athlete"}
                       </Badge>
                     )}

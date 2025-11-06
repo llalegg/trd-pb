@@ -304,7 +304,7 @@ export default function ExecutionView() {
   }, [timerRunning, timerSeconds]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-surface-base">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-background border-b border-border">
         <div className="flex items-center justify-between p-4">

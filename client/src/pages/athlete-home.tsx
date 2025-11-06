@@ -96,7 +96,7 @@ export default function AthleteView() {
   };
 
   return (
-    <div className="bg-[#0d0d0c] relative min-h-screen w-full">
+    <div className="bg-surface-base relative min-h-screen w-full">
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 h-[81px]">
