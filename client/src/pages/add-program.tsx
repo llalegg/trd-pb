@@ -1258,10 +1258,10 @@ export default function AddProgram() {
         <div className="flex h-16 items-center justify-between px-5">
           {/* Left side: Title and Step Tabs */}
             <div className="flex items-center gap-4">
-            <h1 className="text-sm font-medium text-foreground" data-testid="text-page-title">
+            <h1 className="text-xs font-medium text-foreground" data-testid="text-page-title">
               New program
             </h1>
-            <span className="text-sm font-medium text-muted-foreground" data-testid="text-program-id">
+            <span className="text-xs font-medium text-muted-foreground" data-testid="text-program-id">
               {programId}
             </span>
             
@@ -1271,7 +1271,7 @@ export default function AddProgram() {
                 type="button"
                 onClick={() => setCurrentStep(1)}
                 className={cn(
-                  "rounded-md px-4 py-2 text-sm font-medium transition-colors",
+                  "rounded-md px-4 py-2 text-xs font-medium transition-colors",
                   currentStep === 1
                     ? "bg-muted text-foreground"
                     : "text-foreground hover:bg-muted/50"
@@ -1285,7 +1285,7 @@ export default function AddProgram() {
                 onClick={() => isStep1Complete && setCurrentStep(2)}
                 disabled={!isStep1Complete}
                 className={cn(
-                  "rounded-md px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2",
+                  "rounded-md px-4 py-2 text-xs font-medium transition-colors flex items-center gap-2",
                   currentStep === 2
                     ? "bg-muted text-foreground"
                     : isStep1Complete
@@ -1295,14 +1295,14 @@ export default function AddProgram() {
                 data-testid="tab-step-2"
               >
                 {!isStep1Complete && <Lock className="h-3.5 w-3.5" />}
-                2. Builder
+                2. Configuration
               </button>
               <button
                 type="button"
                 onClick={() => isStep1Complete && setCurrentStep(3)}
                 disabled={!isStep1Complete}
                 className={cn(
-                  "rounded-md px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2",
+                  "rounded-md px-4 py-2 text-xs font-medium transition-colors flex items-center gap-2",
                   currentStep === 3
                     ? "bg-muted text-foreground"
                     : isStep1Complete
@@ -1368,99 +1368,51 @@ export default function AddProgram() {
           <div className="flex h-16 items-center justify-between px-5">
             {/* Left side: View Mode Tabs */}
             <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-foreground">View by</span>
+              <span className="text-xs font-medium text-foreground">View by</span>
               
               <ToggleGroup
                 type="single"
                 value={viewMode}
-                onValueChange={(value) => value && setViewMode(value as "blocks" | "weeks" | "days")}
+                onValueChange={(value) => value && setViewMode(value as "blocks" | "weeks")}
                 variant="segmented"
               >
-                <ToggleGroupItem value="blocks" aria-label="View by blocks" data-testid="view-blocks">
-                  Blocks
+                <ToggleGroupItem value="blocks" aria-label="View by block" data-testid="view-blocks">
+                  By Block
                 </ToggleGroupItem>
-                <ToggleGroupItem value="weeks" aria-label="View by weeks" data-testid="view-weeks">
-                  Weeks
-                </ToggleGroupItem>
-                <ToggleGroupItem value="days" aria-label="View by days" data-testid="view-days">
-                  Days
+                <ToggleGroupItem value="weeks" aria-label="View by week" data-testid="view-weeks">
+                  By Week
                 </ToggleGroupItem>
               </ToggleGroup>
-
-              {/* Days View Navigation */}
-              {viewMode === "days" && blocks.length > 0 && (
-                <div className="flex items-center gap-2">
-                  {/* Block Selector */}
-                  <Select
-                    value={selectedBlockIndex.toString()}
-                    onValueChange={(value) => {
-                      setSelectedBlockIndex(parseInt(value));
-                      setSelectedWeekIndex(0);
-                      setSelectedDayWeekIndex(0);
-                    }}
-                  >
-                      <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {blocks.map((block, index) => (
-                        <SelectItem key={index} value={index.toString()}>
-                          {block.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {/* Days view: Week navigation with arrows */}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-10 w-10 p-0"
-                      onClick={() => setSelectedDayWeekIndex(Math.max(0, selectedDayWeekIndex - 1))}
-                      disabled={selectedDayWeekIndex === 0}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    
-                    <div className="flex items-center justify-center w-[140px] h-10 rounded-md border bg-background px-3 text-sm font-medium">
-                      Week {selectedDayWeekIndex + 1}
-                    </div>
-                    
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-10 w-10 p-0"
-                      onClick={() => {
-                        const maxWeeks = blocks[selectedBlockIndex] 
-                          ? Math.ceil(
-                              differenceInWeeks(
-                                blocks[selectedBlockIndex].endDate,
-                                blocks[selectedBlockIndex].startDate
-                              ) + 1
-                            )
-                          : 0;
-                        setSelectedDayWeekIndex(Math.min(maxWeeks - 1, selectedDayWeekIndex + 1));
-                      }}
-                      disabled={
-                        blocks[selectedBlockIndex] &&
-                        selectedDayWeekIndex >= 
-                          Math.ceil(
-                            differenceInWeeks(
-                              blocks[selectedBlockIndex].endDate,
-                              blocks[selectedBlockIndex].startDate
-                            )
-                          )
-                      }
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
+
+            {/* Right side: Block Navigation Arrows */}
+            {viewMode === "blocks" && blocks.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setSelectedBlockIndex(Math.max(0, selectedBlockIndex - 1))}
+                  disabled={selectedBlockIndex === 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-xs text-muted-foreground min-w-[100px] text-center">
+                  Block {selectedBlockIndex + 1} of {blocks.length}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setSelectedBlockIndex(Math.min(blocks.length - 1, selectedBlockIndex + 1))}
+                  disabled={selectedBlockIndex >= blocks.length - 1}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1490,7 +1442,7 @@ export default function AddProgram() {
                               role="combobox"
                               aria-expanded={athleteComboboxOpen}
                               className={cn(
-                                "flex h-8 w-full items-center justify-between rounded-lg border border-[#292928] bg-transparent px-3 py-2 text-sm text-[#f7f6f2] font-['Montserrat'] ring-offset-background placeholder:text-[#979795] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-[#f7f6f2] disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+                                "flex h-8 w-full items-center justify-between rounded-lg border border-[#292928] bg-transparent px-3 py-2 text-xs text-[#f7f6f2] font-['Montserrat'] ring-offset-background placeholder:text-[#979795] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-[#f7f6f2] disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
                                 !selectedAthlete && "text-[#979795]"
                               )}
                               data-testid="button-athlete-select"
@@ -1559,7 +1511,7 @@ export default function AddProgram() {
                         <div>
                           <h3 className="font-semibold text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.name}</h3>
                           {selectedAthlete.location && (
-                            <p className="text-sm text-[#979795] font-['Montserrat']">{selectedAthlete.location}</p>
+                            <p className="text-xs text-[#979795] font-['Montserrat']">{selectedAthlete.location}</p>
                           )}
                         </div>
                       </div>
@@ -1567,7 +1519,7 @@ export default function AddProgram() {
 
                     {selectedAthlete.status && (
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-[#979795] font-['Montserrat']">Status:</span>
+                        <span className="text-xs text-[#979795] font-['Montserrat']">Status:</span>
                         {selectedAthlete.status === "cleared" ? (
                           <Badge variant="default" icon={<Check className="h-3 w-3" />}>
                             Cleared
@@ -1584,7 +1536,7 @@ export default function AddProgram() {
                       </div>
                     )}
                     
-                    <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="grid grid-cols-2 gap-3 text-xs">
                       {selectedAthlete.position && (
                         <div>
                           <span className="text-[#979795] font-['Montserrat']">Position:</span>
@@ -1643,8 +1595,8 @@ export default function AddProgram() {
 
                     {selectedAthlete.availability && (
                       <div className="pt-2 border-t border-[#292928]">
-                        <span className="text-sm text-[#979795] font-['Montserrat']">Availability:</span>
-                        <span className="ml-2 text-sm text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.availability}</span>
+                        <span className="text-xs text-[#979795] font-['Montserrat']">Availability:</span>
+                        <span className="ml-2 text-xs text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.availability}</span>
                       </div>
                     )}
                   </div>
@@ -1705,7 +1657,7 @@ export default function AddProgram() {
                                       )}
                                       data-testid={`build-type-card-${option.id}`}
                                     >
-                                      <span className="text-sm font-['Montserrat'] font-medium text-left">
+                                      <span className="text-xs font-['Montserrat'] font-medium text-left">
                                         {option.label}
                                       </span>
                                       <div className="flex items-center gap-2">
@@ -1761,7 +1713,7 @@ export default function AddProgram() {
                                 )}
                                 data-testid={`routine-card-${option.id}`}
                               >
-                                <span className="text-sm font-['Montserrat'] font-medium text-left">
+                                <span className="text-xs font-['Montserrat'] font-medium text-left">
                                   {option.label}
                                 </span>
                                 {isSelected && (
@@ -1790,7 +1742,7 @@ export default function AddProgram() {
                               <button
                                 type="button"
                                 className={cn(
-                                  "flex h-8 w-full items-center justify-start rounded-lg border border-[#292928] bg-transparent px-3 py-2 text-sm text-[#f7f6f2] font-['Montserrat'] ring-offset-background placeholder:text-[#979795] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-[#f7f6f2] disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+                                  "flex h-8 w-full items-center justify-start rounded-lg border border-[#292928] bg-transparent px-3 py-2 text-xs text-[#f7f6f2] font-['Montserrat'] ring-offset-background placeholder:text-[#979795] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-[#f7f6f2] disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
                                   !field.value && "text-[#979795]"
                                 )}
                                 data-testid="button-start-date"
@@ -1981,7 +1933,7 @@ export default function AddProgram() {
                                 <button
                                   type="button"
                                   className={cn(
-                                    "flex h-8 w-full items-center justify-start rounded-lg border border-[#292928] bg-transparent px-3 py-2 text-sm text-[#f7f6f2] font-['Montserrat'] ring-offset-background placeholder:text-[#979795] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-[#f7f6f2] disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+                                    "flex h-8 w-full items-center justify-start rounded-lg border border-[#292928] bg-transparent px-3 py-2 text-xs text-[#f7f6f2] font-['Montserrat'] ring-offset-background placeholder:text-[#979795] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-[#f7f6f2] disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
                                     !field.value && "text-[#979795]"
                                   )}
                                   data-testid="button-end-date"
@@ -2049,7 +2001,7 @@ export default function AddProgram() {
                 {/* Programming History */}
                 {selectedAthleteId && athletePrograms.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-[#f7f6f2] font-['Montserrat']">Programming History</h4>
+                    <h4 className="text-xs font-semibold text-[#f7f6f2] font-['Montserrat']">Programming History</h4>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {athletePrograms.map((program) => {
                         const programStart = new Date(program.startDate);
@@ -2067,7 +2019,7 @@ export default function AddProgram() {
                           <div
                             key={program.id}
                             className={cn(
-                              "border rounded-lg p-3 text-sm",
+                              "border rounded-lg p-3 text-xs",
                               overlapsWithNew ? "border-yellow-500 bg-yellow-500/10" : "border-[#292928] bg-[#171716]",
                               isCurrent && "border-blue-500 bg-blue-500/10"
                             )}
@@ -2177,7 +2129,7 @@ export default function AddProgram() {
                       {/* Blocking Issues */}
                       {issues.blockingIssues.length > 0 && (
                         <div>
-                          <h4 className="text-sm font-semibold text-red-400 mb-2 flex items-center gap-2">
+                          <h4 className="text-xs font-semibold text-red-400 mb-2 flex items-center gap-2">
                             <AlertTriangle className="h-4 w-4" />
                             Blocking Issues ({issues.blockingIssues.length})
                           </h4>
@@ -2192,7 +2144,7 @@ export default function AddProgram() {
                                       <span className="text-xs text-muted-foreground">•</span>
                                       <span className="text-xs text-muted-foreground">Affected: {issue.affected}</span>
                                     </div>
-                                    <p className="text-sm text-foreground mb-2">{issue.description}</p>
+                                    <p className="text-xs text-foreground mb-2">{issue.description}</p>
                                     {issue.action && (
                                       <Button
                                         size="sm"
@@ -2227,7 +2179,7 @@ export default function AddProgram() {
                       {/* Warnings */}
                       {issues.warnings.length > 0 && (
                         <div>
-                          <h4 className="text-sm font-semibold text-yellow-400 mb-2 flex items-center gap-2">
+                          <h4 className="text-xs font-semibold text-yellow-400 mb-2 flex items-center gap-2">
                             <Info className="h-4 w-4" />
                             Warnings ({issues.warnings.length})
                           </h4>
@@ -2242,7 +2194,7 @@ export default function AddProgram() {
                                       <span className="text-xs text-muted-foreground">•</span>
                                       <span className="text-xs text-muted-foreground">Affected: {warning.affected}</span>
                                     </div>
-                                    <p className="text-sm text-foreground mb-2">{warning.description}</p>
+                                    <p className="text-xs text-foreground mb-2">{warning.description}</p>
                                     {warning.action && (
                                       <Button
                                         size="sm"
@@ -2286,7 +2238,7 @@ export default function AddProgram() {
 
               {blocks.length > 0 && (
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Program blocks</h3>
+                  <h3 className="text-xs font-medium">Program blocks</h3>
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
@@ -2546,7 +2498,7 @@ export default function AddProgram() {
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
-                      <div className="text-sm font-medium">
+                      <div className="text-xs font-medium">
                         {format(calendarMonth, "MMMM yyyy")}
                       </div>
                       <Button
@@ -2803,7 +2755,7 @@ export default function AddProgram() {
                   {/* Key Dates Panel - Only show when athlete is selected */}
                   {selectedAthleteId && (
                     <div className="mt-4 rounded-md border p-3">
-                      <h3 className="text-sm font-medium mb-3">Key Dates</h3>
+                      <h3 className="text-xs font-medium mb-3">Key Dates</h3>
                       <div className="space-y-2 max-h-96 overflow-y-auto">
                         {(() => {
                           // Generate mock athlete events randomly across November, December, and January
@@ -2963,7 +2915,7 @@ export default function AddProgram() {
                               isDayOff ? "bg-muted/30" : "hover:bg-muted/50"
                             )}>
                               <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-sm font-medium">
+                                <div className="flex items-center gap-2 text-xs font-medium">
                                   <span className={cn("text-foreground", isDayOff && "line-through opacity-50")}>{column.title}</span>
                                   <span className="text-muted-foreground">{column.subtitle}</span>
                                 </div>
@@ -3006,40 +2958,51 @@ export default function AddProgram() {
                                 )}
                               </div>
                               <div className="flex items-center justify-between mt-0.5">
-                                <p className={cn("text-xs text-foreground", isDayOff && "opacity-50")}>
-                                  {column.dateRange}
-                                </p>
+                                <div className="flex flex-col gap-0.5">
+                                  <p className={cn("text-xs text-foreground", isDayOff && "opacity-50")}>
+                                    {column.dateRange}
+                                  </p>
+                                  {column.type === "block" && column.subtitle && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Season Phase: {column.subtitle}
+                                    </p>
+                                  )}
+                                </div>
                                 {column.type === "block" && column.duration && (
                                   <div className="text-xs text-muted-foreground">
                                     {column.duration.weeks}w | {column.duration.days}d
-                            </div>
-                          )}
-                            </div>
+                                  </div>
+                                )}
+                              </div>
                       </div>
                           </div>
                         );
                       })}
                     </div>
 
-                    {/* Training Split Section */}
+                    {/* Schedule Section */}
                     <div className="flex min-w-max px-0 my-2 relative">
                       {/* Category Label (Rotated) */}
                       <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
-                        <div className="flex items-center justify-center h-20 w-10 border-r bg-purple-500/10">
+                        <div className="flex items-center justify-center h-20 w-10 border-r bg-green-500/10">
                           <div className="-rotate-90 whitespace-nowrap">
-                            <span className="text-xs font-medium text-purple-700">Training Split</span>
+                            <span className="text-xs font-medium text-green-700">Schedule</span>
                           </div>
                         </div>
+                        <div className="w-10 border-r bg-background" />
                       </div>
 
-                      {/* Row Header */}
-                      <div className="flex flex-col shrink-0 w-32 sticky left-10 z-20 bg-background">
-                        <div className="flex items-center justify-center h-20 border-r border-b">
-                          <span className="text-sm font-medium text-foreground">Split Type</span>
+                      {/* Row Headers */}
+                      <div className="flex flex-col shrink-0 w-32 sticky left-10 z-20 bg-background border-r">
+                        <div className="h-10 flex items-center px-3 border-b">
+                          <p className="text-xs font-medium text-muted-foreground">Season</p>
+                        </div>
+                        <div className="h-10 flex items-center px-3">
+                          <p className="text-xs font-medium text-muted-foreground">Sub-Season</p>
                         </div>
                       </div>
 
-                      {/* Training Split Content */}
+                      {/* Schedule Content */}
                       {displayColumns.map((column, columnIndex) => {
                         const isDayOff = column.type === "day" && calculatedDaysOff.has((column as any).index);
                         const blockIndex = column.type === "block" ? column.index : undefined;
@@ -3047,19 +3010,19 @@ export default function AddProgram() {
                         const dayIndex = column.type === "day" ? (column as any).index : undefined;
                         
                         return (
-                          <div key={`training-split-${columnIndex}`} className="flex flex-col shrink-0 w-[236px] border-l mx-1">
-                            {/* Training Split Selection */}
+                          <div key={`schedule-${columnIndex}`} className="flex flex-col shrink-0 w-[236px] border-l mx-1">
+                            {/* Season Dropdown */}
                             <div className={cn(
-                              "h-20 flex items-center border-b relative",
-                              isDayOff ? "bg-muted/30" : "hover:bg-muted/50"
+                              "h-10 flex items-center border-b relative",
+                              isDayOff ? "bg-muted/30" : "bg-green-500/10 hover:bg-green-500/20 transition-colors"
                             )}>
                               {!isDayOff && (
                                 <>
                                   <Select 
-                                    value={getCellValue("training-split", "type", blockIndex || 0, weekIndex || 0, dayIndex || 0) || "4-day"}
+                                    value={getCellValue("schedule", "season", blockIndex || 0, weekIndex || 0, dayIndex || 0) || "season"}
                                     onValueChange={(value) => {
                                       if (blockIndex !== undefined) {
-                                        handleValueChange("training-split", "type", value, blockIndex, weekIndex || 0, dayIndex || 0, "block");
+                                        handleValueChange("schedule", "season", value, blockIndex, weekIndex || 0, dayIndex || 0, "block");
                                       }
                                     }}
                                   >
@@ -3067,15 +3030,154 @@ export default function AddProgram() {
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="2-day">2-day split</SelectItem>
-                                      <SelectItem value="3-day">3-day split</SelectItem>
-                                      <SelectItem value="4-day">4-day split</SelectItem>
-                                      <SelectItem value="5-day">5-day split</SelectItem>
-                                      <SelectItem value="6-day">6-day split</SelectItem>
+                                      <SelectItem value="season">Season</SelectItem>
+                                      <SelectItem value="off-season">Off-Season</SelectItem>
                                     </SelectContent>
                                   </Select>
-                                  {blockIndex !== undefined && hasOverrides("training-split", "type", blockIndex, "block") && (
+                                  {blockIndex !== undefined && hasOverrides("schedule", "season", blockIndex, "block") && (
                                     <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-500" 
+                                         title="Customized at lower level" />
+                                  )}
+                                </>
+                              )}
+                            </div>
+
+                            {/* Sub-Season Dropdown */}
+                            <div className={cn(
+                              "h-10 flex items-center relative",
+                              isDayOff ? "bg-muted/30" : "bg-green-500/10 hover:bg-green-500/20 transition-colors"
+                            )}>
+                              {!isDayOff && (
+                                <>
+                                  <Select 
+                                    value={getCellValue("schedule", "subSeason", blockIndex || 0, weekIndex || 0, dayIndex || 0) || "general-off-season"}
+                                    onValueChange={(value) => {
+                                      if (blockIndex !== undefined) {
+                                        handleValueChange("schedule", "subSeason", value, blockIndex, weekIndex || 0, dayIndex || 0, "block");
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="general-off-season">General Off-Season (GOS)</SelectItem>
+                                      <SelectItem value="early-off-season">Early Off-Season (EOS)</SelectItem>
+                                      <SelectItem value="late-off-season">Late Off-Season (LOS)</SelectItem>
+                                      <SelectItem value="pre-season">Pre-Season</SelectItem>
+                                      <SelectItem value="in-season">In-Season</SelectItem>
+                                      <SelectItem value="post-season">Post-Season</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {blockIndex !== undefined && hasOverrides("schedule", "subSeason", blockIndex, "block") && (
+                                    <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-green-500" 
+                                         title="Customized at lower level" />
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* xRole Section */}
+                    <div className="flex min-w-max px-0 my-2 relative">
+                      {/* Category Label (Rotated) */}
+                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
+                        <div className="flex items-center justify-center h-20 w-10 border-r bg-cyan-500/10">
+                          <div className="-rotate-90 whitespace-nowrap">
+                            <span className="text-xs font-medium text-cyan-700">xRole</span>
+                          </div>
+                        </div>
+                        <div className="w-10 border-r bg-background" />
+                      </div>
+
+                      {/* Row Headers */}
+                      <div className="flex flex-col shrink-0 w-32 sticky left-10 z-20 bg-background border-r">
+                        <div className="h-10 flex items-center px-3 border-b">
+                          <p className="text-xs font-medium text-muted-foreground">xRole (Pitcher)</p>
+                        </div>
+                        <div className="h-10 flex items-center px-3">
+                          <p className="text-xs font-medium text-muted-foreground">xRole (Hitter)</p>
+                        </div>
+                      </div>
+
+                      {/* xRole Content */}
+                      {displayColumns.map((column, columnIndex) => {
+                        const isDayOff = column.type === "day" && calculatedDaysOff.has((column as any).index);
+                        const blockIndex = column.type === "block" ? column.index : undefined;
+                        const weekIndex = column.type === "week" ? (column as any).weekIndex : undefined;
+                        const dayIndex = column.type === "day" ? (column as any).index : undefined;
+                        
+                        // Determine if athlete is pitcher or hitter based on position
+                        const isPitcher = selectedAthlete?.position?.toLowerCase().includes("pitcher") || false;
+                        
+                        return (
+                          <div key={`xrole-${columnIndex}`} className="flex flex-col shrink-0 w-[236px] border-l mx-1">
+                            {/* xRole (Pitcher) Dropdown */}
+                            <div className={cn(
+                              "h-10 flex items-center border-b relative",
+                              isDayOff ? "bg-muted/30" : "bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors"
+                            )}>
+                              {!isDayOff && (
+                                <>
+                                  <Select 
+                                    value={getCellValue("xrole", "pitcher", blockIndex || 0, weekIndex || 0, dayIndex || 0) || (isPitcher ? "rotation-starter" : "")}
+                                    onValueChange={(value) => {
+                                      if (blockIndex !== undefined) {
+                                        handleValueChange("xrole", "pitcher", value, blockIndex, weekIndex || 0, dayIndex || 0, "block");
+                                      }
+                                    }}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent disabled:opacity-50">
+                                      <SelectValue placeholder={isPitcher ? "Select..." : "--"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="rotation-starter">Rotation Starter</SelectItem>
+                                      <SelectItem value="bullpen-reliever">Bullpen Reliever</SelectItem>
+                                      <SelectItem value="closer">Closer</SelectItem>
+                                      <SelectItem value="setup">Setup</SelectItem>
+                                      <SelectItem value="long-relief">Long Relief</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {blockIndex !== undefined && hasOverrides("xrole", "pitcher", blockIndex, "block") && (
+                                    <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-cyan-500" 
+                                         title="Customized at lower level" />
+                                  )}
+                                </>
+                              )}
+                            </div>
+
+                            {/* xRole (Hitter) Dropdown */}
+                            <div className={cn(
+                              "h-10 flex items-center relative",
+                              isDayOff ? "bg-muted/30" : "bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors"
+                            )}>
+                              {!isDayOff && (
+                                <>
+                                  <Select 
+                                    value={getCellValue("xrole", "hitter", blockIndex || 0, weekIndex || 0, dayIndex || 0) || (!isPitcher ? "everyday-player" : "")}
+                                    onValueChange={(value) => {
+                                      if (blockIndex !== undefined) {
+                                        handleValueChange("xrole", "hitter", value, blockIndex, weekIndex || 0, dayIndex || 0, "block");
+                                      }
+                                    }}
+                                    disabled={isPitcher}
+                                  >
+                                    <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent disabled:opacity-50">
+                                      <SelectValue placeholder={!isPitcher ? "Select..." : "--"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="everyday-player">Everyday Player</SelectItem>
+                                      <SelectItem value="platoon-player">Platoon Player</SelectItem>
+                                      <SelectItem value="bench-player">Bench Player</SelectItem>
+                                      <SelectItem value="designated-hitter">Designated Hitter</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {blockIndex !== undefined && hasOverrides("xrole", "hitter", blockIndex, "block") && (
+                                    <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-cyan-500" 
                                          title="Customized at lower level" />
                                   )}
                                 </>
@@ -3091,23 +3193,21 @@ export default function AddProgram() {
                     <div className="flex min-w-max px-0 relative">
                       {/* Category Label (Rotated) */}
                       <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
-                        <div className="flex items-center justify-center h-30 w-10 border-r bg-blue-500/10">
+                        <div className="flex items-center justify-center h-20 w-10 border-r bg-blue-500/10">
                           <div className="-rotate-90 whitespace-nowrap">
-                            <p className="text-sm font-medium text-foreground">Throwing</p>
+                            <p className="text-xs font-medium text-foreground">Throwing</p>
                             </div>
                         </div>
+                        <div className="w-10 border-r bg-background" />
                       </div>
 
                       {/* Row Headers */}
                       <div className="flex flex-col shrink-0 w-32 sticky left-10 z-20 bg-background border-r">
                         <div className="h-10 flex items-center px-3 border-b">
-                          <p className="text-xs font-medium text-muted-foreground">xRole</p>
-                        </div>
-                        <div className="h-10 flex items-center px-3 border-b">
-                          <p className="text-xs font-medium text-muted-foreground">Throwing Phase</p>
+                          <p className="text-xs font-medium text-muted-foreground">Phase</p>
                         </div>
                         <div className="h-10 flex items-center px-3">
-                          <p className="text-xs font-medium text-muted-foreground">Throwing Focus</p>
+                          <p className="text-xs font-medium text-muted-foreground">Exclusions</p>
                         </div>
                       </div>
 
@@ -3126,7 +3226,7 @@ export default function AddProgram() {
                         
                         return (
                         <div key={columnIndex} className="flex flex-col shrink-0 w-[236px] border-l mx-1">
-                          {/* xRole Dropdown */}
+                          {/* Phase Dropdown */}
                           <div className={cn(
                             "h-10 flex items-center border-b relative",
                             isDayOff ? "bg-muted/20" : "bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
@@ -3134,48 +3234,23 @@ export default function AddProgram() {
                             {!isDayOff && (
                             <>
                               <Select 
-                                value={getCellValue("throwing", "xRole", blockIndex, weekIndex, dayIndex) || "long-reliever"}
-                                onValueChange={(value) => handleValueChange("throwing", "xRole", value, blockIndex, weekIndex, dayIndex, level)}
+                                value={getCellValue("throwing", "phase", blockIndex, weekIndex, dayIndex) || "pitch-design"}
+                                onValueChange={(value) => handleValueChange("throwing", "phase", value, blockIndex, weekIndex, dayIndex, level)}
                               >
                                 <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="long-reliever">Long Reliever</SelectItem>
-                                  <SelectItem value="starter">Starter</SelectItem>
-                                  <SelectItem value="closer">Closer</SelectItem>
-                                  <SelectItem value="setup">Setup</SelectItem>
+                                  <SelectItem value="building">Building</SelectItem>
+                                  <SelectItem value="pitch-design">Pitch Design (PD)</SelectItem>
+                                  <SelectItem value="transition">Transition</SelectItem>
+                                  <SelectItem value="in-season">In-Season</SelectItem>
+                                  <SelectItem value="deload">Deload</SelectItem>
+                                  <SelectItem value="rest">Rest</SelectItem>
+                                  <SelectItem value="return-to-throw">Return to Throw (RTT)</SelectItem>
                                 </SelectContent>
                               </Select>
-                              {hasOverrides("throwing", "xRole", blockIndex, level) && (
-                                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-blue-500" 
-                                     title="Customized at lower level" />
-                              )}
-                            </>
-                            )}
-                            </div>
-
-                          {/* Throwing Phase Dropdown */}
-                          <div className={cn(
-                            "h-10 flex items-center border-b relative",
-                            isDayOff ? "bg-muted/20" : "bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
-                          )}>
-                            {!isDayOff && (
-                            <>
-                              <Select 
-                                value={getCellValue("throwing", "throwingPhase", blockIndex, weekIndex, dayIndex) || "long-reliever"}
-                                onValueChange={(value) => handleValueChange("throwing", "throwingPhase", value, blockIndex, weekIndex, dayIndex, level)}
-                              >
-                                <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="long-reliever">Long Reliever</SelectItem>
-                                  <SelectItem value="build-up">Build-up</SelectItem>
-                                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {hasOverrides("throwing", "throwingPhase", blockIndex, level) && (
+                              {hasOverrides("throwing", "phase", blockIndex, level) && (
                                 <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-blue-500" 
                                      title="Customized at lower level" />
                               )}
@@ -3183,7 +3258,7 @@ export default function AddProgram() {
                           )}
                         </div>
 
-                          {/* Throwing Focus Dropdown */}
+                          {/* Exclusions Dropdown */}
                           <div className={cn(
                             "h-10 flex items-center relative",
                             isDayOff ? "bg-muted/20" : "bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
@@ -3191,20 +3266,22 @@ export default function AddProgram() {
                             {!isDayOff && (
                             <>
                               <Select 
-                                value={getCellValue("throwing", "throwingFocus", blockIndex, weekIndex, dayIndex) || "balanced"}
-                                onValueChange={(value) => handleValueChange("throwing", "throwingFocus", value, blockIndex, weekIndex, dayIndex, level)}
+                                value={getCellValue("throwing", "exclusions", blockIndex, weekIndex, dayIndex) || "none"}
+                                onValueChange={(value) => handleValueChange("throwing", "exclusions", value, blockIndex, weekIndex, dayIndex, level)}
                               >
                                 <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="balanced">Balanced</SelectItem>
-                                  <SelectItem value="velocity">Velocity</SelectItem>
-                                  <SelectItem value="command">Command</SelectItem>
-                                  <SelectItem value="durability">Durability</SelectItem>
+                                  <SelectItem value="none">None</SelectItem>
+                                  <SelectItem value="flatground">Flatground</SelectItem>
+                                  <SelectItem value="mound">Mound</SelectItem>
+                                  <SelectItem value="long-toss">Long Toss</SelectItem>
+                                  <SelectItem value="weighted-balls">Weighted Balls</SelectItem>
+                                  <SelectItem value="high-intent">High Intent</SelectItem>
                                 </SelectContent>
                               </Select>
-                              {hasOverrides("throwing", "throwingFocus", blockIndex, level) && (
+                              {hasOverrides("throwing", "exclusions", blockIndex, level) && (
                                 <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-blue-500" 
                                      title="Customized at lower level" />
                               )}
@@ -3224,9 +3301,9 @@ export default function AddProgram() {
                       <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
                         <div className="flex items-center justify-center h-40 w-10 border-r bg-violet-500/10">
                           <div className="-rotate-90 whitespace-nowrap">
-                            <p className="text-sm font-medium text-foreground">Movement</p>
+                            <p className="text-xs font-medium text-foreground">Movement</p>
+                          </div>
                         </div>
-                      </div>
                       </div>
 
                       {/* Row Headers */}
@@ -3390,9 +3467,9 @@ export default function AddProgram() {
                     <div className="flex min-w-max px-0 my-2 relative">
                       {/* Category Label (Rotated) */}
                       <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
-                        <div className="flex items-center justify-center h-30 w-10 border-r bg-orange-500/10">
+                        <div className="flex items-center justify-center h-50 w-10 border-r bg-orange-500/10">
                           <div className="-rotate-90 whitespace-nowrap">
-                            <p className="text-sm font-medium text-foreground">Lifting</p>
+                            <p className="text-xs font-medium text-foreground">Lifting</p>
                           </div>
                         </div>
                       </div>
@@ -3400,13 +3477,19 @@ export default function AddProgram() {
                       {/* Row Headers */}
                       <div className="flex flex-col shrink-0 w-32 sticky left-10 z-20 bg-background border-r">
                         <div className="h-10 flex items-center px-3 border-b">
-                          <p className="text-xs font-medium text-muted-foreground">R-focus</p>
+                          <p className="text-xs font-medium text-muted-foreground">Training Split</p>
                         </div>
                         <div className="h-10 flex items-center px-3 border-b">
-                          <p className="text-xs font-medium text-muted-foreground">Focus (Upper)</p>
+                          <p className="text-xs font-medium text-muted-foreground">Core Emphasis</p>
+                        </div>
+                        <div className="h-10 flex items-center px-3 border-b">
+                          <p className="text-xs font-medium text-muted-foreground">Variability</p>
+                        </div>
+                        <div className="h-10 flex items-center px-3 border-b">
+                          <p className="text-xs font-medium text-muted-foreground">Scheme</p>
                         </div>
                         <div className="h-10 flex items-center px-3">
-                          <p className="text-xs font-medium text-muted-foreground">Focus (Lower)</p>
+                          <p className="text-xs font-medium text-muted-foreground">Exclusions</p>
                         </div>
                       </div>
 
@@ -3425,7 +3508,7 @@ export default function AddProgram() {
                         
                             return (
                         <div key={`lifting-${columnIndex}`} className="flex flex-col shrink-0 w-[236px] border-l mx-1">
-                          {/* R-focus Dropdown */}
+                          {/* Training Split Dropdown */}
                           <div className={cn(
                             "h-10 flex items-center border-b relative",
                             isDayOff ? "bg-muted/20" : "bg-orange-500/10 hover:bg-orange-500/20 transition-colors"
@@ -3433,24 +3516,26 @@ export default function AddProgram() {
                             {!isDayOff && (
                             <>
                               <Select 
-                                value={getCellValue("lifting", "rFocus", blockIndex, weekIndex, dayIndex) || "r1"}
-                                onValueChange={(value) => handleValueChange("lifting", "rFocus", value, blockIndex, weekIndex, dayIndex, level)}
+                                value={getCellValue("training-split", "type", blockIndex || 0, weekIndex || 0, dayIndex || 0) || "4x2"}
+                                onValueChange={(value) => {
+                                  if (blockIndex !== undefined) {
+                                    handleValueChange("training-split", "type", value, blockIndex, weekIndex || 0, dayIndex || 0, "block");
+                                  }
+                                }}
                               >
                                 <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="r1">R1</SelectItem>
-                                  <SelectItem value="r2">R2</SelectItem>
-                                  <SelectItem value="r3">R3</SelectItem>
-                                  <SelectItem value="r4">R4</SelectItem>
-                                  <SelectItem value="r5">R5</SelectItem>
-                                  <SelectItem value="r6">R6</SelectItem>
-                                  <SelectItem value="r7">R7</SelectItem>
-                                  <SelectItem value="r8">R8</SelectItem>
+                                  <SelectItem value="4x2">4 x 2</SelectItem>
+                                  <SelectItem value="4x1">4 x 1</SelectItem>
+                                  <SelectItem value="3x2">3 x 2</SelectItem>
+                                  <SelectItem value="3x1">3 x 1</SelectItem>
+                                  <SelectItem value="2x2">2 x 2</SelectItem>
+                                  <SelectItem value="2x1">2 x 1</SelectItem>
                                 </SelectContent>
                               </Select>
-                              {hasOverrides("lifting", "rFocus", blockIndex, level) && (
+                              {blockIndex !== undefined && hasOverrides("training-split", "type", blockIndex, "block") && (
                                 <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-orange-500" 
                                      title="Customized at lower level" />
                               )}
@@ -3458,7 +3543,7 @@ export default function AddProgram() {
                             )}
                           </div>
 
-                          {/* Focus (Upper) Dropdown */}
+                          {/* Core Emphasis Dropdown */}
                           <div className={cn(
                             "h-10 flex items-center border-b relative",
                             isDayOff ? "bg-muted/20" : "bg-orange-500/10 hover:bg-orange-500/20 transition-colors"
@@ -3466,20 +3551,23 @@ export default function AddProgram() {
                             {!isDayOff && (
                             <>
                               <Select 
-                                value={getCellValue("lifting", "focusUpper", blockIndex, weekIndex, dayIndex) || "chest-back"}
-                                onValueChange={(value) => handleValueChange("lifting", "focusUpper", value, blockIndex, weekIndex, dayIndex, level)}
+                                value={getCellValue("lifting", "coreEmphasis", blockIndex, weekIndex, dayIndex) || "restorative"}
+                                onValueChange={(value) => handleValueChange("lifting", "coreEmphasis", value, blockIndex, weekIndex, dayIndex, level)}
                               >
                                 <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="chest-back">Chest/Back</SelectItem>
-                                  <SelectItem value="shoulders-arms">Shoulders/Arms</SelectItem>
-                                  <SelectItem value="power-upper">Power Upper</SelectItem>
-                                  <SelectItem value="hypertrophy-upper">Hypertrophy Upper</SelectItem>
+                                  <SelectItem value="restorative">Restorative (Rv)</SelectItem>
+                                  <SelectItem value="strength">Strength</SelectItem>
+                                  <SelectItem value="strength-speed">Strength-Speed</SelectItem>
+                                  <SelectItem value="speed-strength">Speed-Strength</SelectItem>
+                                  <SelectItem value="speed">Speed</SelectItem>
+                                  <SelectItem value="testing">Testing</SelectItem>
+                                  <SelectItem value="deload">Deload</SelectItem>
                                 </SelectContent>
                               </Select>
-                              {hasOverrides("lifting", "focusUpper", blockIndex, level) && (
+                              {hasOverrides("lifting", "coreEmphasis", blockIndex, level) && (
                                 <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-orange-500" 
                                      title="Customized at lower level" />
                               )}
@@ -3487,7 +3575,66 @@ export default function AddProgram() {
                             )}
                           </div>
 
-                          {/* Focus (Lower) Dropdown */}
+                          {/* Variability Dropdown */}
+                          <div className={cn(
+                            "h-10 flex items-center border-b relative",
+                            isDayOff ? "bg-muted/20" : "bg-orange-500/10 hover:bg-orange-500/20 transition-colors"
+                          )}>
+                            {!isDayOff && (
+                            <>
+                              <Select 
+                                value={getCellValue("lifting", "variability", blockIndex, weekIndex, dayIndex) || "low"}
+                                onValueChange={(value) => handleValueChange("lifting", "variability", value, blockIndex, weekIndex, dayIndex, level)}
+                              >
+                                <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">None</SelectItem>
+                                  <SelectItem value="low">Low</SelectItem>
+                                  <SelectItem value="medium">Medium</SelectItem>
+                                  <SelectItem value="high">High</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {hasOverrides("lifting", "variability", blockIndex, level) && (
+                                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-orange-500" 
+                                     title="Customized at lower level" />
+                              )}
+                            </>
+                            )}
+                          </div>
+
+                          {/* Scheme Dropdown */}
+                          <div className={cn(
+                            "h-10 flex items-center border-b relative",
+                            isDayOff ? "bg-muted/20" : "bg-orange-500/10 hover:bg-orange-500/20 transition-colors"
+                          )}>
+                            {!isDayOff && (
+                            <>
+                              <Select 
+                                value={getCellValue("lifting", "scheme", blockIndex, weekIndex, dayIndex) || "straight"}
+                                onValueChange={(value) => handleValueChange("lifting", "scheme", value, blockIndex, weekIndex, dayIndex, level)}
+                              >
+                                <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="straight">Straight</SelectItem>
+                                  <SelectItem value="wave">Wave</SelectItem>
+                                  <SelectItem value="pyramid">Pyramid</SelectItem>
+                                  <SelectItem value="cluster">Cluster</SelectItem>
+                                  <SelectItem value="drop-set">Drop Set</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {hasOverrides("lifting", "scheme", blockIndex, level) && (
+                                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-orange-500" 
+                                     title="Customized at lower level" />
+                              )}
+                            </>
+                            )}
+                          </div>
+
+                          {/* Exclusions Dropdown */}
                           <div className={cn(
                             "h-10 flex items-center relative",
                             isDayOff ? "bg-muted/20" : "bg-orange-500/10 hover:bg-orange-500/20 transition-colors"
@@ -3495,20 +3642,22 @@ export default function AddProgram() {
                             {!isDayOff && (
                             <>
                               <Select 
-                                value={getCellValue("lifting", "focusLower", blockIndex, weekIndex, dayIndex) || "squat-deadlift"}
-                                onValueChange={(value) => handleValueChange("lifting", "focusLower", value, blockIndex, weekIndex, dayIndex, level)}
+                                value={getCellValue("lifting", "exclusions", blockIndex, weekIndex, dayIndex) || "none"}
+                                onValueChange={(value) => handleValueChange("lifting", "exclusions", value, blockIndex, weekIndex, dayIndex, level)}
                               >
                                 <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="squat-deadlift">Squat/Deadlift</SelectItem>
-                                  <SelectItem value="legs-glutes">Legs/Glutes</SelectItem>
-                                  <SelectItem value="power-lower">Power Lower</SelectItem>
-                                  <SelectItem value="hypertrophy-lower">Hypertrophy Lower</SelectItem>
+                                  <SelectItem value="none">None</SelectItem>
+                                  <SelectItem value="overhead-pressing">Overhead Pressing</SelectItem>
+                                  <SelectItem value="heavy-squatting">Heavy Squatting</SelectItem>
+                                  <SelectItem value="olympic-lifts">Olympic Lifts</SelectItem>
+                                  <SelectItem value="jumping">Jumping</SelectItem>
+                                  <SelectItem value="deadlifts">Deadlifts</SelectItem>
                                 </SelectContent>
                               </Select>
-                              {hasOverrides("lifting", "focusLower", blockIndex, level) && (
+                              {hasOverrides("lifting", "exclusions", blockIndex, level) && (
                                 <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-orange-500" 
                                      title="Customized at lower level" />
                               )}
@@ -3520,6 +3669,147 @@ export default function AddProgram() {
                           })}
                         </div>
                     )}
+
+                    {/* Conditioning Section */}
+                    <div className="flex min-w-max px-0 my-2 relative">
+                      {/* Category Label (Rotated) */}
+                      <div className="flex flex-col items-center shrink-0 sticky left-0 z-20 bg-background">
+                        <div className="flex items-center justify-center h-30 w-10 border-r bg-teal-500/10">
+                          <div className="-rotate-90 whitespace-nowrap">
+                            <span className="text-xs font-medium text-teal-700">Conditioning</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Row Headers */}
+                      <div className="flex flex-col shrink-0 w-32 sticky left-10 z-20 bg-background border-r">
+                        <div className="h-10 flex items-center px-3 border-b">
+                          <p className="text-xs font-medium text-muted-foreground">Core Emphasis</p>
+                        </div>
+                        <div className="h-10 flex items-center px-3 border-b">
+                          <p className="text-xs font-medium text-muted-foreground">Adaptation</p>
+                        </div>
+                        <div className="h-10 flex items-center px-3">
+                          <p className="text-xs font-medium text-muted-foreground">Method</p>
+                        </div>
+                      </div>
+
+                      {/* Conditioning Content */}
+                      {displayColumns.map((column, columnIndex) => {
+                        const isDayOff = column.type === "day" && calculatedDaysOff.has((column as any).index);
+                        const blockIndex = column.type === "block" ? column.index : undefined;
+                        const weekIndex = column.type === "week" ? (column as any).weekIndex : undefined;
+                        const dayIndex = column.type === "day" ? (column as any).index : undefined;
+                        const level: SettingsLevel = column.type === "block" ? "block" : column.type === "week" ? "week" : "day";
+                        
+                        return (
+                          <div key={`conditioning-${columnIndex}`} className="flex flex-col shrink-0 w-[236px] border-l mx-1">
+                            {/* Core Emphasis Dropdown */}
+                            <div className={cn(
+                              "h-10 flex items-center border-b relative",
+                              isDayOff ? "bg-muted/30" : "bg-teal-500/10 hover:bg-teal-500/20 transition-colors"
+                            )}>
+                              {!isDayOff && (
+                                <>
+                                  <Select 
+                                    value={getCellValue("conditioning", "coreEmphasis", blockIndex || 0, weekIndex || 0, dayIndex || 0) || "mitochondrial"}
+                                    onValueChange={(value) => {
+                                      if (blockIndex !== undefined) {
+                                        handleValueChange("conditioning", "coreEmphasis", value, blockIndex, weekIndex || 0, dayIndex || 0, level);
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="mitochondrial">Mitochondrial</SelectItem>
+                                      <SelectItem value="cardiac-output">Cardiac Output</SelectItem>
+                                      <SelectItem value="aerobic-power">Aerobic Power</SelectItem>
+                                      <SelectItem value="anaerobic-capacity">Anaerobic Capacity</SelectItem>
+                                      <SelectItem value="alactic-power">Alactic Power</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {blockIndex !== undefined && hasOverrides("conditioning", "coreEmphasis", blockIndex, level) && (
+                                    <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-teal-500" 
+                                         title="Customized at lower level" />
+                                  )}
+                                </>
+                              )}
+                            </div>
+
+                            {/* Adaptation Dropdown */}
+                            <div className={cn(
+                              "h-10 flex items-center border-b relative",
+                              isDayOff ? "bg-muted/30" : "bg-teal-500/10 hover:bg-teal-500/20 transition-colors"
+                            )}>
+                              {!isDayOff && (
+                                <>
+                                  <Select 
+                                    value={getCellValue("conditioning", "adaptation", blockIndex || 0, weekIndex || 0, dayIndex || 0) || "angiogenesis"}
+                                    onValueChange={(value) => {
+                                      if (blockIndex !== undefined) {
+                                        handleValueChange("conditioning", "adaptation", value, blockIndex, weekIndex || 0, dayIndex || 0, level);
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="angiogenesis">Angiogenesis</SelectItem>
+                                      <SelectItem value="capillary-density">Capillary Density</SelectItem>
+                                      <SelectItem value="stroke-volume">Stroke Volume</SelectItem>
+                                      <SelectItem value="lactate-threshold">Lactate Threshold</SelectItem>
+                                      <SelectItem value="power-endurance">Power Endurance</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {blockIndex !== undefined && hasOverrides("conditioning", "adaptation", blockIndex, level) && (
+                                    <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-teal-500" 
+                                         title="Customized at lower level" />
+                                  )}
+                                </>
+                              )}
+                            </div>
+
+                            {/* Method Dropdown */}
+                            <div className={cn(
+                              "h-10 flex items-center relative",
+                              isDayOff ? "bg-muted/30" : "bg-teal-500/10 hover:bg-teal-500/20 transition-colors"
+                            )}>
+                              {!isDayOff && (
+                                <>
+                                  <Select 
+                                    value={getCellValue("conditioning", "method", blockIndex || 0, weekIndex || 0, dayIndex || 0) || "long-slow-duration"}
+                                    onValueChange={(value) => {
+                                      if (blockIndex !== undefined) {
+                                        handleValueChange("conditioning", "method", value, blockIndex, weekIndex || 0, dayIndex || 0, level);
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="long-slow-duration">Long Slow Duration (LSD)</SelectItem>
+                                      <SelectItem value="tempo-runs">Tempo Runs</SelectItem>
+                                      <SelectItem value="intervals">Intervals</SelectItem>
+                                      <SelectItem value="hiit">HIIT</SelectItem>
+                                      <SelectItem value="fartlek">Fartlek</SelectItem>
+                                      <SelectItem value="steady-state">Steady State</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {blockIndex !== undefined && hasOverrides("conditioning", "method", blockIndex, level) && (
+                                    <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-teal-500" 
+                                         title="Customized at lower level" />
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
 
                   </div>
                 )}
@@ -3544,7 +3834,7 @@ export default function AddProgram() {
                             type="button"
                             onClick={() => setReviewRoutineTab(routineType)}
                             className={cn(
-                              "px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                              "px-4 py-2 text-xs font-medium rounded-md transition-colors",
                               isActive 
                                 ? "bg-muted text-foreground" 
                                 : "text-muted-foreground hover:bg-muted/50"
@@ -3566,7 +3856,7 @@ export default function AddProgram() {
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </button>
-                      <span className="text-sm font-medium min-w-[80px] text-center">
+                      <span className="text-xs font-medium min-w-[80px] text-center">
                         Week {reviewWeekIndex + 1}
                       </span>
                       <button
@@ -3677,7 +3967,7 @@ export default function AddProgram() {
 
                         {/* Section Header: Preparatory */}
                         <TableRow>
-                          <TableCell colSpan={8} className="bg-orange-500/5 font-semibold text-sm py-3">
+                          <TableCell colSpan={8} className="bg-orange-500/5 font-semibold text-xs py-3">
                             Section: Preparatory (P)
                           </TableCell>
                         </TableRow>
