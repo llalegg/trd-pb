@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 type SortField = "athleteName" | "startDate" | "endDate" | "lastModification" | "lastSubmission" | "nextBlockDue";
 type SortDirection = "asc" | "desc";
 
-type FilterState = {
+interface FilterState {
   phaseTimelineStart: string;
   phaseTimelineEnd: string;
   statuses: string[];
@@ -45,7 +45,7 @@ type FilterState = {
   lastSubmissionEnd: string;
   nextBlockDueStart: string;
   nextBlockDueEnd: string;
-};
+}
 
 const STATUS_OPTIONS = [
   { value: "injured", label: "Injured" },
@@ -57,7 +57,7 @@ const SUB_SEASON_OPTIONS = ["Early", "Mid", "Late"];
 
 export default function Programs() {
   const [, setLocation] = useLocation();
-  const [status, setStatus] = useState<"current" | "past">("current");
+  const [status, setStatus] = useState<"current" | "past" | "drafts">("current");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("startDate");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -79,8 +79,6 @@ export default function Programs() {
     nextBlockDueEnd: "",
   });
   
-  // Debug: Log to verify new code is loaded
-  console.log("Programs component loaded - v2 with icons");
 
   // Fetch programs - uses default queryFn from queryClient
   const { data: programs = [], isLoading } = useQuery<Program[]>({
@@ -470,7 +468,7 @@ export default function Programs() {
     <div className="min-h-screen bg-surface-base">
       <div className="max-w-7xl mx-auto">
         {/* Header - Figma Style */}
-        <div className="flex items-center justify-between p-5 border-b border-[#292928]">
+        <div className="flex items-center justify-between p-5">
           <div className="flex items-center gap-6">
             <h1 className="text-2xl font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.32]">
               Programs
@@ -479,7 +477,7 @@ export default function Programs() {
             <ToggleGroup
               type="single"
               value={status}
-              onValueChange={(value) => value && setStatus(value as "current" | "past")}
+              onValueChange={(value) => value && setStatus(value as "current" | "past" | "drafts")}
               variant="segmented"
             >
               <ToggleGroupItem value="current" aria-label="Current programs">
@@ -487,6 +485,9 @@ export default function Programs() {
               </ToggleGroupItem>
               <ToggleGroupItem value="past" aria-label="Past programs">
                 Past
+              </ToggleGroupItem>
+              <ToggleGroupItem value="drafts" aria-label="Draft programs" disabled>
+                Drafts
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -531,7 +532,7 @@ export default function Programs() {
         </div>
 
         {/* Content Area */}
-        <div className="p-5 bg-surface-base">
+        <div className="px-5 pb-5 bg-surface-base">
           {/* Table */}
           {isLoading ? (
             <div className="text-center py-12 text-[#979795] font-['Montserrat']">Loading programs...</div>
@@ -625,15 +626,14 @@ export default function Programs() {
 
       {/* Filter Sheet */}
       <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-        <SheetContent side="right" className="h-full overflow-y-auto bg-surface-base border-l border-[#292928] w-full sm:max-w-md">
-          <SheetHeader className="border-b border-[#292928] pb-4">
+        <SheetContent side="right" className="h-full flex flex-col bg-surface-base border-l border-[#292928] w-full sm:max-w-md p-0">
+          {/* Fixed Header */}
+          <SheetHeader className="border-b border-[#292928] pb-4 px-6 pt-6 flex-shrink-0">
             <SheetTitle className="text-xl font-['Montserrat'] text-[#f7f6f2]">Filters</SheetTitle>
-            <SheetDescription className="text-[#979795] font-['Montserrat']">
-              Filter programs by phase timeline, season, current day, and more
-            </SheetDescription>
           </SheetHeader>
 
-          <div className="py-6 space-y-8">
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
             {/* Status */}
             <div className="space-y-3">
               <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Status</Label>
@@ -842,8 +842,8 @@ export default function Programs() {
             </div>
           </div>
 
-          {/* Footer Actions */}
-          <div className="flex items-center justify-between pt-4 border-t border-[#292928]">
+          {/* Fixed Footer Actions */}
+          <div className="flex items-center justify-between pt-4 pb-6 px-6 border-t border-[#292928] flex-shrink-0 bg-surface-base">
             <Button
               variant="ghost"
               onClick={clearFilters}

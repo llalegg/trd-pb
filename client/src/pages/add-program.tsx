@@ -301,7 +301,7 @@ const programFormSchema = z.object({
 type ProgramFormValues = z.infer<typeof programFormSchema>;
 
 // Types for routine settings hierarchy
-type RoutineSettings = {
+interface RoutineSettings {
   throwing: {
     xRole: string;
     throwingPhase: string;
@@ -327,11 +327,11 @@ type RoutineSettings = {
   "training-split": {
     type: string;
   };
-};
+}
 
 type SettingsLevel = "block" | "week" | "day";
 
-type SettingsOverride = {
+interface SettingsOverride {
   blockIndex: number;
   weekIndex?: number;
   dayIndex?: number;
@@ -339,9 +339,9 @@ type SettingsOverride = {
   routine: keyof RoutineSettings;
   field: string;
   value: string;
-};
+}
 
-type Exercise = {
+interface Exercise {
   id: string;
   targetBodyGroup: string;
   name: string;
@@ -358,32 +358,32 @@ type Exercise = {
   progression?: string;
 };
 
-type LiftingCell = {
+interface LiftingCell {
   exercises: Exercise[];
-};
+}
 
-type ThrowingDayData = {
+interface ThrowingDayData {
   phase: string;
   intensity: string;
   exercises: Exercise[];
-};
+}
 
-type LiftingDayData = {
+interface LiftingDayData {
   intensity?: string;
   focus: string;
   emphasis: string;
   exercises: Exercise[];
-};
+}
 
 // Generate a unique program ID
-const generateProgramId = () => {
+const generateProgramId = (): string => {
   const prefix = "P";
   const timestamp = Date.now().toString().slice(-6);
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `${prefix}${timestamp}${random}`;
 };
 
-type ExerciseTemplate = {
+interface ExerciseTemplate {
   sectionId?: string;
   targetBodyGroup: string;
   name: string;
@@ -1166,8 +1166,7 @@ export default function AddProgram() {
   };
 
   // Helper function to handle Next button click
-  const handleNext = () => {
-    console.log('handleNext called, currentStep:', currentStep, 'issues:', issues);
+  const handleNext = (): void => {
     // For Step 2 -> Step 3, be very permissive - only block on absolutely critical issues
     let shouldBlock = false;
     
@@ -1188,8 +1187,6 @@ export default function AddProgram() {
       shouldBlock = (issues?.blocking || []).length > 0;
     }
     
-    console.log('shouldBlock:', shouldBlock);
-    
     if (shouldBlock) {
       setIssueModalOpen(true);
       return;
@@ -1209,13 +1206,12 @@ export default function AddProgram() {
     
     // Advance to next step
     if (currentStep < 3) {
-      console.log('Advancing from step', currentStep, 'to step', currentStep + 1);
       setCurrentStep(currentStep + 1);
     }
   };
 
   // Helper function to save as draft
-  const handleSaveAsDraft = () => {
+  const handleSaveAsDraft = (): void => {
     // In a real implementation, this would save to backend
     // For now, just update the timestamp
     setLastSaved(new Date());
@@ -1226,7 +1222,7 @@ export default function AddProgram() {
   };
 
   // Helper function to get next button text
-  const getNextButtonText = () => {
+  const getNextButtonText = (): string => {
     switch (currentStep) {
       case 1:
         return "Next";
@@ -1240,7 +1236,7 @@ export default function AddProgram() {
   };
 
   // Helper function to format last saved time
-  const getLastSavedText = () => {
+  const getLastSavedText = (): string | null => {
     if (!lastSaved) return null;
     const minutesAgo = Math.floor((new Date().getTime() - lastSaved.getTime()) / 60000);
     if (minutesAgo < 1) return "Just now";
@@ -1249,12 +1245,12 @@ export default function AddProgram() {
   };
 
   // Helper function to check if there are unsaved changes
-  const hasUnsavedChanges = () => {
+  const hasUnsavedChanges = (): boolean => {
     return selectedAthleteId || startDate || endDate || routineTypes.length > 0;
   };
 
   // Helper function to handle back button
-  const handleBack = () => {
+  const handleBack = (): void => {
     if (hasUnsavedChanges()) {
       setShowDiscardModal(true);
     } else {
@@ -3228,9 +3224,9 @@ export default function AddProgram() {
       {/* Step 2 Sub-Header */}
       {currentStep === 2 && (
         <div className="sticky top-16 z-40 border-b bg-surface-base">
-          <div className="flex h-16 items-center justify-between px-5">
-            {/* Left side: View Mode Tabs */}
-            <div className="flex items-center gap-4">
+          <div className="flex h-16 items-center px-5 relative">
+            {/* Left side: Sidebar Toggle */}
+            <div className="absolute left-5">
               <Button
                 variant="ghost"
                 size="icon"
@@ -3243,19 +3239,21 @@ export default function AddProgram() {
                   <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
                 )}
               </Button>
-              <span className="text-xs font-medium text-foreground">View by</span>
-              
+            </div>
+            
+            {/* Center: View Mode Toggle */}
+            <div className="flex items-center gap-4 mx-auto">
               <ToggleGroup
                 type="single"
                 value={viewMode}
                 onValueChange={(value) => value && setViewMode(value as "blocks" | "weeks")}
                 variant="segmented"
               >
-                <ToggleGroupItem value="blocks" aria-label="View by block" data-testid="view-blocks">
-                  By Block
+                <ToggleGroupItem value="blocks" aria-label="Block view" data-testid="view-blocks">
+                  Block view
                 </ToggleGroupItem>
-                <ToggleGroupItem value="weeks" aria-label="View by week" data-testid="view-weeks">
-                  By Week
+                <ToggleGroupItem value="weeks" aria-label="Week view" data-testid="view-weeks">
+                  Week view
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
@@ -3269,7 +3267,7 @@ export default function AddProgram() {
           <div
             className={cn(
               "fixed left-0 bottom-0 z-30 bg-surface-base border-r border-border transition-transform duration-300 overflow-y-auto",
-              currentStep === 2 ? "top-32" : "top-16",
+              "top-32",
               athleteSidebarOpen ? "translate-x-0" : "-translate-x-full"
             )}
             style={{ width: "320px" }}
@@ -3343,17 +3341,23 @@ export default function AddProgram() {
                 </div>
 
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Status</p>
                   <div className="space-y-2">
                     {selectedAthlete.status && (
-                      <div className="flex items-center gap-2">
-                        <div className={cn(
-                          "h-2 w-2 rounded-full",
-                          selectedAthlete.status === "cleared" ? "bg-green-500" :
-                          selectedAthlete.status === "not cleared" ? "bg-red-500" :
-                          "bg-yellow-500"
-                        )} />
-                        <span className="text-xs text-foreground capitalize">{selectedAthlete.status}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">Status:</span>
+                        {selectedAthlete.status === "cleared" ? (
+                          <Badge variant="default" icon={<Check className="h-3 w-3" />}>
+                            Cleared
+                          </Badge>
+                        ) : selectedAthlete.status === "not cleared" ? (
+                          <Badge variant="destructive" icon={<AlertTriangle className="h-3 w-3" />}>
+                            Not Cleared
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" icon={<AlertTriangle className="h-3 w-3" />}>
+                            Injured
+                          </Badge>
+                        )}
                       </div>
                     )}
                     {selectedAthlete.location && (
@@ -4225,16 +4229,16 @@ export default function AddProgram() {
               {blocks.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-xs font-medium">Program blocks</h3>
-                  <div className="rounded-md">
-                    <Table>
+                  <div className="rounded-md border border-[#292928]">
+                    <Table className="table-auto">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-xs">Block</TableHead>
-                          <TableHead className="text-xs">Start Date</TableHead>
-                          <TableHead className="text-xs">End Date</TableHead>
-                          <TableHead className="text-xs">Season</TableHead>
-                          <TableHead className="text-xs">Sub-Season</TableHead>
-                          <TableHead className="text-xs">Duration (weeks)</TableHead>
+                          <TableHead className="text-xs whitespace-nowrap">Block</TableHead>
+                          <TableHead className="text-xs whitespace-nowrap">Start Date</TableHead>
+                          <TableHead className="text-xs whitespace-nowrap">End Date</TableHead>
+                          <TableHead className="text-xs whitespace-nowrap">Season</TableHead>
+                          <TableHead className="text-xs whitespace-nowrap">Sub-Season</TableHead>
+                          <TableHead className="text-xs whitespace-nowrap">Duration (weeks)</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -4267,21 +4271,21 @@ export default function AddProgram() {
                               "hover:bg-muted/50"
                             )}
                           >
-                            <TableCell className="font-medium" data-testid={`block-name-${index + 1}`}>
+                            <TableCell className="font-medium whitespace-nowrap" data-testid={`block-name-${index + 1}`}>
                               {block.name}
                             </TableCell>
-                            <TableCell data-testid={`block-start-date-${index + 1}`}>
-                              <div className="flex h-8 w-full items-center justify-start rounded-lg border border-[#292928] bg-[#292928] px-3 py-2 text-xs text-[#f7f6f2] font-['Montserrat']">
+                            <TableCell className="whitespace-nowrap" data-testid={`block-start-date-${index + 1}`}>
+                              <div className="flex h-8 w-fit items-center justify-start rounded-lg border border-[#292928] bg-[#292928] px-3 py-2 text-xs text-[#f7f6f2] font-['Montserrat']">
                                 {format(blockStartDate, "EEE, MM/dd/yy")}
                               </div>
                             </TableCell>
-                            <TableCell data-testid={`block-end-date-${index + 1}`}>
+                            <TableCell className="whitespace-nowrap" data-testid={`block-end-date-${index + 1}`}>
                               <Popover onOpenChange={(open) => open && setEditingBlockIndex(index)}>
                                 <PopoverTrigger asChild>
                                   <button
                                     type="button"
                                     className={cn(
-                                      "flex h-8 w-full items-center justify-start gap-2 rounded-lg border border-[#292928] bg-[#292928] px-3 py-2 text-xs font-['Montserrat'] ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors text-[#f7f6f2]"
+                                      "flex h-8 w-fit items-center justify-start gap-2 rounded-lg border border-[#292928] bg-[#292928] px-3 py-2 text-xs font-['Montserrat'] ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors text-[#f7f6f2]"
                                     )}
                                   >
                                     <span>{format(blockEndDate, "EEE, MM/dd/yy")}</span>
@@ -4397,17 +4401,17 @@ export default function AddProgram() {
                                 </PopoverContent>
                               </Popover>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="whitespace-nowrap">
                               <div className="text-xs text-muted-foreground">
                                 Off-Season
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="whitespace-nowrap">
                               <div className="text-xs text-muted-foreground">
                                 General Off-Season (GOS)
                               </div>
                             </TableCell>
-                            <TableCell data-testid={`block-duration-${index + 1}`}>
+                            <TableCell className="whitespace-nowrap" data-testid={`block-duration-${index + 1}`}>
                               <div className={cn(
                                 "text-xs",
                                 isInvalid && "text-red-400",
@@ -5798,28 +5802,12 @@ export default function AddProgram() {
 
             {/* Step 3: Review Program */}
             {currentStep === 3 && (
-              <div className="w-full flex flex-col h-[calc(100vh-4rem)]">
-                {/* Debug: Always show this to verify Step 3 is rendering */}
-                <div className="bg-blue-500/20 border-2 border-blue-500 p-4 m-4 rounded-lg shadow-lg">
-                  <p className="text-base font-bold text-blue-700">🔍 Step 3 Debug Info:</p>
-                  <div className="mt-2 space-y-1">
-                    <p className="text-sm">Blocks: {blocks.length}</p>
-                    <p className="text-sm">Weeks in Block: {getWeeksInBlock.length}</p>
-                    <p className="text-sm">Review Block Index: {reviewBlockIndex}</p>
-                    <p className="text-sm">Review Week Index: {reviewWeekIndex}</p>
-                    <p className="text-sm">View Mode: {reviewViewMode}</p>
-                    <p className="text-sm">Start Date: {startDate ? format(startDate, "MMM d, yyyy") : "Not set"}</p>
-                    <p className="text-sm">End Date: {endDate ? format(endDate, "MMM d, yyyy") : "Not set"}</p>
-                    <p className="text-sm">Current Week: {currentWeek ? `${format(currentWeek.startDate, "MMM d")} - ${format(currentWeek.endDate, "MMM d")}` : "null"}</p>
-                    <p className="text-sm">Days of Week: {getDaysOfWeek.length}</p>
-                  </div>
-                </div>
-                
-                {/* Top Bar */}
-                <div className="border-b bg-background px-5 h-16 flex items-center shrink-0">
-                  <div className="flex items-center justify-between w-full">
-                    {/* Left Section - Block Selection and Week Navigation */}
-                    <div className="flex items-center gap-4">
+              <>
+                {/* Step 3 Sub-Header */}
+                <div className="sticky top-16 z-40 border-b bg-surface-base">
+                  <div className="flex h-16 items-center justify-between px-5 relative">
+                    {/* Left side: Sidebar Toggle */}
+                    <div className="absolute left-5">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -5832,6 +5820,10 @@ export default function AddProgram() {
                           <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
                         )}
                       </Button>
+                    </div>
+                    
+                    {/* Center: Block Selection and Week Navigation */}
+                    <div className="flex items-center gap-4 mx-auto">
                       <Select value={reviewBlockIndex.toString()} onValueChange={(val) => {
                         setReviewBlockIndex(parseInt(val));
                         setReviewWeekIndex(0);
@@ -5854,25 +5846,25 @@ export default function AddProgram() {
                       )}
                       {reviewViewMode === "week" && (
                         <>
-                      <button
-                        type="button"
-                        onClick={() => setReviewWeekIndex(Math.max(0, reviewWeekIndex - 1))}
-                        disabled={reviewWeekIndex === 0}
+                          <button
+                            type="button"
+                            onClick={() => setReviewWeekIndex(Math.max(0, reviewWeekIndex - 1))}
+                            disabled={reviewWeekIndex === 0}
                             className="p-1.5 hover:bg-muted rounded disabled:opacity-50"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </button>
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </button>
                           <span className="text-xs font-medium">
                             Week {reviewWeekIndex + 1} of {getWeeksInBlock.length}
-                      </span>
-                      <button
-                        type="button"
+                          </span>
+                          <button
+                            type="button"
                             onClick={() => setReviewWeekIndex(Math.min(getWeeksInBlock.length - 1, reviewWeekIndex + 1))}
                             disabled={reviewWeekIndex >= getWeeksInBlock.length - 1}
                             className="p-1.5 hover:bg-muted rounded disabled:opacity-50"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
                           {currentWeek && (
                             <span className="text-xs text-muted-foreground">
                               {format(currentWeek.startDate, "MMM d")} - {format(currentWeek.endDate, "MMM d, yyyy")}
@@ -5882,60 +5874,29 @@ export default function AddProgram() {
                       )}
                     </div>
 
-                    {/* Center Section - Segmented Control */}
-                    <div className="flex items-center gap-2">
+                    {/* Right side: View Mode Toggle */}
+                    <div className="flex items-center gap-4 absolute right-5">
+                      <span className="text-xs font-medium text-foreground">View</span>
                       <ToggleGroup
                         type="single"
                         value={reviewViewMode}
                         onValueChange={(val) => val && setReviewViewMode(val as "week" | "block")}
                         variant="segmented"
-                        className="h-10"
                       >
-                        <ToggleGroupItem value="block" size="sm" className="text-xs h-10">Block View</ToggleGroupItem>
-                        <ToggleGroupItem value="week" size="sm" className="text-xs h-10">Week View</ToggleGroupItem>
+                        <ToggleGroupItem value="block" aria-label="Block view" className="text-xs">
+                          Block View
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="week" aria-label="Week view" className="text-xs">
+                          Week View
+                        </ToggleGroupItem>
                       </ToggleGroup>
-                  </div>
-                    
-                    {/* Right Section */}
-                    <div className="flex items-center gap-2">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <Undo2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Undo</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <Redo2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Redo</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Settings className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setShowRepSchemes(!showRepSchemes)}>
-                            {showRepSchemes ? "Hide" : "Show"} Rep Schemes
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
                     </div>
                   </div>
+                </div>
 
                 {/* Content Area */}
-                <div className="flex-1 overflow-hidden flex flex-col">
+                <div className="w-full flex flex-col h-[calc(100vh-8rem)]">
+                  <div className="flex-1 overflow-hidden flex flex-col">
                 {/* Empty State - Show when no weeks available */}
                   {getWeeksInBlock.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center">
@@ -5947,20 +5908,20 @@ export default function AddProgram() {
                   </div>
                   ) : (
                     <>
-                {/* Week Grid View */}
+                      {/* Week Grid View */}
                       {reviewViewMode === "week" && (
-                    <div className="flex-1 overflow-auto px-5 w-full">
+                        <div className="flex-1 overflow-auto w-full bg-surface-base">
                       {/* Week Grid - Table Layout */}
                       <div className="w-full overflow-x-auto">
                         {/* Column Headers */}
-                        <div className="flex border-b bg-muted/30 sticky top-0 z-30">
+                        <div className="flex border-b bg-surface-base sticky top-0 z-30">
                           {/* Empty space for routine column */}
-                          <div className="w-10 shrink-0 border-r h-12" />
+                          <div className="w-10 shrink-0 border-r h-12 bg-surface-base" />
                           {/* Section header - empty */}
-                          <div className="w-[120px] shrink-0 border-r h-12" />
+                          <div className="w-[120px] shrink-0 border-r h-12 bg-surface-base" />
                           {/* Day headers */}
                           {getDaysOfWeek.map((day, idx) => (
-                            <div key={idx} className="w-[240px] min-w-[240px] shrink-0 text-center border-r h-12 px-3 flex flex-col justify-center bg-muted/15">
+                            <div key={idx} className="w-[240px] min-w-[240px] shrink-0 text-center border-r h-12 px-3 flex flex-col justify-center bg-surface-base">
                               <div className="text-xs font-semibold">{day.name}</div>
                               <div className="text-xs text-muted-foreground mt-0.5">
                                 {format(day.date, "MMM d")}
@@ -5973,7 +5934,7 @@ export default function AddProgram() {
                         {(routineTypes.includes("lifting") || routineTypes.includes("strength-conditioning")) && (
                           <div className="flex border-b">
                             {/* Routine Label Column (Vertical) */}
-                            <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-background overflow-hidden">
+                            <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-surface-base overflow-hidden">
                               <div className="w-10 border-r bg-orange-500/10 flex items-center justify-center" style={{ height: 'calc(3 * 2.5rem + 5rem + 3rem)' }}>
                                   <div className="-rotate-90 whitespace-nowrap transform origin-center">
                                     <span className="text-xs font-medium text-orange-700">Lifting</span>
@@ -5984,11 +5945,11 @@ export default function AddProgram() {
                             {/* Table Content */}
                             <div className="flex">
                               {/* Section Column */}
-                              <div className="w-[120px] shrink-0 border-r bg-muted/20">
-                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center">Intensity</div>
-                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center">Focus</div>
-                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center">Emphasis</div>
-                                <div className="font-medium px-3 py-2.5 text-xs border-b min-h-[80px] flex items-start pt-2.5">Exercises</div>
+                              <div className="w-[120px] shrink-0 border-r bg-surface-base">
+                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center bg-surface-base">Intensity</div>
+                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center bg-surface-base">Focus</div>
+                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center bg-surface-base">Emphasis</div>
+                                <div className="font-medium px-3 py-2.5 text-xs border-b min-h-[80px] flex items-start pt-2.5 bg-surface-base">Exercises</div>
                               </div>
                               {/* Day Columns */}
                               {getDaysOfWeek.map((day, dayIdx) => {
@@ -5999,7 +5960,7 @@ export default function AddProgram() {
                                   key={dayIdx}
                                   className={cn(
                                     "w-[240px] min-w-[240px] shrink-0 border-r",
-                                    day.isRest ? "bg-muted/30" : "bg-card/40"
+                                    day.isRest ? "bg-surface-base" : "bg-surface-base"
                                   )}
                                 >
                                     {/* Intensity */}
@@ -6157,7 +6118,7 @@ export default function AddProgram() {
                         {routineTypes.includes("throwing") && (
                           <div className="flex border-b">
                             {/* Routine Label Column (Vertical) */}
-                            <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-background overflow-hidden">
+                            <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-surface-base overflow-hidden">
                               <div className="w-10 border-r bg-blue-500/10 flex items-center justify-center" style={{ height: 'calc(1 * 2.5rem + 5rem + 3rem)' }}>
                                   <div className="-rotate-90 whitespace-nowrap transform origin-center">
                                     <span className="text-xs font-medium text-blue-700">Throwing</span>
@@ -6278,7 +6239,7 @@ export default function AddProgram() {
                         {routineTypes.includes("movement") && (
                           <div className="flex border-b">
                             {/* Routine Label Column (Vertical) */}
-                            <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-background overflow-hidden">
+                            <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-surface-base overflow-hidden">
                               <div className="w-10 border-r bg-violet-500/10 flex items-center justify-center" style={{ height: 'calc(2 * 2.5rem + 5rem + 3rem)' }}>
                                   <div className="-rotate-90 whitespace-nowrap transform origin-center">
                                     <span className="text-xs font-medium text-violet-700">Movement</span>
@@ -6408,7 +6369,7 @@ export default function AddProgram() {
                         {(routineTypes.includes("conditioning") || routineTypes.includes("strength-conditioning")) && (
                           <div className="flex border-b">
                             {/* Routine Label Column (Vertical) */}
-                            <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-background overflow-hidden">
+                            <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-surface-base overflow-hidden">
                               <div className="w-10 border-r bg-orange-500/10 flex items-center justify-center" style={{ height: 'calc(2 * 2.5rem + 3rem)' }}>
                                   <div className="-rotate-90 whitespace-nowrap transform origin-center">
                                     <span className="text-xs font-medium text-orange-700">Conditioning</span>
@@ -6484,13 +6445,13 @@ export default function AddProgram() {
 
                   {/* Block View */}
                       {reviewViewMode === "block" && (
-                    <div className="flex-1 overflow-auto px-5 w-full">
+                    <div className="flex-1 overflow-auto w-full bg-surface-base">
                       <div className="w-full overflow-x-auto">
                         {/* Day Headers */}
-                        <div className="sticky top-0 z-30 bg-background border-b">
+                        <div className="sticky top-0 z-30 bg-surface-base border-b">
                           <div className="flex min-w-max">
                             {/* Empty space for section labels */}
-                            <div className="w-[150px] shrink-0 border-r bg-muted/20 h-12 flex items-center justify-center">
+                            <div className="w-[150px] shrink-0 border-r bg-surface-base h-12 flex items-center justify-center">
                               <span className="text-xs font-medium text-muted-foreground">Sections</span>
                             </div>
                             
@@ -6526,7 +6487,7 @@ export default function AddProgram() {
                         </div>
 
                         {/* Section Rows */}
-                        <div className="min-w-max space-y-6 relative bg-background">
+                        <div className="min-w-max space-y-0.5 relative bg-surface-base">
                           {/* Rest Day Overlays - Merged cells spanning all sections */}
                           {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((dayName, dayIdx) => {
                             const dayOfWeek = dayIdx + 1;
@@ -6557,10 +6518,10 @@ export default function AddProgram() {
                           
                           {renderMovementBlockSection()}
                           {sectionConfigs.map((section, sectionIdx) => (
-                            <div key={section.id} className="border-b bg-background">
+                            <div key={section.id} className="border-b bg-surface-base">
                               <div className="flex min-w-max">
                                 {/* Section header */}
-                                <div className="w-[150px] shrink-0 border-r bg-muted/20 sticky left-0 z-20">
+                                <div className="w-[150px] shrink-0 border-r bg-surface-base sticky left-0 z-20">
                                   <div className="px-3 py-4 min-h-[100px] flex flex-col justify-center">
                                     <div className="text-xs font-semibold">{section.label}</div>
                                     <div className="text-[10px] text-muted-foreground mt-1">
@@ -6735,6 +6696,7 @@ export default function AddProgram() {
                   )}
                 </div>
               </div>
+              </>
             )}
 
           </form>

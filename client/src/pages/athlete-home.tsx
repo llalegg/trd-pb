@@ -137,25 +137,38 @@ export default function AthleteView() {
               className="bg-[#171716] flex gap-[12px] items-center p-[12px] rounded-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors"
               onClick={() => setLocation("/session-view?scrollTo=movement")}
             >
-              <div className="w-[20px] h-[20px] overflow-hidden relative">
-                <div className="absolute bg-[#ff3636] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
-                <div className="absolute bg-[#ff3636] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
-                <div className="absolute bg-[#ff3636] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
-              </div>
+              {/* No intensity indicator for Movement */}
+              <div className="w-[20px] h-[20px] flex-shrink-0"></div>
               <div className="flex-1 flex flex-col gap-[4px]">
-                <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
-                  Movement
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
+                    Movement
+                  </p>
+                  {movementRoutine.status === 'in-progress' && (
+                    <span className="text-[10px] font-medium text-[#c4af6c] font-['Montserrat'] px-1.5 py-0.5 bg-[#c4af6c]/10 rounded">in-progress</span>
+                  )}
+                  {movementRoutine.status === 'completed' && (
+                    <span className="text-[10px] font-medium text-[#979795] font-['Montserrat'] px-1.5 py-0.5 bg-[#979795]/10 rounded">complete</span>
+                  )}
+                </div>
                 <div className="flex flex-col gap-[2px]">
                   <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
                     {movementRoutine.routineType || 'Corrective A'}
                   </p>
                   <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                    {movementExerciseCount}/{movementExerciseCount} exercises | {movementTime}
+                    {movementExerciseCount}/{movementExerciseCount} exercises
                   </p>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-[#979795] flex-shrink-0" />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLocation("/session-view?scrollTo=movement");
+                }}
+                className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors"
+              >
+                Preview
+              </button>
             </div>
           )}
 
@@ -166,15 +179,24 @@ export default function AthleteView() {
                 className="flex gap-[12px] items-center p-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors"
                 onClick={() => setLocation("/session-view?scrollTo=strength")}
               >
+                {/* Intensity indicator for Lifting */}
                 <div className="w-[20px] h-[20px] overflow-hidden relative">
                   <div className="absolute bg-[#13b557] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
                   <div className="absolute bg-[#2a2a29] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
                   <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
                 </div>
                 <div className="flex-1 flex flex-col gap-[4px]">
-                  <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
-                    S&C
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
+                      S&C
+                    </p>
+                    {strengthRoutine.status === 'in-progress' && (
+                      <span className="text-[10px] font-medium text-[#c4af6c] font-['Montserrat'] px-1.5 py-0.5 bg-[#c4af6c]/10 rounded">in-progress</span>
+                    )}
+                    {strengthRoutine.status === 'completed' && (
+                      <span className="text-[10px] font-medium text-[#979795] font-['Montserrat'] px-1.5 py-0.5 bg-[#979795]/10 rounded">complete</span>
+                    )}
+                  </div>
                   <div className="flex flex-col gap-[2px]">
                     <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
                       {strengthRoutine.bodyFocus || 'Upper Body'}
@@ -182,20 +204,28 @@ export default function AthleteView() {
                     {strengthRoutine.conditioningType ? (
                       <>
                         <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                          Lifting: {strengthExerciseCount}/{strengthExerciseCount} exercises | {strengthRoutine.liftingTime || strengthTime}
+                          Lifting: {strengthExerciseCount}/{strengthExerciseCount} exercises
                         </p>
                         <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                          Conditioning: {strengthRoutine.conditioningType} | {strengthRoutine.conditioningTime}
+                          Conditioning: {strengthRoutine.conditioningType}
                         </p>
                       </>
                     ) : (
                       <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                        {strengthExerciseCount}/{strengthExerciseCount} exercises | {strengthTime}
+                        {strengthExerciseCount}/{strengthExerciseCount} exercises
                       </p>
                     )}
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#979795] flex-shrink-0" />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocation("/session-view?scrollTo=strength");
+                  }}
+                  className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors flex-shrink-0"
+                >
+                  Preview
+                </button>
               </div>
             </div>
           )}
@@ -206,15 +236,24 @@ export default function AthleteView() {
               className={`bg-[#171716] flex gap-[12px] items-center p-[12px] rounded-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors ${throwingRoutine.isRestDay ? 'opacity-60' : ''}`}
               onClick={() => !throwingRoutine.isRestDay && setLocation("/session-view?scrollTo=throwing")}
             >
+              {/* Intensity indicator for Throwing */}
               <div className="w-[20px] h-[20px] overflow-hidden relative">
                 <div className="absolute bg-[#ff8d36] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
                 <div className="absolute bg-[#ff8d36] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
                 <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
               </div>
               <div className="flex-1 flex flex-col gap-[4px]">
-                <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
-                  Throwing
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
+                    Throwing
+                  </p>
+                  {!throwingRoutine.isRestDay && throwingRoutine.status === 'in-progress' && (
+                    <span className="text-[10px] font-medium text-[#c4af6c] font-['Montserrat'] px-1.5 py-0.5 bg-[#c4af6c]/10 rounded">in-progress</span>
+                  )}
+                  {!throwingRoutine.isRestDay && throwingRoutine.status === 'completed' && (
+                    <span className="text-[10px] font-medium text-[#979795] font-['Montserrat'] px-1.5 py-0.5 bg-[#979795]/10 rounded">complete</span>
+                  )}
+                </div>
                 <div className="flex flex-col gap-[2px]">
                   {throwingRoutine.isRestDay ? (
                     <>
@@ -231,13 +270,23 @@ export default function AthleteView() {
                         {throwingRoutine.seriesType || 'Player Series A'} | {throwingRoutine.intensity || 'High Intensity'}
                       </p>
                       <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                        {throwingExerciseCount}/{throwingExerciseCount} exercises | {throwingTime}
+                        {throwingExerciseCount}/{throwingExerciseCount} exercises
                       </p>
                     </>
                   )}
                 </div>
               </div>
-              {!throwingRoutine.isRestDay && <ChevronRight className="w-4 h-4 text-[#979795] flex-shrink-0" />}
+              {!throwingRoutine.isRestDay && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocation("/session-view?scrollTo=throwing");
+                  }}
+                  className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors flex-shrink-0"
+                >
+                  Preview
+                </button>
+              )}
             </div>
           )}
         </div>

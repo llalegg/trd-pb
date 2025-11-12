@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { getSessionData } from "@/lib/sessionData";
 import { exerciseStateManager } from "@/lib/exerciseState";
+import { useQuery } from "@tanstack/react-query";
+import { type Program } from "@shared/schema";
 
 // Exercise Card Component based on Figma design
 interface ExerciseCardProps {
@@ -17,6 +19,8 @@ interface ExerciseCardProps {
     sets: number;
     reps: string;
     completedSets?: number;
+    warmUpSets?: number;
+    workingSets?: number;
   };
   isCompleted: boolean;
   routineType: string;
@@ -45,16 +49,16 @@ function ExerciseCard({ exercise, isCompleted, routineType, onClick }: ExerciseC
     return (
       <button 
         onClick={onClick}
-        className="bg-[#121210] flex items-center gap-2 h-[44px] px-3 py-[10px] rounded-xl w-full text-left hover:bg-[#1a1a19] transition-colors"
+        className="bg-[#121210] flex items-center gap-2 h-[36px] px-3 py-[8px] rounded-lg w-full text-left hover:bg-[#1a1a19] transition-all opacity-60 scale-[0.98]"
       >
         {/* Completed Icon */}
-        <div className="bg-[#1c1c1b] flex items-center justify-center p-1 rounded-full shrink-0 w-5 h-5">
-          <Check className="w-4 h-4 text-[#979795]" />
+        <div className="bg-[#1c1c1b] flex items-center justify-center rounded-full shrink-0 w-4 h-4">
+          <Check className="w-3 h-3 text-[#979795]" />
         </div>
         
         {/* Exercise Name */}
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-medium text-[#585856] font-['Montserrat'] truncate leading-[1.46] line-through">
+          <p className="text-[13px] font-medium text-[#585856] font-['Montserrat'] truncate leading-[1.46] line-through">
             {exercise.name}
           </p>
         </div>
@@ -77,6 +81,14 @@ function ExerciseCard({ exercise, isCompleted, routineType, onClick }: ExerciseC
         <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] truncate leading-[1.46]">
           {exercise.name}
         </p>
+        {/* Warm-Up Sets v. Working Sets */}
+        {(exercise.warmUpSets || exercise.workingSets) && (
+          <p className="text-[11px] font-medium text-[#979795] font-['Montserrat'] mt-0.5">
+            {exercise.warmUpSets ? `Warm-Up: ${exercise.warmUpSets} sets` : ''}
+            {exercise.warmUpSets && exercise.workingSets ? ' • ' : ''}
+            {exercise.workingSets ? `Working: ${exercise.workingSets} sets` : ''}
+          </p>
+        )}
       </div>
     </button>
   );
@@ -176,10 +188,12 @@ export default function SessionView() {
   const [showCompleted, setShowCompleted] = useState(false);
   const [showInstructionsOverlay, setShowInstructionsOverlay] = useState(false);
   const [collapsedRoutines, setCollapsedRoutines] = useState<Set<string>>(new Set());
+  const [expandedEquipment, setExpandedEquipment] = useState<Set<string>>(new Set());
   
-  // Get the selected day from URL params or default to current day (17)
+  const DEFAULT_DAY = 17;
+  // Get the selected day from URL params or default to current day
   const urlParams = new URLSearchParams(window.location.search);
-  const selectedDay = parseInt(urlParams.get('day') || '17', 10);
+  const selectedDay = parseInt(urlParams.get('day') || String(DEFAULT_DAY), 10);
 
   
   // Get session data for the selected day
@@ -324,12 +338,12 @@ export default function SessionView() {
     }
   };
 
-  const handleStartRoutine = (routineType: string) => {
+  const handleStartRoutine = (routineType: string): void => {
     setSelectedRoutine(routineType);
     setLocation("/execution-view");
   };
 
-  const goToFocusView = (routineType?: string, exerciseName?: string) => {
+  const goToFocusView = (routineType?: string, exerciseName?: string): void => {
     if (routineType && exerciseName) {
       // Direct navigation for exercise cards
       setLocation(`/focus-view?routineType=${encodeURIComponent(routineType)}&exerciseName=${encodeURIComponent(exerciseName)}`);
@@ -339,13 +353,36 @@ export default function SessionView() {
     }
   };
 
-  const handleContinueFromOverlay = () => {
+  const handleContinueFromOverlay = (): void => {
     setShowInstructionsOverlay(false);
     setLocation("/focus-view");
   };
 
-  const goToSupersetFocusView = (routineType: string) => {
+  const goToSupersetFocusView = (routineType: string): void => {
     setLocation(`/focus-view?superset=true&supersetType=${routineType}`);
+  };
+
+  const handleNavigateHome = (): void => {
+    setLocation("/home");
+  };
+
+  // Fetch programs to get programId for navigation
+  const { data: programs } = useQuery<Program[]>({
+    queryKey: ["/api/programs"],
+  });
+
+  const handleNavigateProgramPage = (): void => {
+    // Get the first program's ID, or navigate to home if no programs exist
+    if (programs && programs.length > 0) {
+      setLocation(`/program-page?id=${programs[0].id}`);
+    } else {
+      // If no program found, navigate to home instead
+      setLocation("/home");
+    }
+  };
+
+  const handleToggleCompleted = (): void => {
+    setShowCompleted(!showCompleted);
   };
 
   // Sort routines by recommended order
@@ -359,8 +396,12 @@ export default function SessionView() {
   const totalRoutines = sessionData.routines.length;
   const progressPercentage = totalRoutines > 0 ? (completedRoutines / totalRoutines) * 100 : 0;
 
-  // Get equipment for a specific routine
-  const getRoutineEquipment = (routineType: string, exercises: any[]) => {
+  interface ExerciseWithEquipment {
+    name: string;
+    equipment?: string[];
+  }
+
+  const getRoutineEquipment = (routineType: string, exercises: ExerciseWithEquipment[]): string[] => {
     const equipmentSet = new Set<string>();
     
     // Sample equipment based on routine type
@@ -376,7 +417,7 @@ export default function SessionView() {
     }
     
     // Check if exercises have equipment property
-    exercises.forEach((exercise: any) => {
+    exercises.forEach((exercise: ExerciseWithEquipment) => {
       if (exercise.equipment && Array.isArray(exercise.equipment)) {
         exercise.equipment.forEach((eq: string) => equipmentSet.add(eq));
       }
@@ -392,8 +433,9 @@ export default function SessionView() {
         {/* Navigation Bar */}
         <div className="flex items-center h-12 px-4">
           <button 
-            onClick={() => setLocation("/home")}
+            onClick={handleNavigateHome}
             className="flex items-center justify-center w-12 h-12 rounded-full hover:bg-muted/50 transition-colors"
+            data-testid="nav-back-button"
           >
             <ArrowLeft className="w-6 h-6 text-[#f7f6f2]" />
           </button>
@@ -406,8 +448,9 @@ export default function SessionView() {
             </p>
           </div>
           <button 
-            onClick={() => setLocation("/program-page")}
+            onClick={handleNavigateProgramPage}
             className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/50 transition-colors"
+            data-testid="nav-program-button"
           >
             <FileText className="w-6 h-6 text-[#f7f6f2]" />
           </button>
@@ -419,8 +462,9 @@ export default function SessionView() {
       <div className="px-4 pb-4 pt-3">
         <div className="bg-[#1a1a19] rounded-lg p-3">
           <button
-            onClick={() => setShowCompleted(!showCompleted)}
+            onClick={handleToggleCompleted}
             className="flex items-center gap-2 text-sm text-[#979795] hover:text-[#f7f6f2] transition-colors"
+            data-testid="toggle-completed-button"
           >
             <div className={`relative w-8 h-5 rounded-full transition-colors duration-200 ${showCompleted ? 'bg-[#c4af6c]' : 'bg-[#3d3d3c]'}`}>
               <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${showCompleted ? 'translate-x-3' : 'translate-x-0.5'}`} />
@@ -433,7 +477,7 @@ export default function SessionView() {
       {/* Floating Start Session Button */}
       <div className="fixed bottom-0 left-0 right-0 p-4 z-40">
         <div className="px-4">
-          <Button className="w-full" onClick={() => goToFocusView()}>
+          <Button className="w-full" onClick={() => goToFocusView()} data-testid="start-session-button">
             <Play className="h-4 w-4 mr-2" />
             Start Session
           </Button>
@@ -441,8 +485,8 @@ export default function SessionView() {
       </div>
 
       {/* Routine Cards */}
-      <div className="px-4 pt-6 pb-[100px] space-y-8">
-        {sortedRoutines.map((routine) => {
+      <div className="px-4 pt-6 pb-[100px] space-y-6">
+        {sortedRoutines.map((routine, routineIndex) => {
           const IconComponent = routineTypeIcons[routine.type as keyof typeof routineTypeIcons];
           const isCompleted = routine.status === "completed";
           
@@ -485,7 +529,7 @@ export default function SessionView() {
           return (
             <div 
               key={routine.type} 
-              className={`space-y-4 ${routineCompleted ? 'opacity-75' : ''}`} 
+              className={`space-y-3 ${routineCompleted ? 'opacity-75' : ''} ${routineIndex > 0 ? 'mt-8 pt-6 border-t border-[#292928]' : ''}`} 
               data-routine={routine.type}
             >
               {/* Routine Header - Figma Design */}
@@ -526,95 +570,89 @@ export default function SessionView() {
                     {routineCompleted && (
                       <Check className="w-4 h-4 text-[#979795] flex-shrink-0" />
                     )}
-                    <p className={`text-[16px] font-semibold font-['Montserrat'] leading-[1.5] w-full capitalize ${routineCompleted ? 'text-[#979795]' : 'text-white'}`}>
-                      {routine.type === 'strength' ? 'Strength & Conditioning' : routine.type}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[16px] font-semibold font-['Montserrat'] leading-[1.5] w-full capitalize ${routineCompleted ? 'text-[#979795]' : 'text-white'}`}>
+                        {routine.type === 'strength' ? 'Strength & Conditioning' : routine.type}
+                      </p>
+                      {/* Exercise Variation Series */}
+                      {(routine.routineType || routine.seriesType) && (
+                        <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32] mt-0.5">
+                          {routine.routineType || routine.seriesType}
+                          {routine.intensity && ` • ${routine.intensity}`}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  {getRFocusParams(routine.type).length > 0 && (
-                    <div className="flex flex-wrap gap-[4px] items-start w-full">
-                      {getRFocusParams(routine.type).map((param, index) => (
-                        <div
-                          key={index}
-                          className="backdrop-blur-[20px] bg-[rgba(255,255,255,0.08)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full shrink-0"
-                        >
-                          <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
-                            {param}
-                          </p>
-                        </div>
-                      ))}
+                </div>
+
+                {/* Right Side - Intensity Indicator (only for Lifting, Conditioning, Throwing) */}
+                <div className="flex flex-col items-end gap-[8px] shrink-0">
+                  {/* Intensity Indicator - NOT for Movement */}
+                  {routine.type !== 'movement' && (
+                    <div className="flex gap-[7px] items-center">
+                      <div className="w-[20px] h-[20px] overflow-hidden relative">
+                        {routine.type === 'strength' && (
+                          <>
+                            <div className="absolute bg-[#13b557] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
+                            <div className="absolute bg-[#2a2a29] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
+                            <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
+                          </>
+                        )}
+                        {routine.type === 'throwing' && (
+                          <>
+                            <div className="absolute bg-[#ff8d36] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
+                            <div className="absolute bg-[#ff8d36] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
+                            <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
-
-                {/* Right Side - Intensity & Time */}
-                <div className="flex flex-col items-end gap-[8px] shrink-0">
-                  {/* Intensity Indicator */}
-                  <div className="flex gap-[7px] items-center">
-                    <div className="w-[20px] h-[20px] overflow-hidden relative">
-                      {routine.type === 'movement' && (
-                        <>
-                          <div className="absolute bg-[#ff3636] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
-                          <div className="absolute bg-[#ff3636] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
-                          <div className="absolute bg-[#ff3636] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
-                        </>
-                      )}
-                      {routine.type === 'strength' && (
-                        <>
-                          <div className="absolute bg-[#13b557] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
-                          <div className="absolute bg-[#2a2a29] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
-                          <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
-                        </>
-                      )}
-                      {routine.type === 'throwing' && (
-                        <>
-                          <div className="absolute bg-[#ff8d36] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
-                          <div className="absolute bg-[#ff8d36] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
-                          <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Time */}
-                  <div className="flex gap-[7px] items-center">
-                    <div className="w-[16px] h-[16px]">
-                      <svg viewBox="0 0 16 16" className="w-4 h-4 text-[#979795]">
-                        <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1" fill="none"/>
-                        <path d="M8 4v4l3 2" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
-                      </svg>
-                    </div>
-                    <p className="text-[12px] font-medium text-[#f7f6f2] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
-                      {routine.estimatedTime}
-                    </p>
-                  </div>
-                </div>
               </div>
 
-              {/* Equipment Card */}
+              {/* Equipment Card - Clickable Icon */}
               {(() => {
                 const routineEquipment = getRoutineEquipment(routine.type, routine.exercises);
+                const isEquipmentExpanded = expandedEquipment.has(routine.type);
                 return routineEquipment.length > 0 ? (
-                  <div className="mt-4">
-                    <div className="bg-[#121210] border border-[#292928] rounded-[16px] p-[8px]">
-                      <div className="flex flex-wrap gap-[4px] items-center">
-                        {/* Dumbbell Icon */}
-                        <div className="w-[16px] h-[16px] shrink-0 flex items-center justify-center">
-                          <Dumbbell className="w-4 h-4 text-[#979795]" />
-                        </div>
-                        
-                        {/* Equipment Badges */}
-                        {routineEquipment.map((equipment, index) => (
-                          <div
-                            key={index}
-                            className="backdrop-blur-[20px] bg-[rgba(0,0,0,0.25)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full shrink-0"
-                          >
-                            <p className="text-[12px] font-medium text-[#f7f6f2] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
-                              {equipment}
-                            </p>
-                          </div>
-                        ))}
+                  <div className="mt-2">
+                    <button
+                      onClick={() => {
+                        const newExpanded = new Set(expandedEquipment);
+                        if (isEquipmentExpanded) {
+                          newExpanded.delete(routine.type);
+                        } else {
+                          newExpanded.add(routine.type);
+                        }
+                        setExpandedEquipment(newExpanded);
+                      }}
+                      className="bg-[#121210] border border-[#292928] rounded-[12px] p-[8px] w-full flex items-center gap-2 hover:bg-[#171716] transition-colors"
+                    >
+                      {/* Clickable Equipment Icon */}
+                      <div className="w-[20px] h-[20px] shrink-0 flex items-center justify-center">
+                        <Dumbbell className="w-5 h-5 text-[#979795] hover:text-[#f7f6f2] transition-colors" />
                       </div>
-                    </div>
+                      <div className="flex-1 flex flex-wrap gap-[4px] items-center">
+                        {isEquipmentExpanded ? (
+                          routineEquipment.map((equipment, index) => (
+                            <div
+                              key={index}
+                              className="backdrop-blur-[20px] bg-[rgba(0,0,0,0.25)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full shrink-0"
+                            >
+                              <p className="text-[12px] font-medium text-[#f7f6f2] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
+                                {equipment}
+                              </p>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                            {routineEquipment.length} {routineEquipment.length === 1 ? 'item' : 'items'} needed
+                          </p>
+                        )}
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-[#979795] transition-transform ${isEquipmentExpanded ? 'rotate-180' : ''}`} />
+                    </button>
                   </div>
                 ) : null;
               })()}
@@ -646,31 +684,39 @@ export default function SessionView() {
                 const isCollapsed = collapsedRoutines.has(routine.type) && allCompleted && !showCompleted;
                 
                 return (
-                  <div className="space-y-2">
-                    {/* Completed Count Header */}
-                    {completedCount > 0 && (
-                      <div className="flex items-center justify-between px-2 py-1">
+                  <div className="space-y-1.5">
+                    {/* Assigned v Completed Header */}
+                    <div className="flex items-center justify-between px-2 py-1">
+                      <div className="flex items-center gap-2">
                         <p className="text-xs font-medium text-[#979795] font-['Montserrat']">
-                          {completedCount} of {totalCount} completed
+                          Assigned: <span className="text-[#f7f6f2]">{totalCount}</span>
                         </p>
-                        {allCompleted && (
-                          <button
-                            onClick={() => {
-                              const newCollapsed = new Set(collapsedRoutines);
-                              if (isCollapsed) {
-                                newCollapsed.delete(routine.type);
-                              } else {
-                                newCollapsed.add(routine.type);
-                              }
-                              setCollapsedRoutines(newCollapsed);
-                            }}
-                            className="text-xs font-medium text-[#979795] font-['Montserrat'] hover:text-[#f7f6f2] transition-colors"
-                          >
-                            {isCollapsed ? 'Show' : 'Hide'}
-                          </button>
+                        {completedCount > 0 && (
+                          <>
+                            <span className="text-[#585856]">•</span>
+                            <p className="text-xs font-medium text-[#979795] font-['Montserrat']">
+                              Completed: <span className="text-[#c4af6c]">{completedCount}</span>
+                            </p>
+                          </>
                         )}
                       </div>
-                    )}
+                      {allCompleted && (
+                        <button
+                          onClick={() => {
+                            const newCollapsed = new Set(collapsedRoutines);
+                            if (isCollapsed) {
+                              newCollapsed.delete(routine.type);
+                            } else {
+                              newCollapsed.add(routine.type);
+                            }
+                            setCollapsedRoutines(newCollapsed);
+                          }}
+                          className="text-xs font-medium text-[#979795] font-['Montserrat'] hover:text-[#f7f6f2] transition-colors"
+                        >
+                          {isCollapsed ? 'Show' : 'Hide'}
+                        </button>
+                      )}
+                    </div>
                     
                     {/* Exercise Items */}
                     {!isCollapsed && (
@@ -695,7 +741,7 @@ export default function SessionView() {
                         )}
 
                         {/* Individual exercises */}
-                        {allExercises.map((exercise: any, index: number) => {
+                        {allExercises.map((exercise: ExerciseWithEquipment, index: number) => {
                           const isCompletedInState = exerciseStateManager.isExerciseCompleted(routine.type, exercise.name);
                           const isExerciseCompleted = isCompletedInState || 
                             (routine.type === "strength" && exercise.name === "Romanian deadlifts") ||

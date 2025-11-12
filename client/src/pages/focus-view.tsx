@@ -8,9 +8,27 @@ import { exerciseStateManager } from "@/lib/exerciseState";
 import ExerciseDetailsSheet from "@/components/ExerciseDetailsSheet";
 
 // Get session data and flatten all exercises in order
-const getSessionExercises = () => {
-  const sessionData = getSessionData(17); // Using day 17 as default
-  const allExercises: any[] = [];
+const DEFAULT_SESSION_DAY = 17;
+
+interface SessionExercise {
+  name: string;
+  sets: number;
+  reps: string;
+  weight?: string | number;
+  routineType: string;
+  description?: string;
+  equipment?: string[];
+  instructions?: string[];
+  formCues?: string[];
+  loggedResults?: unknown[];
+  restTime?: string;
+  completedSets?: number;
+  progress?: number;
+}
+
+const getSessionExercises = (): SessionExercise[] => {
+  const sessionData = getSessionData(DEFAULT_SESSION_DAY);
+  const allExercises: SessionExercise[] = [];
   
   // Flatten exercises from all routines in order
   sessionData.routines.forEach((routine) => {
@@ -266,7 +284,7 @@ export default function FocusView() {
   const [overriddenCells, setOverriddenCells] = useState<{ [key: string]: boolean }>({});
 
   // Superset table data state
-  const [supersetTableData, setSupersetTableData] = useState<{ [key: string]: any }>({});
+  const [supersetTableData, setSupersetTableData] = useState<Record<string, string>>({});
 
   // Get superset data or regular exercises
   const getSupersetData = () => {
@@ -361,11 +379,6 @@ export default function FocusView() {
   const handleCompleteAndNext = () => {
     if (isSuperset && supersetData) {
       // Handle superset completion
-      console.log('Superset completed:', {
-        superset: supersetData.name,
-        routineType: supersetType,
-        completedAt: new Date().toISOString()
-      });
 
       // Mark superset as completed in global state
       exerciseStateManager.markExerciseCompleted(
@@ -385,12 +398,6 @@ export default function FocusView() {
       [currentExerciseIndex]: 'completed'
     }));
 
-    console.log('Exercise completed:', {
-      exercise: currentExercise?.name,
-      routineType: currentExercise?.routineType,
-      data: tableData,
-      completedAt: new Date().toISOString()
-    });
 
     // Update the exercise completion using state manager
     if (currentExercise) {
@@ -432,7 +439,7 @@ export default function FocusView() {
     }
   };
 
-  const handleMoveToNextRoutine = () => {
+  const handleMoveToNextRoutine = (): void => {
     setShowSuccessScreen(false);
     
     // Find next exercise (which should be from next routine)
@@ -455,11 +462,15 @@ export default function FocusView() {
     }
   };
 
-  const handleBackToSession = () => {
+  const handleBackToSession = (): void => {
     setLocation("/session-view");
   };
 
-  const handlePreviousExercise = () => {
+  const handleNavigateToSessionView = (): void => {
+    setLocation("/session-view");
+  };
+
+  const handlePreviousExercise = (): void => {
     if (isSuperset) {
       // For supersets, just go back to session view
       setLocation("/session-view");
@@ -477,7 +488,7 @@ export default function FocusView() {
     }
   };
 
-  const handleTableInputChange = (rowIndex: number, field: string, value: string | number) => {
+  const handleTableInputChange = (rowIndex: number, field: string, value: string | number): void => {
     setTableData(prev => prev.map((row, index) => 
       index === rowIndex ? { ...row, [field]: value } : row
     ));
@@ -489,7 +500,7 @@ export default function FocusView() {
     }
   };
 
-  const handleRPEClick = (rowIndex: number, exerciseIndex?: number, event?: React.MouseEvent) => {
+  const handleRPEClick = (rowIndex: number, exerciseIndex?: number, event?: React.MouseEvent): void => {
     setSelectedRPERow(rowIndex);
     setSelectedRPEExercise(exerciseIndex || null);
     
@@ -504,18 +515,18 @@ export default function FocusView() {
     setShowRPEDropdown(true);
   };
 
-  const handleRestTimeClick = (rowIndex: number) => {
+  const handleRestTimeClick = (rowIndex: number): void => {
     setSelectedRestTimeRow(rowIndex);
     setShowRestTimeSelector(true);
   };
 
-  const handleRestTimeSelect = (value: string) => {
+  const handleRestTimeSelect = (value: string): void => {
     if (selectedRestTimeRow !== null) {
       handleTableInputChange(selectedRestTimeRow, 'restTime', value);
     }
   };
 
-  const handleRPESelect = (value: string) => {
+  const handleRPESelect = (value: string): void => {
     if (selectedRPERow !== null) {
       if (isSuperset && selectedRPEExercise !== null) {
         // Handle superset RPE selection
@@ -532,7 +543,7 @@ export default function FocusView() {
   };
 
   // Get tracking fields based on routine type
-  const getTrackingFields = (routineType: string) => {
+  const getTrackingFields = (routineType: string): string[] => {
     switch (routineType) {
       case 'strength':
         return ['reps', 'weight', 'rpe', 'restTime'];
@@ -562,13 +573,13 @@ export default function FocusView() {
     : baseTrackingFields;
 
   // Helper function to check if a cell is overridden
-  const isCellOverridden = (rowIndex: number, field: string) => {
+  const isCellOverridden = (rowIndex: number, field: string): boolean => {
     const cellKey = `${rowIndex}-${field}`;
     return overriddenCells[cellKey] || false;
   };
 
   // Helper function to check if a value is custom (different from default)
-  const isCustomValue = (rowIndex: number, field: string, value: any) => {
+  const isCustomValue = (rowIndex: number, field: string, value: string | number): boolean => {
     // Only show as custom if the cell has been explicitly overridden by the user
     const cellKey = `${rowIndex}-${field}`;
     if (!overriddenCells[cellKey]) {
@@ -588,13 +599,13 @@ export default function FocusView() {
   };
 
   // Helper function to get superset RPE value
-  const getSupersetRPE = (exerciseIndex: number, setIndex: number) => {
+  const getSupersetRPE = (exerciseIndex: number, setIndex: number): string => {
     const key = `${exerciseIndex}-${setIndex}-rpe`;
     return supersetTableData[key] || '';
   };
 
   // Helper function to set superset RPE value
-  const setSupersetRPE = (exerciseIndex: number, setIndex: number, value: string) => {
+  const setSupersetRPE = (exerciseIndex: number, setIndex: number, value: string): void => {
     const key = `${exerciseIndex}-${setIndex}-rpe`;
     setSupersetTableData(prev => ({ ...prev, [key]: value }));
     
@@ -605,7 +616,7 @@ export default function FocusView() {
   };
 
   // Video slider handlers for superset
-  const handleVideoSwipe = (direction: 'left' | 'right') => {
+  const handleVideoSwipe = (direction: 'left' | 'right'): void => {
     if (!isSuperset || !supersetData) return;
     
     if (direction === 'left' && currentVideoIndex > 0) {
@@ -616,7 +627,7 @@ export default function FocusView() {
   };
 
   // Get next routine type for success screen
-  const getNextRoutineType = () => {
+  const getNextRoutineType = (): string | null => {
     const routineOrder = ['movement', 'strength', 'throwing'];
     const currentIndex = routineOrder.indexOf(completedRoutineType);
     if (currentIndex !== -1 && currentIndex < routineOrder.length - 1) {
@@ -695,12 +706,21 @@ export default function FocusView() {
 
   // Show intro screen as a full page when needed
   if (shouldShowIntroScreen) {
+    if (!currentExercise) {
+      return (
+        <div className="bg-[#0d0d0c] min-h-screen w-full flex items-center justify-center">
+          <p className="text-[#979795]">Exercise not found</p>
+        </div>
+      );
+    }
+
     return (
       <div className="bg-[#0d0d0c] min-h-screen w-full flex flex-col relative">
         {/* Close Button - Top Right */}
         <button 
-          onClick={() => setLocation("/session-view")}
+          onClick={handleNavigateToSessionView}
           className="absolute top-4 right-4 w-10 h-10 bg-[#292928] rounded-full flex items-center justify-center z-50"
+          data-testid="close-intro-button"
         >
           <X className="w-6 h-6 text-[#f7f6f2]" />
         </button>
@@ -728,53 +748,59 @@ export default function FocusView() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-[#979795]">Rest Time</p>
-                  <p className="text-lg font-semibold text-[#f7f6f2]">{currentExercise.restTime}</p>
+                  <p className="text-lg font-semibold text-[#f7f6f2]">{currentExercise.restTime || "2:00"}</p>
                 </div>
               </div>
             </div>
 
             {/* Equipment Section */}
-            <div className="space-y-3">
-              <h2 className="text-base font-semibold text-[#f7f6f2]">Equipment needed</h2>
-              <div className="flex flex-wrap gap-2">
-                {currentExercise.equipment.map((equipmentName: string, index: number) => (
-                  <button
-                    key={index}
-                    className="px-3 py-2 bg-[#171716] rounded-lg text-sm text-[#f7f6f2] hover:bg-[#292928] transition-colors"
-                  >
-                    {equipmentName}
-                  </button>
-                ))}
+            {currentExercise.equipment && currentExercise.equipment.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-base font-semibold text-[#f7f6f2]">Equipment needed</h2>
+                <div className="flex flex-wrap gap-2">
+                  {currentExercise.equipment.map((equipmentName: string, index: number) => (
+                    <button
+                      key={index}
+                      className="px-3 py-2 bg-[#171716] rounded-lg text-sm text-[#f7f6f2] hover:bg-[#292928] transition-colors"
+                    >
+                      {equipmentName}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Set-up Instructions Section */}
-            <div className="space-y-3">
-              <h2 className="text-base font-semibold text-[#f7f6f2]">Set-up Instructions</h2>
-              <div className="space-y-2">
-                {currentExercise.instructions.map((instruction: string, index: number) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-[#171716] flex items-center justify-center text-xs font-semibold text-[#979795] mt-0.5 shrink-0">
-                      {index + 1}
+            {currentExercise.instructions && currentExercise.instructions.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-base font-semibold text-[#f7f6f2]">Set-up Instructions</h2>
+                <div className="space-y-2">
+                  {currentExercise.instructions.map((instruction: string, index: number) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-[#171716] flex items-center justify-center text-xs font-semibold text-[#979795] mt-0.5 shrink-0">
+                        {index + 1}
+                      </div>
+                      <p className="text-sm text-[#979795] leading-relaxed">{instruction}</p>
                     </div>
-                    <p className="text-sm text-[#979795] leading-relaxed">{instruction}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-      </div>
+            )}
 
             {/* How-to Section */}
-            <div className="space-y-3">
-              <h2 className="text-base font-semibold text-[#f7f6f2]">How-to</h2>
-              <div className="space-y-2">
-                {currentExercise.formCues.map((cue: string, index: number) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div className="w-2 h-2 rounded-full bg-[#585856] mt-2 shrink-0" />
-                    <p className="text-sm text-[#979795] leading-relaxed">{cue}</p>
-                  </div>
-                ))}
+            {currentExercise.formCues && currentExercise.formCues.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-base font-semibold text-[#f7f6f2]">How-to</h2>
+                <div className="space-y-2">
+                  {currentExercise.formCues.map((cue: string, index: number) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-[#585856] mt-2 shrink-0" />
+                      <p className="text-sm text-[#979795] leading-relaxed">{cue}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -881,7 +907,6 @@ export default function FocusView() {
                 className="bg-[#121210] border-b border-[#292928] px-4 py-3 flex items-center justify-between w-full text-left hover:bg-[#171716] transition-colors"
               >
                 <div className="flex-1">
-                  <p className="text-xs text-[#979795] font-medium font-['Montserrat']">Exercise</p>
                   <h1 className="text-base font-semibold text-[#f7f6f2] font-['Montserrat']">{exercise.name}</h1>
                 </div>
                 <ChevronRight className="w-6 h-6 text-[#979795]" />
@@ -892,43 +917,47 @@ export default function FocusView() {
                 <div className="min-w-[500px]">
                   {/* Table Header */}
                   <div className="bg-[#121210] flex">
-                    <div className="w-[54px] px-4 py-3 border-r border-[#292928] flex-shrink-0">
+                    <div className="w-[54px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center justify-center">
                       <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Set</p>
                     </div>
                     {trackingFields.includes('reps') && (
-                      <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex-shrink-0">
+                      <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center justify-center">
                         <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Reps</p>
                       </div>
                     )}
                     {trackingFields.includes('weight') && (
-                      <div className="w-[120px] px-4 py-3 border-r border-[#292928] flex-shrink-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Weight</p>
-                          <div className="flex items-center gap-0.5">
-                            <button
-                              onClick={() => setWeightUnit('lbs')}
-                              className={cn(
-                                "text-[9px] px-1 py-0.5 rounded min-w-[18px]",
-                                weightUnit === 'lbs' ? "bg-[#292928] text-[#f7f6f2]" : "text-[#979795] hover:bg-[#171716]"
-                              )}
-                            >
-                              lbs
-                            </button>
-                            <button
-                              onClick={() => setWeightUnit('kg')}
-                              className={cn(
-                                "text-[9px] px-1 py-0.5 rounded min-w-[18px]",
-                                weightUnit === 'kg' ? "bg-[#292928] text-[#f7f6f2]" : "text-[#979795] hover:bg-[#171716]"
-                              )}
-                            >
-                              kg
-                            </button>
-                          </div>
+                      <div className="w-[120px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center justify-center gap-2">
+                        <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Weight</p>
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setWeightUnit('lbs');
+                            }}
+                            className={cn(
+                              "text-[9px] px-1 py-0.5 rounded min-w-[18px]",
+                              weightUnit === 'lbs' ? "bg-[#292928] text-[#f7f6f2]" : "text-[#979795] hover:bg-[#171716]"
+                            )}
+                          >
+                            lbs
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setWeightUnit('kg');
+                            }}
+                            className={cn(
+                              "text-[9px] px-1 py-0.5 rounded min-w-[18px]",
+                              weightUnit === 'kg' ? "bg-[#292928] text-[#f7f6f2]" : "text-[#979795] hover:bg-[#171716]"
+                            )}
+                          >
+                            kg
+                          </button>
                         </div>
                       </div>
                     )}
                     {trackingFields.includes('rpe') && (
-                      <div className="w-[80px] px-4 py-3 flex-shrink-0">
+                      <div className="w-[80px] px-4 py-3 flex-shrink-0 flex items-center justify-center">
                         <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">RPE</p>
                       </div>
                     )}
@@ -938,12 +967,12 @@ export default function FocusView() {
                   <div>
                     {Array.from({ length: supersetData.sets }, (_, setIndex) => (
                       <div key={setIndex} className="flex h-12 border-b border-[#292928]">
-                        <div className="w-[54px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0">
+                        <div className="w-[54px] px-4 py-3 border-r border-[#292928] flex items-center justify-center flex-shrink-0">
                           <p className="text-sm font-semibold text-[#979795] font-['Montserrat']">{setIndex + 1}</p>
                         </div>
                         {trackingFields.includes('reps') && (
                           <div className={cn(
-                            "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                            "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center justify-center flex-shrink-0",
                             isCellOverridden(setIndex, `${exerciseIndex}-reps`) && "bg-[#16140F]"
                           )}>
                             <input
@@ -951,7 +980,7 @@ export default function FocusView() {
                               defaultValue={exercise.reps}
                               onChange={(e) => handleTableInputChange(setIndex, `${exerciseIndex}-reps`, parseInt(e.target.value) || 0)}
                               className={cn(
-                                "w-full bg-transparent text-sm font-['Montserrat'] border-none outline-none",
+                                "w-full bg-transparent text-sm font-['Montserrat'] border-none outline-none text-center",
                                 exercise.reps !== "110" ? "text-[#ff8c00]" : "text-[#f7f6f2]"
                               )}
                             />
@@ -959,7 +988,7 @@ export default function FocusView() {
                         )}
                         {trackingFields.includes('weight') && (
                           <div className={cn(
-                            "w-[120px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                            "w-[120px] px-4 py-3 border-r border-[#292928] flex items-center justify-center flex-shrink-0",
                             isCellOverridden(setIndex, `${exerciseIndex}-weight`) && "bg-[#16140F]"
                           )}>
                             <input
@@ -983,7 +1012,7 @@ export default function FocusView() {
                                 }
                               }}
                               className={cn(
-                                "w-full bg-transparent text-sm font-['Montserrat'] border-none outline-none",
+                                "w-full bg-transparent text-sm font-['Montserrat'] border-none outline-none text-center",
                                 (() => {
                                   const raw = exercise.weight as string;
                                   const numeric = parseFloat(raw);
@@ -995,12 +1024,12 @@ export default function FocusView() {
                         )}
                         {trackingFields.includes('rpe') && (
                           <div className={cn(
-                            "w-[80px] px-4 py-3 flex items-center flex-shrink-0",
+                            "w-[80px] px-4 py-3 flex items-center justify-center flex-shrink-0",
                             isCellOverridden(setIndex, `${exerciseIndex}-rpe`) && "bg-[#16140F]"
                           )}>
                             <button
                               onClick={(e) => handleRPEClick(setIndex, exerciseIndex, e)}
-                              className="w-full flex items-center justify-between bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
+                              className="w-full flex items-center justify-center gap-1 bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
                             >
                               <span className={cn(
                                 getSupersetRPE(exerciseIndex, setIndex) && getSupersetRPE(exerciseIndex, setIndex) !== "6" ? "text-[#ff8c00]" : "text-[#f7f6f2]"
@@ -1074,8 +1103,9 @@ export default function FocusView() {
 
         {/* X Button - Top Right */}
         <button 
-          onClick={() => setLocation("/session-view")}
+          onClick={handleNavigateToSessionView}
           className="fixed top-4 right-4 w-10 h-10 bg-[#292928] rounded-full flex items-center justify-center z-50 shadow-lg"
+          data-testid="close-superset-button"
         >
           <X className="w-6 h-6 text-[#f7f6f2]" />
         </button>
@@ -1164,7 +1194,7 @@ export default function FocusView() {
       >
         <div className="flex-1">
           <p className="text-xs text-[#979795] font-medium font-['Montserrat']">Exercise</p>
-          <h1 className="text-base font-semibold text-[#f7f6f2] font-['Montserrat']">{currentExercise.name}</h1>
+          <h1 className="text-base font-semibold text-[#f7f6f2] font-['Montserrat']">{currentExercise?.name || 'Exercise'}</h1>
         </div>
         <ChevronRight className="w-6 h-6 text-[#979795]" />
       </button>
@@ -1174,58 +1204,62 @@ export default function FocusView() {
         <div className="min-w-[500px] flex-1 flex flex-col">
           {/* Table Header */}
           <div className="bg-[#121210] flex">
-            <div className="w-[54px] px-4 py-3 border-r border-[#292928] flex-shrink-0">
+            <div className="w-[54px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center justify-center">
               <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Set</p>
             </div>
             {trackingFields.includes('reps') && (
-              <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex-shrink-0">
+              <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center justify-center">
                 <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Reps</p>
               </div>
             )}
             {trackingFields.includes('weight') && (
-              <div className="w-[120px] px-4 py-3 border-r border-[#292928] flex-shrink-0">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Weight</p>
-                  <div className="flex items-center gap-0.5">
-                    <button
-                      onClick={() => setWeightUnit('lbs')}
-                      className={cn(
-                        "text-[9px] px-1 py-0.5 rounded min-w-[18px]",
-                        weightUnit === 'lbs' ? "bg-[#292928] text-[#f7f6f2]" : "text-[#979795] hover:bg-[#171716]"
-                      )}
-                    >
-                      lbs
-                    </button>
-                    <button
-                      onClick={() => setWeightUnit('kg')}
-                      className={cn(
-                        "text-[9px] px-1 py-0.5 rounded min-w-[18px]",
-                        weightUnit === 'kg' ? "bg-[#292928] text-[#f7f6f2]" : "text-[#979795] hover:bg-[#171716]"
-                      )}
-                    >
-                      kg
-                    </button>
-                  </div>
+              <div className="w-[120px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center justify-center gap-2">
+                <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Weight</p>
+                <div className="flex items-center gap-0.5">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setWeightUnit('lbs');
+                    }}
+                    className={cn(
+                      "text-[9px] px-1 py-0.5 rounded min-w-[18px]",
+                      weightUnit === 'lbs' ? "bg-[#292928] text-[#f7f6f2]" : "text-[#979795] hover:bg-[#171716]"
+                    )}
+                  >
+                    lbs
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setWeightUnit('kg');
+                    }}
+                    className={cn(
+                      "text-[9px] px-1 py-0.5 rounded min-w-[18px]",
+                      weightUnit === 'kg' ? "bg-[#292928] text-[#f7f6f2]" : "text-[#979795] hover:bg-[#171716]"
+                    )}
+                  >
+                    kg
+                  </button>
                 </div>
               </div>
             )}
             {trackingFields.includes('velocity') && (
-              <div className="w-[90px] px-4 py-3 border-r border-[#292928] flex-shrink-0">
+              <div className="w-[90px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center justify-center">
                 <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Velocity</p>
               </div>
             )}
             {trackingFields.includes('accuracy') && (
-              <div className="w-[90px] px-4 py-3 border-r border-[#292928] flex-shrink-0">
+              <div className="w-[90px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center justify-center">
                 <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Accuracy</p>
               </div>
             )}
             {trackingFields.includes('rpe') && (
-              <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex-shrink-0">
+              <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center justify-center">
                 <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">RPE</p>
               </div>
             )}
             {trackingFields.includes('restTime') && (
-              <div className="w-[70px] px-4 py-3 flex-shrink-0">
+              <div className="w-[70px] px-4 py-3 flex-shrink-0 flex items-center justify-center">
                 <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Rest</p>
               </div>
             )}
@@ -1235,12 +1269,12 @@ export default function FocusView() {
           <div className="flex-1">
             {tableData.map((row, index) => (
               <div key={index} className="flex h-12 border-b border-[#292928]">
-                <div className="w-[54px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0">
+                <div className="w-[54px] px-4 py-3 border-r border-[#292928] flex items-center justify-center flex-shrink-0">
                   <p className="text-sm font-semibold text-[#979795] font-['Montserrat']">{row.set}</p>
                 </div>
                 {trackingFields.includes('reps') && (
                   <div className={cn(
-                    "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                    "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center justify-center flex-shrink-0",
                     isCellOverridden(index, 'reps') && "bg-[#16140F]"
                   )}>
                     <input
@@ -1248,7 +1282,7 @@ export default function FocusView() {
                       value={row.reps}
                       onChange={(e) => handleTableInputChange(index, 'reps', parseInt(e.target.value) || 0)}
                       className={cn(
-                        "w-full bg-transparent text-sm font-['Montserrat'] border-none outline-none",
+                        "w-full bg-transparent text-sm font-['Montserrat'] border-none outline-none text-center",
                         isCustomValue(index, 'reps', row.reps) ? "text-[#ff8c00]" : "text-[#f7f6f2]"
                       )}
                     />
@@ -1256,7 +1290,7 @@ export default function FocusView() {
                 )}
                 {trackingFields.includes('weight') && (
                   <div className={cn(
-                    "w-[120px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                    "w-[120px] px-4 py-3 border-r border-[#292928] flex items-center justify-center flex-shrink-0",
                     isCellOverridden(index, 'weight') && "bg-[#16140F]"
                   )}>
                     <input
@@ -1271,7 +1305,7 @@ export default function FocusView() {
                         handleTableInputChange(index, 'weight', Math.round(lbs * 10) / 10);
                       }}
                       className={cn(
-                        "w-full bg-transparent text-sm font-['Montserrat'] border-none outline-none",
+                        "w-full bg-transparent text-sm font-['Montserrat'] border-none outline-none text-center",
                         isCustomValue(index, 'weight', row.weight) ? "text-[#ff8c00]" : "text-[#f7f6f2]"
                       )}
                     />
@@ -1279,40 +1313,40 @@ export default function FocusView() {
                 )}
                 {trackingFields.includes('velocity') && (
                   <div className={cn(
-                    "w-[90px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                    "w-[90px] px-4 py-3 border-r border-[#292928] flex items-center justify-center flex-shrink-0",
                     isCellOverridden(index, 'velocity') && "bg-[#16140F]"
                   )}>
                     <input
                       type="number"
-                      value={(row as any).velocity || ''}
+                      value={(row as { velocity?: number }).velocity ?? ''}
                       onChange={(e) => handleTableInputChange(index, 'velocity', parseInt(e.target.value) || 0)}
-                      className="w-full bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
+                      className="w-full bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none text-center"
                       placeholder="mph"
                     />
                   </div>
                 )}
                 {trackingFields.includes('accuracy') && (
                   <div className={cn(
-                    "w-[90px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                    "w-[90px] px-4 py-3 border-r border-[#292928] flex items-center justify-center flex-shrink-0",
                     isCellOverridden(index, 'accuracy') && "bg-[#16140F]"
                   )}>
                     <input
                       type="number"
-                      value={(row as any).accuracy || ''}
+                      value={(row as { accuracy?: number }).accuracy ?? ''}
                       onChange={(e) => handleTableInputChange(index, 'accuracy', parseInt(e.target.value) || 0)}
-                      className="w-full bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
+                      className="w-full bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none text-center"
                       placeholder="%"
                     />
                   </div>
                 )}
                 {trackingFields.includes('rpe') && (
                   <div className={cn(
-                    "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
+                    "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center justify-center flex-shrink-0",
                     isCellOverridden(index, 'rpe') && "bg-[#16140F]"
                   )}>
                     <button
                       onClick={(e) => handleRPEClick(index, undefined, e)}
-                      className="w-full flex items-center justify-between bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
+                      className="w-full flex items-center justify-center bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
                     >
                       <span className={cn(
                         isCustomValue(index, 'rpe', row.rpe) ? "text-[#ff8c00]" : "text-[#f7f6f2]"
@@ -1323,12 +1357,12 @@ export default function FocusView() {
                 )}
                 {trackingFields.includes('restTime') && (
                   <div className={cn(
-                    "w-[70px] px-4 py-3 flex items-center flex-shrink-0",
+                    "w-[70px] px-4 py-3 flex items-center justify-center flex-shrink-0",
                     isCellOverridden(index, 'restTime') && "bg-[#16140F]"
                   )}>
                     <button
                       onClick={() => handleRestTimeClick(index)}
-                      className="w-full flex items-center justify-between bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
+                      className="w-full flex items-center justify-center gap-1 bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
                     >
                       <span className={cn(
                         isCustomValue(index, 'restTime', row.restTime) ? "text-[#ff8c00]" : "text-[#f7f6f2]"
@@ -1425,7 +1459,12 @@ export default function FocusView() {
       {/* Exercise Details Bottom Sheet */}
       {showExerciseDetails && currentExercise && (
         <ExerciseDetailsSheet
-          exercise={currentExercise}
+          exercise={{
+            ...currentExercise,
+            id: currentExercise.name.toLowerCase().replace(/\s+/g, '-'),
+            weight: typeof currentExercise.weight === 'number' ? String(currentExercise.weight) : currentExercise.weight,
+            description: currentExercise.description || ''
+          }}
           onClose={() => setShowExerciseDetails(false)}
         />
       )}

@@ -207,16 +207,17 @@ export default function ExecutionView() {
   const [showEnterResults, setShowEnterResults] = useState(false);
   const [showExerciseDetails, setShowExerciseDetails] = useState(false);
   const [timerActive, setTimerActive] = useState(false);
-  const [exerciseResults, setExerciseResults] = useState<any[]>([]);
+  const [exerciseResults, setExerciseResults] = useState<SetResult[]>([]);
   const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set());
-  const [timerSeconds, setTimerSeconds] = useState(300); // 5 minutes default
+  const DEFAULT_TIMER_SECONDS = 300; // 5 minutes in seconds
+  const [timerSeconds, setTimerSeconds] = useState(DEFAULT_TIMER_SECONDS);
   const [timerRunning, setTimerRunning] = useState(false);
 
   const currentExercise = mockRoutine.exercises[currentExerciseIndex];
   const completedExercises = mockRoutine.exercises.filter(ex => ex.status === "complete").length;
   const progressPercentage = (completedExercises / mockRoutine.exercises.length) * 100;
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): React.ReactElement => {
     switch (status) {
       case "complete":
         return <CheckCircle className="h-4 w-4 text-muted-foreground" />;
@@ -227,7 +228,7 @@ export default function ExecutionView() {
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status: string): string => {
     switch (status) {
       case "complete":
         return "Complete";
@@ -239,19 +240,26 @@ export default function ExecutionView() {
   };
 
 
-  const handleSaveResults = (_setIndex: number, result: any) => {
+  interface SetResult {
+    reps?: string;
+    weight?: string;
+    time?: string;
+    rpe?: string;
+    notes?: string;
+  }
+
+  const handleSaveResults = (_setIndex: number, result: SetResult): void => {
     setExerciseResults([result]);
     setShowEnterResults(false);
     // TODO: Update exercise status to complete
   };
 
-  const handleFinishRoutine = () => {
+  const handleFinishRoutine = (): void => {
     // TODO: Mark routine as complete and navigate back
-    console.log("Routine completed!");
     setLocation("/session-view");
   };
 
-  const toggleExerciseExpansion = (exerciseId: string) => {
+  const toggleExerciseExpansion = (exerciseId: string): void => {
     setExpandedExercises(prev => {
       const newSet = new Set(prev);
       if (newSet.has(exerciseId)) {
@@ -263,28 +271,28 @@ export default function ExecutionView() {
     });
   };
 
-  const handleEnterResultsForExercise = (exerciseId: string) => {
+  const handleEnterResultsForExercise = (exerciseId: string): void => {
     const exerciseIndex = mockRoutine.exercises.findIndex(ex => ex.id === exerciseId);
     setCurrentExerciseIndex(exerciseIndex);
     setShowEnterResults(true);
   };
 
-  const handleViewDetailsForExercise = (exerciseId: string) => {
+  const handleViewDetailsForExercise = (exerciseId: string): void => {
     const exerciseIndex = mockRoutine.exercises.findIndex(ex => ex.id === exerciseId);
     setCurrentExerciseIndex(exerciseIndex);
     setShowExerciseDetails(true);
   };
 
-  const toggleTimer = () => {
+  const toggleTimer = (): void => {
     setTimerRunning(!timerRunning);
   };
 
-  const resetTimer = () => {
+  const resetTimer = (): void => {
     setTimerRunning(false);
-    setTimerSeconds(300);
+    setTimerSeconds(DEFAULT_TIMER_SECONDS);
   };
 
-  const formatTime = (seconds: number) => {
+  const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
@@ -384,16 +392,18 @@ export default function ExecutionView() {
                   {isExpanded && (
                     <div className="mt-3 pt-3 border-t border-border space-y-3">
                       <div className="flex gap-2">
-                        <Button 
-                          className="flex-1"
-                          onClick={() => handleEnterResultsForExercise(exercise.id)}
-                        >
+          <Button 
+            className="flex-1"
+            onClick={() => handleEnterResultsForExercise(exercise.id)}
+            data-testid={`enter-results-button-${exercise.id}`}
+          >
                           <Check className="h-4 w-4 mr-2" />
                           Enter results
                         </Button>
                         <Button 
                           variant="outline"
                           onClick={() => handleViewDetailsForExercise(exercise.id)}
+                          data-testid={`view-details-button-${exercise.id}`}
                         >
                           Details
                         </Button>

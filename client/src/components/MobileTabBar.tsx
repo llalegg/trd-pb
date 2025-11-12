@@ -4,7 +4,15 @@ import { useLocation } from "wouter";
 
 type TabKey = "home" | "messages" | "vault" | "me";
 
-const tabs: Array<{ key: TabKey; label: string; href: string; icon: any; disabled?: boolean }> = [
+interface TabConfig {
+  key: TabKey;
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  disabled?: boolean;
+}
+
+const tabs: TabConfig[] = [
   { key: "home", label: "Home", href: "/home", icon: Home },
   { key: "messages", label: "Messages", href: "/messages", icon: MessageCircleMore, disabled: true },
   { key: "vault", label: "Vault", href: "/vault", icon: SquarePlay, disabled: true },

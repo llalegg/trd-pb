@@ -171,13 +171,14 @@ export default function CoachSessionView() {
     });
   };
 
+  const AUTO_SAVE_DEBOUNCE_MS = 1000;
+
   // Auto-save on changes
   useEffect(() => {
     // Debounce auto-save
     const timeoutId = setTimeout(() => {
       // TODO: Save to API
-      console.log("Auto-saving results:", exerciseResults);
-    }, 1000);
+    }, AUTO_SAVE_DEBOUNCE_MS);
     
     return () => clearTimeout(timeoutId);
   }, [exerciseResults]);

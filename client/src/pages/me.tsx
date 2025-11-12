@@ -93,9 +93,7 @@ export default function MePage() {
                 variant="ghost"
                 className="w-full justify-between px-0 h-auto hover:bg-transparent"
                 onClick={() => {
-                  if (item.href === "#") {
-                    console.log(`Navigate to ${item.label}`);
-                  } else {
+                  if (item.href !== "#") {
                     setLocation(item.href);
                   }
                 }}
@@ -124,9 +122,7 @@ export default function MePage() {
                 variant="ghost"
                 className="w-full justify-between px-0 h-auto hover:bg-transparent"
                 onClick={() => {
-                  if (item.href === "#") {
-                    console.log(`Navigate to ${item.label}`);
-                  } else {
+                  if (item.href !== "#") {
                     setLocation(item.href);
                   }
                 }}
@@ -152,9 +148,7 @@ export default function MePage() {
                 variant="ghost"
                 className="w-full justify-between px-0 h-auto hover:bg-transparent"
                 onClick={() => {
-                  if (item.href === "#") {
-                    console.log(`Navigate to ${item.label}`);
-                  } else {
+                  if (item.href !== "#") {
                     setLocation(item.href);
                   }
                 }}
