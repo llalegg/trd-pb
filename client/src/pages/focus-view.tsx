@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ChevronRight, Play, Clock, Video, Check, X, ChevronLeft, ChevronDown, ArrowLeft, ArrowRight } from "lucide-react";
+import { ChevronRight, Play, Clock, Video, Check, X, ChevronLeft, ChevronDown, ArrowLeft, ArrowRight, Shuffle, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getSessionData } from "@/lib/sessionData";
@@ -248,6 +248,8 @@ export default function FocusView() {
   const [selectedRestTimeRow, setSelectedRestTimeRow] = useState<number | null>(null);
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
   const [completedRoutineType, setCompletedRoutineType] = useState<string>('');
+  const [showVariationsSheet, setShowVariationsSheet] = useState(false);
+  const [selectedExerciseForVariations, setSelectedExerciseForVariations] = useState<{name: string; routineType: string} | null>(null);
   
   // Weight unit state (lbs by default)
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs');
@@ -899,18 +901,120 @@ export default function FocusView() {
           {supersetData.exercises.map((exercise, exerciseIndex) => (
             <div key={exerciseIndex} className="mb-0">
               {/* Exercise Title */}
-              <button 
-                onClick={() => {
-                  setSelectedExerciseIndex(exerciseIndex);
-                  setShowExerciseDetails(true);
-                }}
-                className="bg-[#121210] border-b border-[#292928] px-4 py-3 flex items-center justify-between w-full text-left hover:bg-[#171716] transition-colors"
-              >
+              <div className="bg-[#121210] border-b border-[#292928] px-4 py-3 flex items-center justify-between w-full">
                 <div className="flex-1">
                   <h1 className="text-base font-semibold text-[#f7f6f2] font-['Montserrat']">{exercise.name}</h1>
                 </div>
-                <ChevronRight className="w-6 h-6 text-[#979795]" />
-              </button>
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    // Get variation count
+                    const getExerciseVariations = (exerciseName: string, routineType: string): Array<{name: string; equipment: string[]}> => {
+                      const variationsMap: { [key: string]: Array<{name: string; equipment: string[]}> } = {
+                        "dynamic warm-up throws": [
+                          { name: "Dynamic warm-up throws", equipment: ["Baseball", "Glove"] },
+                          { name: "Standing warm-up throws", equipment: ["Baseball", "Glove"] },
+                          { name: "Kneeling warm-up throws", equipment: ["Baseball", "Glove", "Knee Pad"] },
+                          { name: "Long toss warm-up", equipment: ["Baseball", "Glove", "Pitching Target"] },
+                        ],
+                        "romanian deadlifts": [
+                          { name: "Romanian deadlifts", equipment: ["Barbell", "Weight Plates"] },
+                          { name: "Romanian deadlifts (Dumbbells)", equipment: ["Dumbbells"] },
+                          { name: "Single-leg Romanian deadlifts", equipment: ["Dumbbell"] },
+                          { name: "Romanian deadlifts (Kettlebell)", equipment: ["Kettlebell"] },
+                        ],
+                        "hip mobility circuit": [
+                          { name: "Hip mobility circuit", equipment: ["Resistance Bands", "Foam Roller"] },
+                          { name: "Hip mobility circuit (Advanced)", equipment: ["Resistance Bands", "Foam Roller", "Yoga Mat"] },
+                          { name: "Hip mobility circuit (Minimal)", equipment: ["Yoga Mat"] },
+                        ],
+                        "shoulder activation": [
+                          { name: "Shoulder activation", equipment: ["Resistance Bands"] },
+                          { name: "Shoulder activation (Dumbbells)", equipment: ["Dumbbells"] },
+                          { name: "Shoulder activation (Cables)", equipment: ["Cable Machine"] },
+                          { name: "Shoulder activation (Bodyweight)", equipment: [] },
+                        ],
+                        "core stability work": [
+                          { name: "Core stability work", equipment: ["Yoga Mat"] },
+                          { name: "Core stability work (Advanced)", equipment: ["Yoga Mat", "Stability Ball"] },
+                          { name: "Core stability work (Weighted)", equipment: ["Yoga Mat", "Medicine Ball"] },
+                          { name: "Core stability work (Minimal)", equipment: [] },
+                        ],
+                        "movement patterns": [
+                          { name: "Movement patterns", equipment: ["Resistance Bands"] },
+                          { name: "Movement patterns (Weighted)", equipment: ["Dumbbells"] },
+                          { name: "Movement patterns (Bodyweight)", equipment: [] },
+                        ],
+                        "push-ups": [
+                          { name: "Push-ups", equipment: [] },
+                          { name: "Push-ups (Incline)", equipment: ["Bench"] },
+                          { name: "Push-ups (Decline)", equipment: ["Bench"] },
+                          { name: "Push-ups (Weighted)", equipment: ["Weight Plate"] },
+                          { name: "Push-ups (Diamond)", equipment: [] },
+                        ],
+                        "pull-ups": [
+                          { name: "Pull-ups", equipment: ["Pull-up Bar"] },
+                          { name: "Pull-ups (Assisted)", equipment: ["Pull-up Bar", "Resistance Band"] },
+                          { name: "Pull-ups (Weighted)", equipment: ["Pull-up Bar", "Weight Belt"] },
+                          { name: "Chin-ups", equipment: ["Pull-up Bar"] },
+                        ],
+                        "bench press": [
+                          { name: "Bench press", equipment: ["Barbell", "Bench", "Weight Plates"] },
+                          { name: "Bench press (Dumbbells)", equipment: ["Dumbbells", "Bench"] },
+                          { name: "Bench press (Incline)", equipment: ["Barbell", "Incline Bench", "Weight Plates"] },
+                          { name: "Bench press (Decline)", equipment: ["Barbell", "Decline Bench", "Weight Plates"] },
+                        ],
+                        "squats": [
+                          { name: "Squats", equipment: ["Barbell", "Weight Plates", "Squat Rack"] },
+                          { name: "Squats (Dumbbells)", equipment: ["Dumbbells"] },
+                          { name: "Squats (Goblet)", equipment: ["Kettlebell"] },
+                          { name: "Squats (Bodyweight)", equipment: [] },
+                        ],
+                        "mechanics drill - balance point": [
+                          { name: "Mechanics Drill - Balance Point", equipment: ["Baseball"] },
+                          { name: "Mechanics Drill - Balance Point (Weighted)", equipment: ["Baseball", "Weighted Ball"] },
+                          { name: "Mechanics Drill - Balance Point (Mirror)", equipment: ["Baseball", "Mirror"] },
+                        ],
+                        "long toss": [
+                          { name: "Long toss", equipment: ["Baseball", "Glove"] },
+                          { name: "Long toss (Progressive)", equipment: ["Baseball", "Glove", "Pitching Target"] },
+                          { name: "Long toss (Flat Ground)", equipment: ["Baseball", "Glove"] },
+                        ],
+                      };
+                      const key = exerciseName.toLowerCase();
+                      return variationsMap[key] || [{ name: exerciseName, equipment: [] }];
+                    };
+                    const variations = getExerciseVariations(exercise.name, exercise.routineType);
+                    const variationCount = variations.length > 1 ? variations.length : 0;
+                    
+                    return (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedExerciseForVariations({ name: exercise.name, routineType: exercise.routineType });
+                          setShowVariationsSheet(true);
+                        }}
+                        className="relative w-10 h-10 bg-[#292928] hover:bg-[#3a3a38] rounded-full flex items-center justify-center transition-colors"
+                      >
+                        <Shuffle className="w-4 h-4 text-[#f7f6f2]" />
+                        {variationCount > 0 && (
+                          <div className="absolute -right-1 -top-1 w-5 h-5 bg-white rounded-full flex items-center justify-center border-2 border-[#292928]">
+                            <span className="text-[9px] font-semibold text-black font-['Montserrat']">{variationCount}</span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })()}
+                  <button 
+                    onClick={() => {
+                      setSelectedExerciseIndex(exerciseIndex);
+                      setShowExerciseDetails(true);
+                    }}
+                    className="hover:opacity-80 transition-opacity"
+                  >
+                    <ChevronRight className="w-6 h-6 text-[#979795]" />
+                  </button>
+                </div>
+              </div>
 
               {/* Table for this exercise */}
               <div className="overflow-x-auto scrollbar-hide">
@@ -921,7 +1025,7 @@ export default function FocusView() {
                       <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Set</p>
                     </div>
                     {trackingFields.includes('reps') && (
-                      <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center justify-center">
+                      <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center">
                         <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Reps</p>
                       </div>
                     )}
@@ -972,7 +1076,7 @@ export default function FocusView() {
                         </div>
                         {trackingFields.includes('reps') && (
                           <div className={cn(
-                            "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center justify-center flex-shrink-0",
+                            "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
                             isCellOverridden(setIndex, `${exerciseIndex}-reps`) && "bg-[#16140F]"
                           )}>
                             <input
@@ -980,7 +1084,7 @@ export default function FocusView() {
                               defaultValue={exercise.reps}
                               onChange={(e) => handleTableInputChange(setIndex, `${exerciseIndex}-reps`, parseInt(e.target.value) || 0)}
                               className={cn(
-                                "w-full bg-transparent text-sm font-['Montserrat'] border-none outline-none text-center",
+                                "w-full bg-transparent text-sm font-['Montserrat'] border-none outline-none text-left",
                                 exercise.reps !== "110" ? "text-[#ff8c00]" : "text-[#f7f6f2]"
                               )}
                             />
@@ -1024,17 +1128,17 @@ export default function FocusView() {
                         )}
                         {trackingFields.includes('rpe') && (
                           <div className={cn(
-                            "w-[80px] px-4 py-3 flex items-center justify-center flex-shrink-0",
+                            "w-[80px] px-4 py-3 flex items-center flex-shrink-0",
                             isCellOverridden(setIndex, `${exerciseIndex}-rpe`) && "bg-[#16140F]"
                           )}>
                             <button
                               onClick={(e) => handleRPEClick(setIndex, exerciseIndex, e)}
-                              className="w-full flex items-center justify-center gap-1 bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
+                              className="w-full flex items-center justify-between bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
                             >
                               <span className={cn(
                                 getSupersetRPE(exerciseIndex, setIndex) && getSupersetRPE(exerciseIndex, setIndex) !== "6" ? "text-[#ff8c00]" : "text-[#f7f6f2]"
                               )}>{getSupersetRPE(exerciseIndex, setIndex) || 'Select'}</span>
-                              <ChevronDown className="w-4 h-4 text-[#979795]" />
+                              <ChevronDown className="w-4 h-4 text-[#979795] flex-shrink-0" />
                             </button>
                           </div>
                         )}
@@ -1188,16 +1292,117 @@ export default function FocusView() {
       </div>
 
       {/* Exercise Title Section - Clickable */}
-      <button 
-        onClick={handleExerciseNameClick}
-        className="bg-[#121210] border-b border-[#292928] px-4 py-3 flex items-center justify-between w-full text-left hover:bg-[#171716] transition-colors"
-      >
+      <div className="bg-[#121210] border-b border-[#292928] px-4 py-3 flex items-center justify-between w-full">
         <div className="flex-1">
-          <p className="text-xs text-[#979795] font-medium font-['Montserrat']">Exercise</p>
           <h1 className="text-base font-semibold text-[#f7f6f2] font-['Montserrat']">{currentExercise?.name || 'Exercise'}</h1>
         </div>
-        <ChevronRight className="w-6 h-6 text-[#979795]" />
-      </button>
+        <div className="flex items-center gap-2">
+          {currentExercise && (() => {
+            // Get variation count
+            const getExerciseVariations = (exerciseName: string, routineType: string): Array<{name: string; equipment: string[]}> => {
+              const variationsMap: { [key: string]: Array<{name: string; equipment: string[]}> } = {
+                "dynamic warm-up throws": [
+                  { name: "Dynamic warm-up throws", equipment: ["Baseball", "Glove"] },
+                  { name: "Standing warm-up throws", equipment: ["Baseball", "Glove"] },
+                  { name: "Kneeling warm-up throws", equipment: ["Baseball", "Glove", "Knee Pad"] },
+                  { name: "Long toss warm-up", equipment: ["Baseball", "Glove", "Pitching Target"] },
+                ],
+                "romanian deadlifts": [
+                  { name: "Romanian deadlifts", equipment: ["Barbell", "Weight Plates"] },
+                  { name: "Romanian deadlifts (Dumbbells)", equipment: ["Dumbbells"] },
+                  { name: "Single-leg Romanian deadlifts", equipment: ["Dumbbell"] },
+                  { name: "Romanian deadlifts (Kettlebell)", equipment: ["Kettlebell"] },
+                ],
+                "hip mobility circuit": [
+                  { name: "Hip mobility circuit", equipment: ["Resistance Bands", "Foam Roller"] },
+                  { name: "Hip mobility circuit (Advanced)", equipment: ["Resistance Bands", "Foam Roller", "Yoga Mat"] },
+                  { name: "Hip mobility circuit (Minimal)", equipment: ["Yoga Mat"] },
+                ],
+                "shoulder activation": [
+                  { name: "Shoulder activation", equipment: ["Resistance Bands"] },
+                  { name: "Shoulder activation (Dumbbells)", equipment: ["Dumbbells"] },
+                  { name: "Shoulder activation (Cables)", equipment: ["Cable Machine"] },
+                  { name: "Shoulder activation (Bodyweight)", equipment: [] },
+                ],
+                "core stability work": [
+                  { name: "Core stability work", equipment: ["Yoga Mat"] },
+                  { name: "Core stability work (Advanced)", equipment: ["Yoga Mat", "Stability Ball"] },
+                  { name: "Core stability work (Weighted)", equipment: ["Yoga Mat", "Medicine Ball"] },
+                  { name: "Core stability work (Minimal)", equipment: [] },
+                ],
+                "movement patterns": [
+                  { name: "Movement patterns", equipment: ["Resistance Bands"] },
+                  { name: "Movement patterns (Weighted)", equipment: ["Dumbbells"] },
+                  { name: "Movement patterns (Bodyweight)", equipment: [] },
+                ],
+                "push-ups": [
+                  { name: "Push-ups", equipment: [] },
+                  { name: "Push-ups (Incline)", equipment: ["Bench"] },
+                  { name: "Push-ups (Decline)", equipment: ["Bench"] },
+                  { name: "Push-ups (Weighted)", equipment: ["Weight Plate"] },
+                  { name: "Push-ups (Diamond)", equipment: [] },
+                ],
+                "pull-ups": [
+                  { name: "Pull-ups", equipment: ["Pull-up Bar"] },
+                  { name: "Pull-ups (Assisted)", equipment: ["Pull-up Bar", "Resistance Band"] },
+                  { name: "Pull-ups (Weighted)", equipment: ["Pull-up Bar", "Weight Belt"] },
+                  { name: "Chin-ups", equipment: ["Pull-up Bar"] },
+                ],
+                "bench press": [
+                  { name: "Bench press", equipment: ["Barbell", "Bench", "Weight Plates"] },
+                  { name: "Bench press (Dumbbells)", equipment: ["Dumbbells", "Bench"] },
+                  { name: "Bench press (Incline)", equipment: ["Barbell", "Incline Bench", "Weight Plates"] },
+                  { name: "Bench press (Decline)", equipment: ["Barbell", "Decline Bench", "Weight Plates"] },
+                ],
+                "squats": [
+                  { name: "Squats", equipment: ["Barbell", "Weight Plates", "Squat Rack"] },
+                  { name: "Squats (Dumbbells)", equipment: ["Dumbbells"] },
+                  { name: "Squats (Goblet)", equipment: ["Kettlebell"] },
+                  { name: "Squats (Bodyweight)", equipment: [] },
+                ],
+                "mechanics drill - balance point": [
+                  { name: "Mechanics Drill - Balance Point", equipment: ["Baseball"] },
+                  { name: "Mechanics Drill - Balance Point (Weighted)", equipment: ["Baseball", "Weighted Ball"] },
+                  { name: "Mechanics Drill - Balance Point (Mirror)", equipment: ["Baseball", "Mirror"] },
+                ],
+                "long toss": [
+                  { name: "Long toss", equipment: ["Baseball", "Glove"] },
+                  { name: "Long toss (Progressive)", equipment: ["Baseball", "Glove", "Pitching Target"] },
+                  { name: "Long toss (Flat Ground)", equipment: ["Baseball", "Glove"] },
+                ],
+              };
+              const key = exerciseName.toLowerCase();
+              return variationsMap[key] || [{ name: exerciseName, equipment: [] }];
+            };
+            const variations = getExerciseVariations(currentExercise.name, currentExercise.routineType);
+            const variationCount = variations.length > 1 ? variations.length : 0;
+            
+            return (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedExerciseForVariations({ name: currentExercise.name, routineType: currentExercise.routineType });
+                  setShowVariationsSheet(true);
+                }}
+                className="relative w-10 h-10 bg-[#292928] hover:bg-[#3a3a38] rounded-full flex items-center justify-center transition-colors"
+              >
+                <Shuffle className="w-4 h-4 text-[#f7f6f2]" />
+                {variationCount > 0 && (
+                  <div className="absolute -right-1 -top-1 w-5 h-5 bg-white rounded-full flex items-center justify-center border-2 border-[#292928]">
+                    <span className="text-[9px] font-semibold text-black font-['Montserrat']">{variationCount}</span>
+                  </div>
+                )}
+              </button>
+            );
+          })()}
+          <button 
+            onClick={handleExerciseNameClick}
+            className="hover:opacity-80 transition-opacity"
+          >
+            <ChevronRight className="w-6 h-6 text-[#979795]" />
+          </button>
+        </div>
+      </div>
 
       {/* Table Container - Single Scroll Container */}
       <div className="flex-1 flex flex-col pb-24 overflow-x-auto scrollbar-hide">
@@ -1208,7 +1413,7 @@ export default function FocusView() {
               <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Set</p>
             </div>
             {trackingFields.includes('reps') && (
-              <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center justify-center">
+              <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center">
                 <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Reps</p>
               </div>
             )}
@@ -1254,12 +1459,12 @@ export default function FocusView() {
               </div>
             )}
             {trackingFields.includes('rpe') && (
-              <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center justify-center">
+              <div className="w-[80px] px-4 py-3 border-r border-[#292928] flex-shrink-0 flex items-center">
                 <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">RPE</p>
               </div>
             )}
             {trackingFields.includes('restTime') && (
-              <div className="w-[70px] px-4 py-3 flex-shrink-0 flex items-center justify-center">
+              <div className="w-[70px] px-4 py-3 flex-shrink-0 flex items-center">
                 <p className="text-xs text-[#bcbbb7] font-medium font-['Montserrat']">Rest</p>
               </div>
             )}
@@ -1274,7 +1479,7 @@ export default function FocusView() {
                 </div>
                 {trackingFields.includes('reps') && (
                   <div className={cn(
-                    "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center justify-center flex-shrink-0",
+                    "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
                     isCellOverridden(index, 'reps') && "bg-[#16140F]"
                   )}>
                     <input
@@ -1282,7 +1487,7 @@ export default function FocusView() {
                       value={row.reps}
                       onChange={(e) => handleTableInputChange(index, 'reps', parseInt(e.target.value) || 0)}
                       className={cn(
-                        "w-full bg-transparent text-sm font-['Montserrat'] border-none outline-none text-center",
+                        "w-full bg-transparent text-sm font-['Montserrat'] border-none outline-none text-left",
                         isCustomValue(index, 'reps', row.reps) ? "text-[#ff8c00]" : "text-[#f7f6f2]"
                       )}
                     />
@@ -1341,33 +1546,33 @@ export default function FocusView() {
                 )}
                 {trackingFields.includes('rpe') && (
                   <div className={cn(
-                    "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center justify-center flex-shrink-0",
+                    "w-[80px] px-4 py-3 border-r border-[#292928] flex items-center flex-shrink-0",
                     isCellOverridden(index, 'rpe') && "bg-[#16140F]"
                   )}>
                     <button
                       onClick={(e) => handleRPEClick(index, undefined, e)}
-                      className="w-full flex items-center justify-center bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
+                      className="w-full flex items-center justify-between bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
                     >
                       <span className={cn(
                         isCustomValue(index, 'rpe', row.rpe) ? "text-[#ff8c00]" : "text-[#f7f6f2]"
                       )}>{row.rpe || 'Select'}</span>
-                      <ChevronDown className="w-4 h-4 text-[#979795]" />
+                      <ChevronDown className="w-4 h-4 text-[#979795] flex-shrink-0" />
                     </button>
                   </div>
                 )}
                 {trackingFields.includes('restTime') && (
                   <div className={cn(
-                    "w-[70px] px-4 py-3 flex items-center justify-center flex-shrink-0",
+                    "w-[70px] px-4 py-3 flex items-center flex-shrink-0",
                     isCellOverridden(index, 'restTime') && "bg-[#16140F]"
                   )}>
                     <button
                       onClick={() => handleRestTimeClick(index)}
-                      className="w-full flex items-center justify-center gap-1 bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
+                      className="w-full flex items-center justify-between bg-transparent text-sm text-[#f7f6f2] font-['Montserrat'] border-none outline-none"
                     >
                       <span className={cn(
                         isCustomValue(index, 'restTime', row.restTime) ? "text-[#ff8c00]" : "text-[#f7f6f2]"
                       )}>{row.restTime}</span>
-                      <ChevronDown className="w-3 h-3 text-[#979795]" />
+                      <ChevronDown className="w-3 h-3 text-[#979795] flex-shrink-0" />
                     </button>
                   </div>
                 )}
@@ -1467,6 +1672,155 @@ export default function FocusView() {
           }}
           onClose={() => setShowExerciseDetails(false)}
         />
+      )}
+
+      {/* Exercise Variations Bottom Sheet */}
+      {showVariationsSheet && selectedExerciseForVariations && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50"
+          onClick={() => setShowVariationsSheet(false)}
+        >
+          <div 
+            className="bg-[#0d0d0c] w-full rounded-t-xl max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 z-50 bg-[#0d0d0c] border-b border-[#292928] rounded-t-xl">
+              <div className="flex items-center justify-between h-14 px-4">
+                <h1 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">Exercise Variations</h1>
+                <button 
+                  onClick={() => setShowVariationsSheet(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#171716] transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#f7f6f2]" />
+                </button>
+              </div>
+            </div>
+
+            {/* Variations List */}
+            <div className="px-4 py-6 space-y-3">
+              {(() => {
+                // Get exercise variations function (same as session-view)
+                const getExerciseVariations = (exerciseName: string, routineType: string): Array<{name: string; equipment: string[]}> => {
+                  const variationsMap: { [key: string]: Array<{name: string; equipment: string[]}> } = {
+                    "dynamic warm-up throws": [
+                      { name: "Dynamic warm-up throws", equipment: ["Baseball", "Glove"] },
+                      { name: "Standing warm-up throws", equipment: ["Baseball", "Glove"] },
+                      { name: "Kneeling warm-up throws", equipment: ["Baseball", "Glove", "Knee Pad"] },
+                      { name: "Long toss warm-up", equipment: ["Baseball", "Glove", "Pitching Target"] },
+                    ],
+                    "romanian deadlifts": [
+                      { name: "Romanian deadlifts", equipment: ["Barbell", "Weight Plates"] },
+                      { name: "Romanian deadlifts (Dumbbells)", equipment: ["Dumbbells"] },
+                      { name: "Single-leg Romanian deadlifts", equipment: ["Dumbbell"] },
+                      { name: "Romanian deadlifts (Kettlebell)", equipment: ["Kettlebell"] },
+                    ],
+                    "hip mobility circuit": [
+                      { name: "Hip mobility circuit", equipment: ["Resistance Bands", "Foam Roller"] },
+                      { name: "Hip mobility circuit (Advanced)", equipment: ["Resistance Bands", "Foam Roller", "Yoga Mat"] },
+                      { name: "Hip mobility circuit (Minimal)", equipment: ["Yoga Mat"] },
+                    ],
+                    "shoulder activation": [
+                      { name: "Shoulder activation", equipment: ["Resistance Bands"] },
+                      { name: "Shoulder activation (Dumbbells)", equipment: ["Dumbbells"] },
+                      { name: "Shoulder activation (Cables)", equipment: ["Cable Machine"] },
+                      { name: "Shoulder activation (Bodyweight)", equipment: [] },
+                    ],
+                    "core stability work": [
+                      { name: "Core stability work", equipment: ["Yoga Mat"] },
+                      { name: "Core stability work (Advanced)", equipment: ["Yoga Mat", "Stability Ball"] },
+                      { name: "Core stability work (Weighted)", equipment: ["Yoga Mat", "Medicine Ball"] },
+                      { name: "Core stability work (Minimal)", equipment: [] },
+                    ],
+                    "movement patterns": [
+                      { name: "Movement patterns", equipment: ["Resistance Bands"] },
+                      { name: "Movement patterns (Weighted)", equipment: ["Dumbbells"] },
+                      { name: "Movement patterns (Bodyweight)", equipment: [] },
+                    ],
+                    "push-ups": [
+                      { name: "Push-ups", equipment: [] },
+                      { name: "Push-ups (Incline)", equipment: ["Bench"] },
+                      { name: "Push-ups (Decline)", equipment: ["Bench"] },
+                      { name: "Push-ups (Weighted)", equipment: ["Weight Plate"] },
+                      { name: "Push-ups (Diamond)", equipment: [] },
+                    ],
+                    "pull-ups": [
+                      { name: "Pull-ups", equipment: ["Pull-up Bar"] },
+                      { name: "Pull-ups (Assisted)", equipment: ["Pull-up Bar", "Resistance Band"] },
+                      { name: "Pull-ups (Weighted)", equipment: ["Pull-up Bar", "Weight Belt"] },
+                      { name: "Chin-ups", equipment: ["Pull-up Bar"] },
+                    ],
+                    "bench press": [
+                      { name: "Bench press", equipment: ["Barbell", "Bench", "Weight Plates"] },
+                      { name: "Bench press (Dumbbells)", equipment: ["Dumbbells", "Bench"] },
+                      { name: "Bench press (Incline)", equipment: ["Barbell", "Incline Bench", "Weight Plates"] },
+                      { name: "Bench press (Decline)", equipment: ["Barbell", "Decline Bench", "Weight Plates"] },
+                    ],
+                    "squats": [
+                      { name: "Squats", equipment: ["Barbell", "Weight Plates", "Squat Rack"] },
+                      { name: "Squats (Dumbbells)", equipment: ["Dumbbells"] },
+                      { name: "Squats (Goblet)", equipment: ["Kettlebell"] },
+                      { name: "Squats (Bodyweight)", equipment: [] },
+                    ],
+                    "mechanics drill - balance point": [
+                      { name: "Mechanics Drill - Balance Point", equipment: ["Baseball"] },
+                      { name: "Mechanics Drill - Balance Point (Weighted)", equipment: ["Baseball", "Weighted Ball"] },
+                      { name: "Mechanics Drill - Balance Point (Mirror)", equipment: ["Baseball", "Mirror"] },
+                    ],
+                    "long toss": [
+                      { name: "Long toss", equipment: ["Baseball", "Glove"] },
+                      { name: "Long toss (Progressive)", equipment: ["Baseball", "Glove", "Pitching Target"] },
+                      { name: "Long toss (Flat Ground)", equipment: ["Baseball", "Glove"] },
+                    ],
+                  };
+                  const key = exerciseName.toLowerCase();
+                  return variationsMap[key] || [{ name: exerciseName, equipment: [] }];
+                };
+
+                return getExerciseVariations(selectedExerciseForVariations.name, selectedExerciseForVariations.routineType).map((variation, index) => {
+                  const isCurrentExercise = variation.name === selectedExerciseForVariations.name;
+                  return (
+                    <div
+                      key={index}
+                      className={`bg-[#171716] border rounded-xl p-4 ${isCurrentExercise ? 'border-[#13b557]' : 'border-[#292928]'}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat']">
+                              {variation.name}
+                            </p>
+                            {isCurrentExercise && (
+                              <span className="px-2 py-0.5 bg-[#13b557]/20 text-[#13b557] text-[10px] font-medium rounded-full">
+                                Current
+                              </span>
+                            )}
+                          </div>
+                          {/* Equipment */}
+                          {variation.equipment && variation.equipment.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {variation.equipment.map((equipment, eqIndex) => (
+                                <div
+                                  key={eqIndex}
+                                  className="flex items-center gap-1.5 px-2 py-1 bg-[#121210] rounded-lg"
+                                >
+                                  <Dumbbell className="w-3 h-3 text-[#979795]" />
+                                  <p className="text-[12px] font-medium text-[#979795] font-['Montserrat']">
+                                    {equipment}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

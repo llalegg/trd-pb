@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Bell, Play, Plus, ChevronRight, Moon } from "lucide-react";
+import { ChevronDown, Bell, Play, Plus, ChevronRight, Moon, RefreshCw, Check } from "lucide-react";
 import MobileTabBar from "@/components/MobileTabBar";
 import CalendarBottomSheet from "@/components/CalendarBottomSheet";
 import { getExercisesForDay } from "@/lib/sessionData";
@@ -137,96 +137,117 @@ export default function AthleteView() {
               className="bg-[#171716] flex gap-[12px] items-center p-[12px] rounded-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors"
               onClick={() => setLocation("/session-view?scrollTo=movement")}
             >
-              {/* No intensity indicator for Movement */}
-              <div className="w-[20px] h-[20px] flex-shrink-0"></div>
               <div className="flex-1 flex flex-col gap-[4px]">
                 <div className="flex items-center gap-2">
                   <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
                     Movement
                   </p>
-                  {movementRoutine.status === 'in-progress' && (
-                    <span className="text-[10px] font-medium text-[#c4af6c] font-['Montserrat'] px-1.5 py-0.5 bg-[#c4af6c]/10 rounded">in-progress</span>
-                  )}
-                  {movementRoutine.status === 'completed' && (
-                    <span className="text-[10px] font-medium text-[#979795] font-['Montserrat'] px-1.5 py-0.5 bg-[#979795]/10 rounded">complete</span>
-                  )}
                 </div>
                 <div className="flex flex-col gap-[2px]">
-                  <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                    {movementRoutine.routineType || 'Corrective A'}
-                  </p>
                   <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
                     {movementExerciseCount}/{movementExerciseCount} exercises
                   </p>
                 </div>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLocation("/session-view?scrollTo=movement");
-                }}
-                className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors"
-              >
-                Preview
-              </button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {movementRoutine.status === 'in-progress' && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 rounded-full">
+                    <RefreshCw className="w-3 h-3 text-blue-500 animate-spin" />
+                    <span className="text-[10px] font-medium text-blue-500 font-['Montserrat']">in-progress</span>
+                  </div>
+                )}
+                {movementRoutine.status === 'completed' && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-[#13b557]/20 rounded-full">
+                    <Check className="w-3 h-3 text-[#13b557]" />
+                    <span className="text-[10px] font-medium text-[#13b557] font-['Montserrat']">complete</span>
+                  </div>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocation("/session-view?scrollTo=movement");
+                  }}
+                  className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors"
+                >
+                  Preview
+                </button>
+              </div>
             </div>
           )}
 
-          {/* S&C Card */}
+          {/* S&C Card - Stacked Lifting and Conditioning */}
           {strengthRoutine && (
-            <div className="bg-[#171716] rounded-[12px] overflow-hidden">
+            <div className="bg-[#171716] rounded-[12px] overflow-hidden flex flex-col gap-[1px]">
+              {/* Lifting Card */}
               <div 
-                className="flex gap-[12px] items-center p-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors"
+                className="flex gap-[12px] items-center p-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors bg-[#171716]"
                 onClick={() => setLocation("/session-view?scrollTo=strength")}
               >
-                {/* Intensity indicator for Lifting */}
-                <div className="w-[20px] h-[20px] overflow-hidden relative">
-                  <div className="absolute bg-[#13b557] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
-                  <div className="absolute bg-[#2a2a29] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
-                  <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
-                </div>
                 <div className="flex-1 flex flex-col gap-[4px]">
                   <div className="flex items-center gap-2">
                     <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
-                      S&C
+                      Lifting
                     </p>
-                    {strengthRoutine.status === 'in-progress' && (
-                      <span className="text-[10px] font-medium text-[#c4af6c] font-['Montserrat'] px-1.5 py-0.5 bg-[#c4af6c]/10 rounded">in-progress</span>
-                    )}
-                    {strengthRoutine.status === 'completed' && (
-                      <span className="text-[10px] font-medium text-[#979795] font-['Montserrat'] px-1.5 py-0.5 bg-[#979795]/10 rounded">complete</span>
-                    )}
                   </div>
                   <div className="flex flex-col gap-[2px]">
                     <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
                       {strengthRoutine.bodyFocus || 'Upper Body'}
                     </p>
-                    {strengthRoutine.conditioningType ? (
-                      <>
-                        <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                          Lifting: {strengthExerciseCount}/{strengthExerciseCount} exercises
-                        </p>
-                        <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                          Conditioning: {strengthRoutine.conditioningType}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                        {strengthExerciseCount}/{strengthExerciseCount} exercises
-                      </p>
-                    )}
+                    <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                      {strengthExerciseCount}/{strengthExerciseCount} exercises
+                    </p>
                   </div>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setLocation("/session-view?scrollTo=strength");
-                  }}
-                  className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors flex-shrink-0"
-                >
-                  Preview
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Intensity indicator for Lifting */}
+                  <div className="w-[20px] h-[20px] overflow-hidden relative">
+                    <div className="absolute bg-[#13b557] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
+                    <div className="absolute bg-[#2a2a29] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
+                    <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLocation("/session-view?scrollTo=strength");
+                    }}
+                    className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors flex-shrink-0"
+                  >
+                    Preview
+                  </button>
+                </div>
               </div>
+              
+              {/* Conditioning Card */}
+              {strengthRoutine.conditioningType && (
+                <div 
+                  className="flex gap-[12px] items-center p-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors bg-[#171716] border-t border-[#292928]"
+                  onClick={() => setLocation("/session-view?scrollTo=strength")}
+                >
+                  <div className="flex-1 flex flex-col gap-[4px]">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
+                        Conditioning
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-[2px]">
+                      <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                        {strengthRoutine.conditioningType}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLocation("/session-view?scrollTo=strength");
+                      }}
+                      className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors flex-shrink-0"
+                    >
+                      Preview
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -236,23 +257,11 @@ export default function AthleteView() {
               className={`bg-[#171716] flex gap-[12px] items-center p-[12px] rounded-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors ${throwingRoutine.isRestDay ? 'opacity-60' : ''}`}
               onClick={() => !throwingRoutine.isRestDay && setLocation("/session-view?scrollTo=throwing")}
             >
-              {/* Intensity indicator for Throwing */}
-              <div className="w-[20px] h-[20px] overflow-hidden relative">
-                <div className="absolute bg-[#ff8d36] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
-                <div className="absolute bg-[#ff8d36] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
-                <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
-              </div>
               <div className="flex-1 flex flex-col gap-[4px]">
                 <div className="flex items-center gap-2">
                   <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
                     Throwing
                   </p>
-                  {!throwingRoutine.isRestDay && throwingRoutine.status === 'in-progress' && (
-                    <span className="text-[10px] font-medium text-[#c4af6c] font-['Montserrat'] px-1.5 py-0.5 bg-[#c4af6c]/10 rounded">in-progress</span>
-                  )}
-                  {!throwingRoutine.isRestDay && throwingRoutine.status === 'completed' && (
-                    <span className="text-[10px] font-medium text-[#979795] font-['Montserrat'] px-1.5 py-0.5 bg-[#979795]/10 rounded">complete</span>
-                  )}
                 </div>
                 <div className="flex flex-col gap-[2px]">
                   {throwingRoutine.isRestDay ? (
@@ -265,27 +274,42 @@ export default function AthleteView() {
                       </p>
                     </>
                   ) : (
-                    <>
-                      <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                        {throwingRoutine.seriesType || 'Player Series A'} | {throwingRoutine.intensity || 'High Intensity'}
-                      </p>
-                      <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                        {throwingExerciseCount}/{throwingExerciseCount} exercises
-                      </p>
-                    </>
+                    <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                      {throwingExerciseCount}/{throwingExerciseCount} exercises
+                    </p>
                   )}
                 </div>
               </div>
               {!throwingRoutine.isRestDay && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setLocation("/session-view?scrollTo=throwing");
-                  }}
-                  className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors flex-shrink-0"
-                >
-                  Preview
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {throwingRoutine.status === 'in-progress' && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 rounded-full">
+                      <RefreshCw className="w-3 h-3 text-blue-500 animate-spin" />
+                      <span className="text-[10px] font-medium text-blue-500 font-['Montserrat']">in-progress</span>
+                    </div>
+                  )}
+                  {throwingRoutine.status === 'completed' && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-[#13b557]/20 rounded-full">
+                      <Check className="w-3 h-3 text-[#13b557]" />
+                      <span className="text-[10px] font-medium text-[#13b557] font-['Montserrat']">complete</span>
+                    </div>
+                  )}
+                  {/* Intensity indicator for Throwing */}
+                  <div className="w-[20px] h-[20px] overflow-hidden relative">
+                    <div className="absolute bg-[#ff8d36] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
+                    <div className="absolute bg-[#ff8d36] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
+                    <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLocation("/session-view?scrollTo=throwing");
+                    }}
+                    className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors flex-shrink-0"
+                  >
+                    Preview
+                  </button>
+                </div>
               )}
             </div>
           )}

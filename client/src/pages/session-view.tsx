@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Play, CheckCircle, Check, Dumbbell, Target, Zap, Calendar, FileText, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle, Check, Dumbbell, Target, Zap, Calendar, FileText, RefreshCw, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,10 +21,12 @@ interface ExerciseCardProps {
     completedSets?: number;
     warmUpSets?: number;
     workingSets?: number;
+    variations?: number;
   };
   isCompleted: boolean;
   routineType: string;
   onClick?: () => void;
+  onVariationsClick?: () => void;
 }
 
 // Superset Card Component based on Figma design
@@ -44,7 +46,7 @@ interface SupersetCardProps {
   onClick?: () => void;
 }
 
-function ExerciseCard({ exercise, isCompleted, routineType, onClick }: ExerciseCardProps) {
+function ExerciseCard({ exercise, isCompleted, routineType, onClick, onVariationsClick }: ExerciseCardProps) {
   if (isCompleted) {
     return (
       <button 
@@ -67,30 +69,45 @@ function ExerciseCard({ exercise, isCompleted, routineType, onClick }: ExerciseC
   }
 
   return (
-    <button 
-      onClick={onClick}
-      className="bg-[#171716] flex items-center gap-2 px-3 py-3 rounded-xl w-full text-left hover:bg-[#1f1f1e] transition-colors"
-    >
-      {/* Circle Icon */}
-      <div className="shrink-0 w-5 h-5 bg-[#292928] rounded-full flex items-center justify-center">
-        <div className="w-[6px] h-[6px] bg-[#c4af6c] rounded-full"></div>
-      </div>
-      
-      {/* Exercise Name */}
-      <div className="flex-1 min-w-0">
-        <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] truncate leading-[1.46]">
-          {exercise.name}
-        </p>
-        {/* Warm-Up Sets v. Working Sets */}
-        {(exercise.warmUpSets || exercise.workingSets) && (
-          <p className="text-[11px] font-medium text-[#979795] font-['Montserrat'] mt-0.5">
-            {exercise.warmUpSets ? `Warm-Up: ${exercise.warmUpSets} sets` : ''}
-            {exercise.warmUpSets && exercise.workingSets ? ' • ' : ''}
-            {exercise.workingSets ? `Working: ${exercise.workingSets} sets` : ''}
+    <div className="bg-[#171716] flex items-center gap-2 px-3 py-3 rounded-xl w-full hover:bg-[#1f1f1e] transition-colors">
+      <button 
+        onClick={onClick}
+        className="flex items-center gap-2 flex-1 text-left"
+      >
+        {/* Circle Icon */}
+        <div className="shrink-0 w-5 h-5 bg-[#292928] rounded-full flex items-center justify-center">
+          <div className="w-[6px] h-[6px] bg-[#c4af6c] rounded-full"></div>
+        </div>
+        
+        {/* Exercise Name */}
+        <div className="flex-1 min-w-0">
+          <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] truncate leading-[1.46]">
+            {exercise.name}
           </p>
-        )}
-      </div>
-    </button>
+          {/* Warm-Up Sets v. Working Sets */}
+          {(exercise.warmUpSets || exercise.workingSets) && (
+            <p className="text-[11px] font-medium text-[#979795] font-['Montserrat'] mt-0.5">
+              {exercise.warmUpSets ? `Warm-Up: ${exercise.warmUpSets} sets` : ''}
+              {exercise.warmUpSets && exercise.workingSets ? ' • ' : ''}
+              {exercise.workingSets ? `Working: ${exercise.workingSets} sets` : ''}
+            </p>
+          )}
+        </div>
+      </button>
+      
+      {/* Variations Button */}
+      {exercise.variations !== undefined && exercise.variations > 0 && onVariationsClick && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onVariationsClick();
+          }}
+          className="shrink-0 px-3 py-1.5 bg-white text-black rounded-lg text-[12px] font-semibold font-['Montserrat'] hover:bg-gray-100 transition-colors"
+        >
+          {exercise.variations}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -98,7 +115,7 @@ function SupersetCard({ superset, isCompleted, routineType, onClick }: SupersetC
   return (
     <button onClick={onClick} className="flex flex-col w-full text-left hover:bg-[#0f0f0e] rounded-lg transition-colors">
       {/* Compact Superset Header */}
-      <div className="flex items-center justify-between px-3 py-2 w-full">
+      <div className="flex items-center justify-between py-2 w-full">
         <div className="flex items-center gap-2">
           {/* Compact bracket indicator */}
           <div className="flex items-center gap-0.5">
@@ -116,7 +133,7 @@ function SupersetCard({ superset, isCompleted, routineType, onClick }: SupersetC
       </div>
 
       {/* Compact Superset Exercises - inline with minimal spacing */}
-      <div className="flex flex-col gap-1 px-3 pb-2 pointer-events-none">
+      <div className="flex flex-col gap-1 pb-2 pointer-events-none">
         {superset.exercises.map((exercise, index) => (
           <div key={index} className={isCompleted ? "bg-[#121210] flex items-center gap-2 h-[36px] px-2 py-1 rounded-lg" : "bg-[#171716] flex items-center gap-2 h-[36px] px-2 py-1 rounded-lg"}>
             {/* Circle Icon */}
@@ -189,6 +206,10 @@ export default function SessionView() {
   const [showInstructionsOverlay, setShowInstructionsOverlay] = useState(false);
   const [collapsedRoutines, setCollapsedRoutines] = useState<Set<string>>(new Set());
   const [expandedEquipment, setExpandedEquipment] = useState<Set<string>>(new Set());
+  const [selectedEquipment, setSelectedEquipment] = useState<string | null>(null);
+  const [showEquipmentSheet, setShowEquipmentSheet] = useState(false);
+  const [selectedExerciseForVariations, setSelectedExerciseForVariations] = useState<{name: string; routineType: string} | null>(null);
+  const [showVariationsSheet, setShowVariationsSheet] = useState(false);
   
   const DEFAULT_DAY = 17;
   // Get the selected day from URL params or default to current day
@@ -426,6 +447,91 @@ export default function SessionView() {
     return Array.from(equipmentSet);
   };
 
+  // Get exercise variations (mock data - in real app this would come from API)
+  const getExerciseVariations = (exerciseName: string, routineType: string): Array<{name: string; equipment: string[]}> => {
+    // Mock variations data
+    const variationsMap: { [key: string]: Array<{name: string; equipment: string[]}> } = {
+      "dynamic warm-up throws": [
+        { name: "Dynamic warm-up throws", equipment: ["Baseball", "Glove"] },
+        { name: "Standing warm-up throws", equipment: ["Baseball", "Glove"] },
+        { name: "Kneeling warm-up throws", equipment: ["Baseball", "Glove", "Knee Pad"] },
+        { name: "Long toss warm-up", equipment: ["Baseball", "Glove", "Pitching Target"] },
+      ],
+      "romanian deadlifts": [
+        { name: "Romanian deadlifts", equipment: ["Barbell", "Weight Plates"] },
+        { name: "Romanian deadlifts (Dumbbells)", equipment: ["Dumbbells"] },
+        { name: "Single-leg Romanian deadlifts", equipment: ["Dumbbell"] },
+        { name: "Romanian deadlifts (Kettlebell)", equipment: ["Kettlebell"] },
+      ],
+      "hip mobility circuit": [
+        { name: "Hip mobility circuit", equipment: ["Resistance Bands", "Foam Roller"] },
+        { name: "Hip mobility circuit (Advanced)", equipment: ["Resistance Bands", "Foam Roller", "Yoga Mat"] },
+        { name: "Hip mobility circuit (Minimal)", equipment: ["Yoga Mat"] },
+      ],
+      "shoulder activation": [
+        { name: "Shoulder activation", equipment: ["Resistance Bands"] },
+        { name: "Shoulder activation (Dumbbells)", equipment: ["Dumbbells"] },
+        { name: "Shoulder activation (Cables)", equipment: ["Cable Machine"] },
+        { name: "Shoulder activation (Bodyweight)", equipment: [] },
+      ],
+      "core stability work": [
+        { name: "Core stability work", equipment: ["Yoga Mat"] },
+        { name: "Core stability work (Advanced)", equipment: ["Yoga Mat", "Stability Ball"] },
+        { name: "Core stability work (Weighted)", equipment: ["Yoga Mat", "Medicine Ball"] },
+        { name: "Core stability work (Minimal)", equipment: [] },
+      ],
+      "movement patterns": [
+        { name: "Movement patterns", equipment: ["Resistance Bands"] },
+        { name: "Movement patterns (Weighted)", equipment: ["Dumbbells"] },
+        { name: "Movement patterns (Bodyweight)", equipment: [] },
+      ],
+      "push-ups": [
+        { name: "Push-ups", equipment: [] },
+        { name: "Push-ups (Incline)", equipment: ["Bench"] },
+        { name: "Push-ups (Decline)", equipment: ["Bench"] },
+        { name: "Push-ups (Weighted)", equipment: ["Weight Plate"] },
+        { name: "Push-ups (Diamond)", equipment: [] },
+      ],
+      "pull-ups": [
+        { name: "Pull-ups", equipment: ["Pull-up Bar"] },
+        { name: "Pull-ups (Assisted)", equipment: ["Pull-up Bar", "Resistance Band"] },
+        { name: "Pull-ups (Weighted)", equipment: ["Pull-up Bar", "Weight Belt"] },
+        { name: "Chin-ups", equipment: ["Pull-up Bar"] },
+      ],
+      "bench press": [
+        { name: "Bench press", equipment: ["Barbell", "Bench", "Weight Plates"] },
+        { name: "Bench press (Dumbbells)", equipment: ["Dumbbells", "Bench"] },
+        { name: "Bench press (Incline)", equipment: ["Barbell", "Incline Bench", "Weight Plates"] },
+        { name: "Bench press (Decline)", equipment: ["Barbell", "Decline Bench", "Weight Plates"] },
+      ],
+      "squats": [
+        { name: "Squats", equipment: ["Barbell", "Weight Plates", "Squat Rack"] },
+        { name: "Squats (Dumbbells)", equipment: ["Dumbbells"] },
+        { name: "Squats (Goblet)", equipment: ["Kettlebell"] },
+        { name: "Squats (Bodyweight)", equipment: [] },
+      ],
+      "mechanics drill - balance point": [
+        { name: "Mechanics Drill - Balance Point", equipment: ["Baseball"] },
+        { name: "Mechanics Drill - Balance Point (Weighted)", equipment: ["Baseball", "Weighted Ball"] },
+        { name: "Mechanics Drill - Balance Point (Mirror)", equipment: ["Baseball", "Mirror"] },
+      ],
+      "long toss": [
+        { name: "Long toss", equipment: ["Baseball", "Glove"] },
+        { name: "Long toss (Progressive)", equipment: ["Baseball", "Glove", "Pitching Target"] },
+        { name: "Long toss (Flat Ground)", equipment: ["Baseball", "Glove"] },
+      ],
+    };
+
+    const key = exerciseName.toLowerCase();
+    return variationsMap[key] || [{ name: exerciseName, equipment: getRoutineEquipment(routineType, []).slice(0, 2) }];
+  };
+
+  // Get variation count for an exercise
+  const getVariationCount = (exerciseName: string, routineType: string): number => {
+    const variations = getExerciseVariations(exerciseName, routineType);
+    return variations.length > 1 ? variations.length : 0;
+  };
+
   return (
     <div className="min-h-screen bg-surface-base">
       {/* Header */}
@@ -568,19 +674,12 @@ export default function SessionView() {
                 <div className="flex flex-col gap-[8px] items-start justify-center flex-1 min-w-0">
                   <div className="flex items-center gap-2 w-full">
                     {routineCompleted && (
-                      <Check className="w-4 h-4 text-[#979795] flex-shrink-0" />
+                      <Check className="w-4 h-4 text-[#13b557] flex-shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className={`text-[16px] font-semibold font-['Montserrat'] leading-[1.5] w-full capitalize ${routineCompleted ? 'text-[#979795]' : 'text-white'}`}>
+                      <p className={`text-[16px] font-semibold font-['Montserrat'] leading-[1.5] w-full capitalize ${routineCompleted ? 'text-[#13b557]' : 'text-white'}`}>
                         {routine.type === 'strength' ? 'Strength & Conditioning' : routine.type}
                       </p>
-                      {/* Exercise Variation Series */}
-                      {(routine.routineType || routine.seriesType) && (
-                        <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32] mt-0.5">
-                          {routine.routineType || routine.seriesType}
-                          {routine.intensity && ` • ${routine.intensity}`}
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -611,48 +710,30 @@ export default function SessionView() {
                 </div>
               </div>
 
-              {/* Equipment Card - Clickable Icon */}
+              {/* Equipment Card - Clickable Items */}
               {(() => {
                 const routineEquipment = getRoutineEquipment(routine.type, routine.exercises);
-                const isEquipmentExpanded = expandedEquipment.has(routine.type);
                 return routineEquipment.length > 0 ? (
                   <div className="mt-2">
-                    <button
-                      onClick={() => {
-                        const newExpanded = new Set(expandedEquipment);
-                        if (isEquipmentExpanded) {
-                          newExpanded.delete(routine.type);
-                        } else {
-                          newExpanded.add(routine.type);
-                        }
-                        setExpandedEquipment(newExpanded);
-                      }}
-                      className="bg-[#121210] border border-[#292928] rounded-[12px] p-[8px] w-full flex items-center gap-2 hover:bg-[#171716] transition-colors"
-                    >
-                      {/* Clickable Equipment Icon */}
-                      <div className="w-[20px] h-[20px] shrink-0 flex items-center justify-center">
-                        <Dumbbell className="w-5 h-5 text-[#979795] hover:text-[#f7f6f2] transition-colors" />
+                    <div className="bg-[#121210] border border-[#292928] rounded-[12px] p-[12px] w-full">
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {routineEquipment.map((equipment, index) => (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              setSelectedEquipment(equipment);
+                              setShowEquipmentSheet(true);
+                            }}
+                            className="backdrop-blur-[20px] bg-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.12)] flex gap-[6px] items-center justify-center px-[12px] py-[6px] rounded-lg shrink-0 transition-colors"
+                          >
+                            <Dumbbell className="w-4 h-4 text-[#f7f6f2]" />
+                            <p className="text-[14px] font-medium text-[#f7f6f2] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
+                              {equipment}
+                            </p>
+                          </button>
+                        ))}
                       </div>
-                      <div className="flex-1 flex flex-wrap gap-[4px] items-center">
-                        {isEquipmentExpanded ? (
-                          routineEquipment.map((equipment, index) => (
-                            <div
-                              key={index}
-                              className="backdrop-blur-[20px] bg-[rgba(0,0,0,0.25)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full shrink-0"
-                            >
-                              <p className="text-[12px] font-medium text-[#f7f6f2] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
-                                {equipment}
-                              </p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                            {routineEquipment.length} {routineEquipment.length === 1 ? 'item' : 'items'} needed
-                          </p>
-                        )}
-                      </div>
-                      <ChevronDown className={`w-4 h-4 text-[#979795] transition-transform ${isEquipmentExpanded ? 'rotate-180' : ''}`} />
-                    </button>
+                    </div>
                   </div>
                 ) : null;
               })()}
@@ -685,22 +766,9 @@ export default function SessionView() {
                 
                 return (
                   <div className="space-y-1.5">
-                    {/* Assigned v Completed Header */}
-                    <div className="flex items-center justify-between px-2 py-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-medium text-[#979795] font-['Montserrat']">
-                          Assigned: <span className="text-[#f7f6f2]">{totalCount}</span>
-                        </p>
-                        {completedCount > 0 && (
-                          <>
-                            <span className="text-[#585856]">•</span>
-                            <p className="text-xs font-medium text-[#979795] font-['Montserrat']">
-                              Completed: <span className="text-[#c4af6c]">{completedCount}</span>
-                            </p>
-                          </>
-                        )}
-                      </div>
-                      {allCompleted && (
+                    {/* Collapse button for completed routines */}
+                    {allCompleted && (
+                      <div className="flex items-center justify-end px-2 py-1">
                         <button
                           onClick={() => {
                             const newCollapsed = new Set(collapsedRoutines);
@@ -715,8 +783,8 @@ export default function SessionView() {
                         >
                           {isCollapsed ? 'Show' : 'Hide'}
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                     
                     {/* Exercise Items */}
                     {!isCollapsed && (
@@ -748,6 +816,7 @@ export default function SessionView() {
                             (exercise.completedSets || 0) >= exercise.sets;
                           
                           if (!isExerciseCompleted || showCompleted) {
+                            const variationCount = getVariationCount(exercise.name, routine.type);
                             return (
                               <ExerciseCard
                                 key={index}
@@ -755,11 +824,16 @@ export default function SessionView() {
                                   name: exercise.name,
                                   sets: exercise.sets,
                                   reps: exercise.reps,
-                                  completedSets: exercise.completedSets
+                                  completedSets: exercise.completedSets,
+                                  variations: variationCount
                                 }}
                                 isCompleted={isExerciseCompleted}
                                 routineType={routine.type}
                                 onClick={() => goToFocusView(routine.type, exercise.name)}
+                                onVariationsClick={() => {
+                                  setSelectedExerciseForVariations({ name: exercise.name, routineType: routine.type });
+                                  setShowVariationsSheet(true);
+                                }}
                               />
                             );
                           }
@@ -883,6 +957,116 @@ export default function SessionView() {
               >
                 Continue
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Equipment Details Bottom Sheet */}
+      {showEquipmentSheet && selectedEquipment && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50"
+          onClick={() => setShowEquipmentSheet(false)}
+        >
+          <div 
+            className="bg-[#0d0d0c] w-full rounded-t-xl max-h-[70vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 z-50 bg-[#0d0d0c] border-b border-[#292928] rounded-t-xl">
+              <div className="flex items-center justify-between h-14 px-4">
+                <div className="flex items-center gap-3">
+                  <Dumbbell className="w-5 h-5 text-[#f7f6f2]" />
+                  <h1 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">{selectedEquipment}</h1>
+                </div>
+                <button 
+                  onClick={() => setShowEquipmentSheet(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#171716] transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#f7f6f2]" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-4 py-6">
+              <div className="space-y-4">
+                <div className="bg-[#121210] rounded-lg p-4">
+                  <p className="text-sm text-[#979795] font-['Montserrat']">
+                    Equipment details and specifications will be displayed here.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exercise Variations Bottom Sheet */}
+      {showVariationsSheet && selectedExerciseForVariations && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50"
+          onClick={() => setShowVariationsSheet(false)}
+        >
+          <div 
+            className="bg-[#0d0d0c] w-full rounded-t-xl max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 z-50 bg-[#0d0d0c] border-b border-[#292928] rounded-t-xl">
+              <div className="flex items-center justify-between h-14 px-4">
+                <h1 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">Exercise Variations</h1>
+                <button 
+                  onClick={() => setShowVariationsSheet(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#171716] transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#f7f6f2]" />
+                </button>
+              </div>
+            </div>
+
+            {/* Variations List */}
+            <div className="px-4 py-6 space-y-3">
+              {getExerciseVariations(selectedExerciseForVariations.name, selectedExerciseForVariations.routineType).map((variation, index) => {
+                const isCurrentExercise = variation.name === selectedExerciseForVariations.name;
+                return (
+                  <div
+                    key={index}
+                    className={`bg-[#171716] border rounded-xl p-4 ${isCurrentExercise ? 'border-[#13b557]' : 'border-[#292928]'}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat']">
+                            {variation.name}
+                          </p>
+                          {isCurrentExercise && (
+                            <span className="px-2 py-0.5 bg-[#13b557]/20 text-[#13b557] text-[10px] font-medium rounded-full">
+                              Current
+                            </span>
+                          )}
+                        </div>
+                        {/* Equipment */}
+                        {variation.equipment && variation.equipment.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {variation.equipment.map((equipment, eqIndex) => (
+                              <div
+                                key={eqIndex}
+                                className="flex items-center gap-1.5 px-2 py-1 bg-[#121210] rounded-lg"
+                              >
+                                <Dumbbell className="w-3 h-3 text-[#979795]" />
+                                <p className="text-[12px] font-medium text-[#979795] font-['Montserrat']">
+                                  {equipment}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
