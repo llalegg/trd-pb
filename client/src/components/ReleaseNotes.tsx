@@ -1,6 +1,17 @@
-const VERSION = "1.0.0";
+const VERSION = "1.0.3";
 
 const RELEASE_NOTES = [
+  {
+    version: "1.0.3",
+    date: "2024-11-12",
+    updates: [
+      "Enhanced training card design with clearer status indicators",
+      "Improved visual feedback for in-progress and completed sessions",
+      "Reorganized Strength & Conditioning into separate Lifting and Conditioning cards for better clarity",
+      "Streamlined exercise information display for easier reading",
+      "Better positioning of intensity indicators and status badges",
+    ],
+  },
   {
     version: "1.0.0",
     date: "2024-01-15",
