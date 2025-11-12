@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Play, CheckCircle, Check, Dumbbell, Target, Zap, Calendar, FileText, RefreshCw, ChevronDown } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle, Check, Dumbbell, Target, Zap, Calendar, FileText, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,7 +54,7 @@ function ExerciseCard({ exercise, isCompleted, routineType, onClick }: ExerciseC
         
         {/* Exercise Name */}
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-medium text-[#585856] font-['Montserrat'] truncate leading-[1.46]">
+          <p className="text-[14px] font-medium text-[#585856] font-['Montserrat'] truncate leading-[1.46] line-through">
             {exercise.name}
           </p>
         </div>
@@ -84,12 +84,16 @@ function ExerciseCard({ exercise, isCompleted, routineType, onClick }: ExerciseC
 
 function SupersetCard({ superset, isCompleted, routineType, onClick }: SupersetCardProps) {
   return (
-    <button onClick={onClick} className="flex flex-col w-full pb-4 text-left hover:bg-[#0f0f0e] rounded-lg transition-colors">
-      {/* Superset Header - exact Figma specs */}
-      <div className="flex items-center justify-between p-3 h-8 w-full">
-        <div className="flex items-center gap-3">
-          {/* Refresh icon */}
-          <RefreshCw className="w-4 h-4 text-[#585856]" />
+    <button onClick={onClick} className="flex flex-col w-full text-left hover:bg-[#0f0f0e] rounded-lg transition-colors">
+      {/* Compact Superset Header */}
+      <div className="flex items-center justify-between px-3 py-2 w-full">
+        <div className="flex items-center gap-2">
+          {/* Compact bracket indicator */}
+          <div className="flex items-center gap-0.5">
+            <div className="w-[2px] h-3 bg-[#585856] rounded-full"></div>
+            <RefreshCw className="w-3 h-3 text-[#585856]" />
+            <div className="w-[2px] h-3 bg-[#585856] rounded-full"></div>
+          </div>
           <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
             Superset
           </p>
@@ -99,40 +103,25 @@ function SupersetCard({ superset, isCompleted, routineType, onClick }: SupersetC
         </p>
       </div>
 
-      {/* Vertical line from superset header to first exercise */}
-      <div className="flex justify-start pl-5">
-        <div className="w-px h-2 bg-[#585856]"></div>
-      </div>
-
-      {/* Superset Exercises with vertical connecting lines */}
-      <div className="flex flex-col pointer-events-none">
+      {/* Compact Superset Exercises - inline with minimal spacing */}
+      <div className="flex flex-col gap-1 px-3 pb-2 pointer-events-none">
         {superset.exercises.map((exercise, index) => (
-          <div key={index}>
-            {/* Exercise Item */}
-            <div className={isCompleted ? "bg-[#121210] flex items-center gap-2 h-[44px] px-3 py-[10px] rounded-xl" : "bg-[#171716] flex items-center gap-2 px-3 py-3 rounded-xl"}>
-              {/* Circle Icon */}
-              <div className={isCompleted ? "bg-[#1c1c1b] flex items-center justify-center p-1 rounded-full shrink-0 w-5 h-5" : "shrink-0 w-5 h-5 bg-[#292928] rounded-full flex items-center justify-center"}>
-                {isCompleted ? (
-                  <Check className="w-4 h-4 text-[#979795]" />
-                ) : (
-                  <div className="w-[6px] h-[6px] bg-[#c4af6c] rounded-full"></div>
-                )}
-              </div>
-              
-              {/* Exercise Name */}
-              <div className="flex-1 min-w-0">
-                <p className={`text-[14px] font-['Montserrat'] truncate leading-[1.46] ${isCompleted ? 'font-medium text-[#585856]' : 'font-semibold text-[#f7f6f2]'}`}>
-                  {exercise.name}
-                </p>
-              </div>
+          <div key={index} className={isCompleted ? "bg-[#121210] flex items-center gap-2 h-[36px] px-2 py-1 rounded-lg" : "bg-[#171716] flex items-center gap-2 h-[36px] px-2 py-1 rounded-lg"}>
+            {/* Circle Icon */}
+            <div className={isCompleted ? "bg-[#1c1c1b] flex items-center justify-center rounded-full shrink-0 w-4 h-4" : "shrink-0 w-4 h-4 bg-[#292928] rounded-full flex items-center justify-center"}>
+              {isCompleted ? (
+                <Check className="w-3 h-3 text-[#979795]" />
+              ) : (
+                <div className="w-[4px] h-[4px] bg-[#c4af6c] rounded-full"></div>
+              )}
             </div>
             
-            {/* Vertical connecting line after each exercise (except last) */}
-            {index < superset.exercises.length - 1 && (
-              <div className="flex justify-start pl-5">
-                <div className="w-px h-2 bg-[#585856]"></div>
-              </div>
-            )}
+            {/* Exercise Name */}
+            <div className="flex-1 min-w-0">
+              <p className={`text-[13px] font-['Montserrat'] truncate leading-[1.46] ${isCompleted ? 'font-medium text-[#585856] line-through' : 'font-semibold text-[#f7f6f2]'}`}>
+                {exercise.name}
+              </p>
+            </div>
           </div>
         ))}
       </div>
@@ -186,6 +175,7 @@ export default function SessionView() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showCompleted, setShowCompleted] = useState(false);
   const [showInstructionsOverlay, setShowInstructionsOverlay] = useState(false);
+  const [collapsedRoutines, setCollapsedRoutines] = useState<Set<string>>(new Set());
   
   // Get the selected day from URL params or default to current day (17)
   const urlParams = new URLSearchParams(window.location.search);
@@ -440,12 +430,12 @@ export default function SessionView() {
         </div>
       </div>
 
-      {/* Floating Continue Button */}
+      {/* Floating Start Session Button */}
       <div className="fixed bottom-0 left-0 right-0 p-4 z-40">
         <div className="px-4">
           <Button className="w-full" onClick={() => goToFocusView()}>
             <Play className="h-4 w-4 mr-2" />
-            Continue
+            Start Session
           </Button>
         </div>
       </div>
@@ -489,8 +479,15 @@ export default function SessionView() {
             return Math.round((completedExercises / totalExercises) * 100);
           })();
 
+          const routineCompleted = routine.status === "completed";
+          const isRoutineCollapsed = collapsedRoutines.has(routine.type) && routineCompleted && !showCompleted;
+          
           return (
-            <div key={routine.type} className="space-y-4" data-routine={routine.type}>
+            <div 
+              key={routine.type} 
+              className={`space-y-4 ${routineCompleted ? 'opacity-75' : ''}`} 
+              data-routine={routine.type}
+            >
               {/* Routine Header - Figma Design */}
               <div className="flex gap-[8px] items-center w-full">
                 {/* Progress Circle */}
@@ -525,9 +522,14 @@ export default function SessionView() {
 
                 {/* Content */}
                 <div className="flex flex-col gap-[8px] items-start justify-center flex-1 min-w-0">
-                  <p className="text-[16px] font-semibold text-white font-['Montserrat'] leading-[1.5] w-full capitalize">
-                    {routine.type === 'strength' ? 'Strength & Conditioning' : routine.type}
-                  </p>
+                  <div className="flex items-center gap-2 w-full">
+                    {routineCompleted && (
+                      <Check className="w-4 h-4 text-[#979795] flex-shrink-0" />
+                    )}
+                    <p className={`text-[16px] font-semibold font-['Montserrat'] leading-[1.5] w-full capitalize ${routineCompleted ? 'text-[#979795]' : 'text-white'}`}>
+                      {routine.type === 'strength' ? 'Strength & Conditioning' : routine.type}
+                    </p>
+                  </div>
                   {getRFocusParams(routine.type).length > 0 && (
                     <div className="flex flex-wrap gap-[4px] items-start w-full">
                       {getRFocusParams(routine.type).map((param, index) => (
@@ -617,71 +619,139 @@ export default function SessionView() {
                 ) : null;
               })()}
 
-              {/* Exercise List */}
-              <div className="space-y-2">
-                {(() => {
-                  const allItems: JSX.Element[] = [];
-
-                  // Add superset card for Movement and Strength routines
-                  if (routine.type === "movement" || routine.type === "strength") {
-                    const supersetCompleted = exerciseStateManager.isExerciseCompleted(routine.type, getSuperset(routine.type)!.name);
+              {/* Exercise List with Completed Count */}
+              {!isRoutineCollapsed && (() => {
+                const allExercises = (routine.exercises as any[]) as { sets: number; completedSets?: number; name: string }[];
+                const superset = (routine.type === "movement" || routine.type === "strength") ? getSuperset(routine.type) : null;
+                
+                // Count completed exercises
+                let completedCount = 0;
+                let totalCount = allExercises.length;
+                
+                if (superset) {
+                  totalCount++;
+                  const supersetCompleted = exerciseStateManager.isExerciseCompleted(routine.type, superset.name);
+                  if (supersetCompleted) completedCount++;
+                }
+                
+                allExercises.forEach((exercise) => {
+                  const isCompletedInState = exerciseStateManager.isExerciseCompleted(routine.type, exercise.name);
+                  const isExerciseCompleted = isCompletedInState || 
+                    (routine.type === "strength" && exercise.name === "Romanian deadlifts") ||
+                    (exercise.completedSets || 0) >= exercise.sets;
+                  if (isExerciseCompleted) completedCount++;
+                });
+                
+                const allCompleted = completedCount === totalCount;
+                const isCollapsed = collapsedRoutines.has(routine.type) && allCompleted && !showCompleted;
+                
+                return (
+                  <div className="space-y-2">
+                    {/* Completed Count Header */}
+                    {completedCount > 0 && (
+                      <div className="flex items-center justify-between px-2 py-1">
+                        <p className="text-xs font-medium text-[#979795] font-['Montserrat']">
+                          {completedCount} of {totalCount} completed
+                        </p>
+                        {allCompleted && (
+                          <button
+                            onClick={() => {
+                              const newCollapsed = new Set(collapsedRoutines);
+                              if (isCollapsed) {
+                                newCollapsed.delete(routine.type);
+                              } else {
+                                newCollapsed.add(routine.type);
+                              }
+                              setCollapsedRoutines(newCollapsed);
+                            }}
+                            className="text-xs font-medium text-[#979795] font-['Montserrat'] hover:text-[#f7f6f2] transition-colors"
+                          >
+                            {isCollapsed ? 'Show' : 'Hide'}
+                          </button>
+                        )}
+                      </div>
+                    )}
                     
-                    // Only show if not completed OR if showing completed
-                    if (!supersetCompleted || showCompleted) {
-                      const supersetElement = (
-                        <SupersetCard
-                          key="superset"
-                          superset={getSuperset(routine.type)!}
-                          isCompleted={supersetCompleted}
-                          routineType={routine.type}
-                          onClick={() => goToSupersetFocusView(routine.type)}
-                        />
-                      );
-                      allItems.push(supersetElement);
-                    }
-                  }
+                    {/* Exercise Items */}
+                    {!isCollapsed && (
+                      <>
+                        {/* Superset card */}
+                        {superset && (routine.type === "movement" || routine.type === "strength") && (
+                          (() => {
+                            const supersetCompleted = exerciseStateManager.isExerciseCompleted(routine.type, superset.name);
+                            if (!supersetCompleted || showCompleted) {
+                              return (
+                                <SupersetCard
+                                  key="superset"
+                                  superset={superset}
+                                  isCompleted={supersetCompleted}
+                                  routineType={routine.type}
+                                  onClick={() => goToSupersetFocusView(routine.type)}
+                                />
+                              );
+                            }
+                            return null;
+                          })()
+                        )}
 
-                  // Add individual exercises in original order
-                  (routine.exercises as any[]).forEach((exercise: any, index: number) => {
-                    const isCompletedInState = exerciseStateManager.isExerciseCompleted(routine.type, exercise.name);
-                    const isExerciseCompleted = isCompletedInState || 
-                      (routine.type === "strength" && index === 0) || 
-                      exercise.completedSets >= exercise.sets;
-                    
-                    // Only show if not completed OR if showing completed
-                    if (!isExerciseCompleted || showCompleted) {
-                      const exerciseElement = (
-                        <ExerciseCard
-                          key={index}
-                          exercise={{
-                            name: exercise.name,
-                            sets: exercise.sets,
-                            reps: exercise.reps,
-                            completedSets: exercise.completedSets
-                          }}
-                          isCompleted={isExerciseCompleted}
-                          routineType={routine.type}
-                          onClick={() => goToFocusView(routine.type, exercise.name)}
-                        />
-                      );
-                      allItems.push(exerciseElement);
-                    }
-                  });
-
-                  return allItems;
-                })()}
-              </div>
+                        {/* Individual exercises */}
+                        {allExercises.map((exercise: any, index: number) => {
+                          const isCompletedInState = exerciseStateManager.isExerciseCompleted(routine.type, exercise.name);
+                          const isExerciseCompleted = isCompletedInState || 
+                            (routine.type === "strength" && exercise.name === "Romanian deadlifts") ||
+                            (exercise.completedSets || 0) >= exercise.sets;
+                          
+                          if (!isExerciseCompleted || showCompleted) {
+                            return (
+                              <ExerciseCard
+                                key={index}
+                                exercise={{
+                                  name: exercise.name,
+                                  sets: exercise.sets,
+                                  reps: exercise.reps,
+                                  completedSets: exercise.completedSets
+                                }}
+                                isCompleted={isExerciseCompleted}
+                                routineType={routine.type}
+                                onClick={() => goToFocusView(routine.type, exercise.name)}
+                              />
+                            );
+                          }
+                          return null;
+                        })}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+              {isRoutineCollapsed && (
+                <div className="flex items-center justify-between px-2 py-2">
+                  <p className="text-xs font-medium text-[#979795] font-['Montserrat']">
+                    Routine completed
+                  </p>
+                  <button
+                    onClick={() => {
+                      const newCollapsed = new Set(collapsedRoutines);
+                      newCollapsed.delete(routine.type);
+                      setCollapsedRoutines(newCollapsed);
+                    }}
+                    className="text-xs font-medium text-[#979795] font-['Montserrat'] hover:text-[#f7f6f2] transition-colors"
+                  >
+                    Show
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* Floating Continue Button */}
+      {/* Floating Start Session Button */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
         <div className="px-4 py-4">
           <Button className="w-full h-12 text-base font-semibold" onClick={() => goToFocusView()}>
             <Play className="h-5 w-5 mr-2" />
-            Continue
+            Start Session
           </Button>
         </div>
       </div>

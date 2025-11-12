@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,86 +13,63 @@ export default function AthleteView() {
   const [selectedDay, setSelectedDay] = useState(16);
   const [showCalendarBottomSheet, setShowCalendarBottomSheet] = useState(false);
 
-  // Week days for horizontal selector (matching Figma design)
-  const weekDays = [
-    { day: "M", date: 15, isCurrent: selectedDay === 15, isRestDay: false, sessionState: 'completed' },
-    { day: "T", date: 16, isCurrent: selectedDay === 16, isRestDay: false, sessionState: 'in-progress' },
-    { day: "W", date: 17, isCurrent: selectedDay === 17, isRestDay: true, sessionState: 'rest' },
-    { day: "T", date: 18, isCurrent: selectedDay === 18, isRestDay: false, sessionState: 'scheduled' },
-    { day: "F", date: 19, isCurrent: selectedDay === 19, isRestDay: false, sessionState: 'scheduled' },
-    { day: "S", date: 20, isCurrent: selectedDay === 20, isRestDay: false, sessionState: 'scheduled' },
-    { day: "S", date: 21, isCurrent: selectedDay === 21, isRestDay: true, sessionState: 'rest' },
-  ];
+  // Get today's date and generate week days (today + next 6 days)
+  const today = useMemo(() => {
+    const date = new Date();
+    return date.getDate();
+  }, []);
+
+  // Generate week days: today + next 6 days
+  const weekDays = useMemo(() => {
+    const days = [];
+    const dayNames = ["S", "M", "T", "W", "T", "F", "S"];
+    const todayDate = new Date();
+    const todayDayOfWeek = todayDate.getDay();
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(todayDate);
+      date.setDate(todayDate.getDate() + i);
+      const dateNum = date.getDate();
+      const dayName = dayNames[date.getDay()];
+      
+      // Mock data - in real app, this would come from API
+      const isRestDay = i === 2 || i === 6; // Mock rest days
+      const sessionState = i === 0 ? 'in-progress' : i < 0 ? 'completed' : 'scheduled';
+      
+      days.push({
+        day: dayName,
+        date: dateNum,
+        isCurrent: selectedDay === dateNum,
+        isToday: i === 0,
+        isRestDay,
+        sessionState
+      });
+    }
+    
+    return days;
+  }, [selectedDay]);
 
   const currentRoutines = getExercisesForDay(selectedDay);
   const currentDay = weekDays.find(day => day.date === selectedDay);
   const isRestDay = currentDay?.isRestDay || false;
   const sessionState = currentDay?.sessionState || 'new';
 
-  // Calculate total exercises and completed exercises from session data
-  const totalExercises = currentRoutines.reduce((total, routine) => total + routine.exercises.length, 0);
-  const completedExercises = currentRoutines.reduce((total, routine) => {
-    return total + routine.exercises.filter(exercise => {
-      return exercise.completedSets === exercise.sets;
-    }).length;
-  }, 0);
+  // Get routine data for cards
+  const movementRoutine = currentRoutines.find(r => r.type === 'movement');
+  const strengthRoutine = currentRoutines.find(r => r.type === 'strength');
+  const throwingRoutine = currentRoutines.find(r => r.type === 'throwing');
 
-  // Find the first incomplete exercise for navigation
-  const findFirstIncompleteExercise = () => {
-    for (const routine of currentRoutines) {
-      for (const exercise of routine.exercises) {
-        if ((exercise.completedSets || 0) < exercise.sets) {
-          return exercise;
-        }
-      }
-    }
-    return null;
-  };
-
-  const hasCompletedExercises = completedExercises > 0;
-  const firstIncompleteExercise = findFirstIncompleteExercise();
-  const progressPercentage = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
+  // Calculate exercise counts and times
+  const movementExerciseCount = movementRoutine?.exercises.length || 0;
+  const strengthExerciseCount = strengthRoutine?.exercises.length || 0;
+  const throwingExerciseCount = throwingRoutine?.exercises.length || 0;
+  
+  const movementTime = movementRoutine?.estimatedTime || '0 min';
+  const strengthTime = strengthRoutine?.estimatedTime || '0 min';
+  const throwingTime = throwingRoutine?.estimatedTime || '0 min';
 
   const handleDaySelect = (date: number) => {
     setSelectedDay(date);
-  };
-
-  // Simple circular progress component
-  const CircularProgress = ({ progress, size = 20 }: { progress: number; size?: number }) => {
-    const radius = (size - 2) / 2;
-    const circumference = radius * 2 * Math.PI;
-    const strokeDasharray = circumference;
-    const strokeDashoffset = circumference - (progress / 100) * circumference;
-
-    return (
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg
-          width={size}
-          height={size}
-          className="transform -rotate-90"
-        >
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="#3d3d3c"
-            strokeWidth="2"
-            fill="none"
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="#c4af6c"
-            strokeWidth="2"
-            fill="none"
-            strokeDasharray={strokeDasharray}
-            strokeDashoffset={strokeDashoffset}
-            className="transition-all duration-300 ease-in-out"
-          />
-        </svg>
-      </div>
-    );
   };
 
   return (
@@ -120,242 +97,151 @@ export default function AthleteView() {
 
       {/* Content Container */}
       <div className="flex flex-col gap-3 px-4 pb-20">
-        {/* Day Selector */}
-        <div className="flex gap-2 pb-2">
-          {weekDays.map((day, index) => (
-            <div key={index} className="flex flex-col items-center gap-2 flex-1">
-              <p className="text-xs font-medium text-[#585856] font-['Montserrat'] leading-[1.32]">{day.day}</p>
-              <button
-                onClick={() => handleDaySelect(day.date)}
-                className={`w-11 h-11 rounded-full flex items-center justify-center text-base font-medium font-['Montserrat'] leading-[1.5] transition-colors border ${
-                  day.isCurrent
-                    ? "border-[#3d3d3c] bg-transparent text-[#f7f6f2] font-semibold"
-                    : "border-[#1c1c1b] bg-transparent text-[#585856]"
-                }`}
-              >
-                {day.date}
-              </button>
-            </div>
-          ))}
+        {/* Day Selector with Today Button */}
+        <div className="flex items-center gap-2 pb-2">
+          <button
+            onClick={() => {
+              const todayDate = new Date().getDate();
+              setSelectedDay(todayDate);
+            }}
+            className="px-3 py-1.5 rounded-full bg-[#171716] border border-[#292928] text-[12px] font-medium text-[#f7f6f2] font-['Montserrat'] hover:bg-[#1a1a19] transition-colors"
+          >
+            Today
+          </button>
+          <div className="flex gap-2 flex-1 overflow-x-auto">
+            {weekDays.map((day, index) => (
+              <div key={index} className="flex flex-col items-center gap-2 flex-shrink-0 min-w-[44px]">
+                <p className="text-xs font-medium text-[#585856] font-['Montserrat'] leading-[1.32]">{day.day}</p>
+                <button
+                  onClick={() => handleDaySelect(day.date)}
+                  className={`w-11 h-11 rounded-full flex items-center justify-center text-base font-medium font-['Montserrat'] leading-[1.5] transition-colors border ${
+                    day.isToday
+                      ? "border-[#c4af6c] bg-[#c4af6c] text-[#0d0d0c] font-semibold"
+                      : day.isCurrent
+                      ? "border-[#3d3d3c] bg-transparent text-[#f7f6f2] font-semibold"
+                      : "border-[#1c1c1b] bg-transparent text-[#585856]"
+                  }`}
+                >
+                  {day.date}
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Training Section - Only show if not rest day */}
-        {!isRestDay && (
-          <div className="flex flex-col gap-[12px]">
-            {/* Training Card */}
+        {/* Training Cards - Always show Movement, S&C, Throwing */}
+        <div className="flex flex-col gap-[12px]">
+          {/* Movement Card */}
+          {movementRoutine && (
             <div 
-              className="flex flex-col gap-[8px] overflow-hidden rounded-[16px] w-full cursor-pointer"
-              onClick={() => setLocation("/session-view")}
+              className="bg-[#171716] flex gap-[12px] items-center p-[12px] rounded-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors"
+              onClick={() => setLocation("/session-view?scrollTo=movement")}
             >
-              {/* Card Header */}
-              <div className="bg-[#121210] flex items-center justify-between px-[12px] py-[8px] rounded-[12px]">
-                <div className="flex gap-[12px] items-center w-[180.5px]">
-                  <div className="relative w-[20px] h-[20px]">
-                    <div className="border border-[#3d3d3c] border-solid rounded-full w-full h-full"></div>
-                    {(sessionState === 'completed' || completedExercises > 0) && (
-                      <div className="absolute inset-0">
-                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 20 20">
-                          <circle
-                            cx="10"
-                            cy="10"
-                            r="8"
-                            stroke="#f7f6f2"
-                            strokeWidth="2"
-                            fill="none"
-                            strokeDasharray={`${2 * Math.PI * 8}`}
-                            strokeDashoffset={`${2 * Math.PI * 8 * (1 - (sessionState === 'completed' ? 1 : completedExercises / totalExercises))}`}
-                            strokeLinecap="round"
-                            className="transition-all duration-300"
-                          />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-start justify-center">
-                    <p className="text-[16px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.5]">
-                      Training session
-                    </p>
-                    <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                      {sessionState === 'completed' ? `${totalExercises}/${totalExercises} exercises` : 
-                       `${completedExercises}/${totalExercises} exercises`}
-                    </p>
-                  </div>
-                </div>
-                <div className="bg-[#e5e4e1] flex gap-[8px] h-[32px] items-center justify-center px-[12px] py-[8px] rounded-full">
-                  <div className="w-[16px] h-[16px]">
-                    <Play size={16} className="text-black" />
-                  </div>
-                  <p className="text-[12px] font-semibold text-black font-['Montserrat'] leading-[1.32]">
-                    {(sessionState === 'completed' || completedExercises > 0) ? 'Continue' : 'Start'}
+              <div className="w-[20px] h-[20px] overflow-hidden relative">
+                <div className="absolute bg-[#ff3636] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
+                <div className="absolute bg-[#ff3636] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
+                <div className="absolute bg-[#ff3636] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
+              </div>
+              <div className="flex-1 flex flex-col gap-[4px]">
+                <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
+                  Movement
+                </p>
+                <div className="flex flex-col gap-[2px]">
+                  <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                    {movementRoutine.routineType || 'Corrective A'}
+                  </p>
+                  <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                    {movementExerciseCount}/{movementExerciseCount} exercises | {movementTime}
                   </p>
                 </div>
               </div>
+              <ChevronRight className="w-4 h-4 text-[#979795] flex-shrink-0" />
+            </div>
+          )}
 
-              {/* Exercise Items */}
-              {/* Movement */}
+          {/* S&C Card */}
+          {strengthRoutine && (
+            <div className="bg-[#171716] rounded-[12px] overflow-hidden">
               <div 
-                className="bg-[#171716] flex gap-[12px] items-center p-[12px] rounded-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLocation("/session-view?scrollTo=movement");
-                }}
+                className="flex gap-[12px] items-center p-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors"
+                onClick={() => setLocation("/session-view?scrollTo=strength")}
               >
                 <div className="w-[20px] h-[20px] overflow-hidden relative">
-                  <div className="absolute bg-[#ff3636] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
-                  <div className="absolute bg-[#ff3636] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
-                  <div className="absolute bg-[#ff3636] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
-                </div>
-                <div className="flex-1 flex items-center justify-between">
-                  <div className="flex gap-[8px] items-center w-[146px]">
-                    <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46] overflow-hidden text-ellipsis whitespace-nowrap">
-                      Movement
-                    </p>
-                  </div>
-                  <div className="flex gap-[8px] items-center">
-                    <div className="flex gap-[4px] items-center">
-                        <div className="backdrop-blur-[20px] bg-[rgba(255,255,255,0.08)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full w-fit">
-                          <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
-                            Corrective A
-                          </p>
-                        </div>
-                    </div>
-                    <div className="backdrop-blur-[20px] bg-[rgba(255,255,255,0.08)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full w-fit">
-                      <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
-                        30m
-                      </p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-[#979795] ml-2" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Lifting & Conditioning Combined */}
-              <div className="bg-[#171716] rounded-[12px] overflow-hidden">
-                {/* Lifting */}
-                <div 
-                  className="flex gap-[12px] items-center p-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setLocation("/session-view?scrollTo=strength");
-                    }}
-                >
-                  <div className="w-[20px] h-[20px] overflow-hidden relative">
-                    <div className="absolute bg-[#13b557] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
-                    <div className="absolute bg-[#2a2a29] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
-                    <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
-                  </div>
-                  <div className="flex flex-row items-center self-stretch flex-1">
-                    <div className="flex h-full items-start justify-between w-[305px]">
-                      <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46] overflow-hidden text-ellipsis whitespace-nowrap">
-                        Lifting
-                      </p>
-                      <div className="flex gap-[8px] items-center">
-                          <div className="backdrop-blur-[20px] bg-[rgba(255,255,255,0.08)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full w-fit">
-                            <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
-                              Upper body
-                            </p>
-                          </div>
-                        <div className="backdrop-blur-[20px] bg-[rgba(255,255,255,0.08)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full w-fit">
-                          <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
-                            30m
-                          </p>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-[#979795] ml-2" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Divider */}
-                <div className="h-px bg-[rgba(255,255,255,0.04)] mx-[12px]" />
-
-                {/* Conditioning */}
-                <div 
-                  className="flex gap-[12px] items-center p-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setLocation("/session-view?scrollTo=strength");
-                    }}
-                >
-                  <div className="w-[20px] h-[20px] overflow-hidden relative">
-                    <div className="absolute bg-[#ff8d36] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
-                    <div className="absolute bg-[#ff8d36] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
-                    <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
-                  </div>
-                  <div className="flex-1 flex items-center justify-between">
-                    <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46] overflow-hidden text-ellipsis whitespace-nowrap">
-                      Conditioning
-                    </p>
-                    <div className="flex gap-[8px] items-center">
-                      <div className="backdrop-blur-[20px] bg-[rgba(255,255,255,0.08)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full w-fit">
-                        <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
-                          30m
-                        </p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-[#979795] ml-2" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Throwing */}
-              <div 
-                className="bg-[#171716] flex gap-[12px] items-center p-[12px] rounded-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLocation("/session-view?scrollTo=throwing");
-                }}
-              >
-                <div className="w-[20px] h-[20px] overflow-hidden relative">
-                  <div className="absolute bg-[#ff8d36] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
-                  <div className="absolute bg-[#ff8d36] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
+                  <div className="absolute bg-[#13b557] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
+                  <div className="absolute bg-[#2a2a29] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
                   <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
                 </div>
-                <div className="flex-1 flex flex-col gap-[6px] items-start">
-                  <div className="flex items-start justify-between w-full">
-                    <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46] overflow-hidden text-ellipsis whitespace-nowrap">
-                      Throwing
-                    </p>
-                    <div className="flex gap-[8px] items-center">
-                        <div className="backdrop-blur-[20px] bg-[rgba(255,255,255,0.08)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full w-fit">
-                          <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
-                            Player Series A
-                          </p>
-                        </div>
-                      <div className="backdrop-blur-[20px] bg-[rgba(255,255,255,0.08)] flex gap-[4px] items-center justify-center px-[8px] py-[2px] rounded-full w-fit">
-                        <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32] whitespace-nowrap">
-                          30m
-                        </p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-[#979795] ml-2" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Rest Day Section - Only show if rest day */}
-        {isRestDay && (
-          <div className="flex flex-col gap-[12px]">
-            <div className="flex flex-col gap-[8px] overflow-hidden rounded-[16px] w-[361px]">
-              <div className="bg-[#121210] flex items-center justify-center px-[12px] py-[16px] rounded-[12px]">
-                <div className="flex flex-col items-center gap-[8px]">
-                  <Moon className="w-8 h-8 text-[#979795]" />
-                  <div className="flex flex-col items-center">
-                    <p className="text-[16px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.5]">
-                      Rest day
-                    </p>
+                <div className="flex-1 flex flex-col gap-[4px]">
+                  <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
+                    S&C
+                  </p>
+                  <div className="flex flex-col gap-[2px]">
                     <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
-                      Recovery and regeneration
+                      {strengthRoutine.bodyFocus || 'Upper Body'}
                     </p>
+                    {strengthRoutine.conditioningType ? (
+                      <>
+                        <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                          Lifting: {strengthExerciseCount}/{strengthExerciseCount} exercises | {strengthRoutine.liftingTime || strengthTime}
+                        </p>
+                        <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                          Conditioning: {strengthRoutine.conditioningType} | {strengthRoutine.conditioningTime}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                        {strengthExerciseCount}/{strengthExerciseCount} exercises | {strengthTime}
+                      </p>
+                    )}
                   </div>
                 </div>
+                <ChevronRight className="w-4 h-4 text-[#979795] flex-shrink-0" />
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Throwing Card */}
+          {throwingRoutine && (
+            <div 
+              className={`bg-[#171716] flex gap-[12px] items-center p-[12px] rounded-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors ${throwingRoutine.isRestDay ? 'opacity-60' : ''}`}
+              onClick={() => !throwingRoutine.isRestDay && setLocation("/session-view?scrollTo=throwing")}
+            >
+              <div className="w-[20px] h-[20px] overflow-hidden relative">
+                <div className="absolute bg-[#ff8d36] h-[8px] left-[2px] rounded-[2px] top-[6px] w-[4px]" />
+                <div className="absolute bg-[#ff8d36] h-[8px] left-[8px] rounded-[2px] top-[6px] w-[4px]" />
+                <div className="absolute bg-[#2a2a29] h-[8px] left-[14px] rounded-[2px] top-[6px] w-[4px]" />
+              </div>
+              <div className="flex-1 flex flex-col gap-[4px]">
+                <p className="text-[14px] font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.46]">
+                  Throwing
+                </p>
+                <div className="flex flex-col gap-[2px]">
+                  {throwingRoutine.isRestDay ? (
+                    <>
+                      <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                        REST
+                      </p>
+                      <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                        No throwing today
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                        {throwingRoutine.seriesType || 'Player Series A'} | {throwingRoutine.intensity || 'High Intensity'}
+                      </p>
+                      <p className="text-[12px] font-medium text-[#979795] font-['Montserrat'] leading-[1.32]">
+                        {throwingExerciseCount}/{throwingExerciseCount} exercises | {throwingTime}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+              {!throwingRoutine.isRestDay && <ChevronRight className="w-4 h-4 text-[#979795] flex-shrink-0" />}
+            </div>
+          )}
+        </div>
+
 
         {/* Events Section */}
         <div className="flex flex-col gap-3">

@@ -84,6 +84,7 @@ export default {
         surface: {
           base: "#0D0D0C",
           raised: "#171716",
+          overlay: "#1C1C1B",
         },
       },
       fontFamily: {

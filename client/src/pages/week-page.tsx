@@ -355,13 +355,13 @@ export default function WeekPage() {
             </div>
           ))}
 
-          {/* Continue Button */}
+          {/* Start Session Button */}
           <div className="pt-6">
             <Button 
               onClick={goToFocusView}
               className="w-full bg-[#e5e4e1] hover:bg-[#f7f6f2] text-[#0d0d0c] font-semibold font-['Montserrat']"
             >
-              Continue
+              Start Session
             </Button>
           </div>
         </div>
