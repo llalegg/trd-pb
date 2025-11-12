@@ -11,6 +11,7 @@ import { getSessionData } from "@/lib/sessionData";
 import { exerciseStateManager } from "@/lib/exerciseState";
 import { useQuery } from "@tanstack/react-query";
 import { type Program } from "@shared/schema";
+import { getExerciseVariations, getVariationCount, type ExerciseVariation } from "@/lib/exerciseVariations";
 
 // Exercise Card Component based on Figma design
 interface ExerciseCardProps {
@@ -212,6 +213,7 @@ export default function SessionView() {
   const [showVariationsSheet, setShowVariationsSheet] = useState(false);
   
   const DEFAULT_DAY = 17;
+  const EQUIPMENT_SHEET_MAX_HEIGHT = "70vh";
   // Get the selected day from URL params or default to current day
   const urlParams = new URLSearchParams(window.location.search);
   const selectedDay = parseInt(urlParams.get('day') || String(DEFAULT_DAY), 10);
@@ -406,6 +408,24 @@ export default function SessionView() {
     setShowCompleted(!showCompleted);
   };
 
+  const handleEquipmentClick = (equipment: string): void => {
+    setSelectedEquipment(equipment);
+    setShowEquipmentSheet(true);
+  };
+
+  const handleCloseEquipmentSheet = (): void => {
+    setShowEquipmentSheet(false);
+  };
+
+  const handleVariationsButtonClick = (exerciseName: string, routineType: string): void => {
+    setSelectedExerciseForVariations({ name: exerciseName, routineType });
+    setShowVariationsSheet(true);
+  };
+
+  const handleCloseVariationsSheet = (): void => {
+    setShowVariationsSheet(false);
+  };
+
   // Sort routines by recommended order
   const sortedRoutines = sessionData.routines.sort((a, b) => {
     const aIndex = routineTypeOrder.indexOf(a.type);
@@ -447,90 +467,6 @@ export default function SessionView() {
     return Array.from(equipmentSet);
   };
 
-  // Get exercise variations (mock data - in real app this would come from API)
-  const getExerciseVariations = (exerciseName: string, routineType: string): Array<{name: string; equipment: string[]}> => {
-    // Mock variations data
-    const variationsMap: { [key: string]: Array<{name: string; equipment: string[]}> } = {
-      "dynamic warm-up throws": [
-        { name: "Dynamic warm-up throws", equipment: ["Baseball", "Glove"] },
-        { name: "Standing warm-up throws", equipment: ["Baseball", "Glove"] },
-        { name: "Kneeling warm-up throws", equipment: ["Baseball", "Glove", "Knee Pad"] },
-        { name: "Long toss warm-up", equipment: ["Baseball", "Glove", "Pitching Target"] },
-      ],
-      "romanian deadlifts": [
-        { name: "Romanian deadlifts", equipment: ["Barbell", "Weight Plates"] },
-        { name: "Romanian deadlifts (Dumbbells)", equipment: ["Dumbbells"] },
-        { name: "Single-leg Romanian deadlifts", equipment: ["Dumbbell"] },
-        { name: "Romanian deadlifts (Kettlebell)", equipment: ["Kettlebell"] },
-      ],
-      "hip mobility circuit": [
-        { name: "Hip mobility circuit", equipment: ["Resistance Bands", "Foam Roller"] },
-        { name: "Hip mobility circuit (Advanced)", equipment: ["Resistance Bands", "Foam Roller", "Yoga Mat"] },
-        { name: "Hip mobility circuit (Minimal)", equipment: ["Yoga Mat"] },
-      ],
-      "shoulder activation": [
-        { name: "Shoulder activation", equipment: ["Resistance Bands"] },
-        { name: "Shoulder activation (Dumbbells)", equipment: ["Dumbbells"] },
-        { name: "Shoulder activation (Cables)", equipment: ["Cable Machine"] },
-        { name: "Shoulder activation (Bodyweight)", equipment: [] },
-      ],
-      "core stability work": [
-        { name: "Core stability work", equipment: ["Yoga Mat"] },
-        { name: "Core stability work (Advanced)", equipment: ["Yoga Mat", "Stability Ball"] },
-        { name: "Core stability work (Weighted)", equipment: ["Yoga Mat", "Medicine Ball"] },
-        { name: "Core stability work (Minimal)", equipment: [] },
-      ],
-      "movement patterns": [
-        { name: "Movement patterns", equipment: ["Resistance Bands"] },
-        { name: "Movement patterns (Weighted)", equipment: ["Dumbbells"] },
-        { name: "Movement patterns (Bodyweight)", equipment: [] },
-      ],
-      "push-ups": [
-        { name: "Push-ups", equipment: [] },
-        { name: "Push-ups (Incline)", equipment: ["Bench"] },
-        { name: "Push-ups (Decline)", equipment: ["Bench"] },
-        { name: "Push-ups (Weighted)", equipment: ["Weight Plate"] },
-        { name: "Push-ups (Diamond)", equipment: [] },
-      ],
-      "pull-ups": [
-        { name: "Pull-ups", equipment: ["Pull-up Bar"] },
-        { name: "Pull-ups (Assisted)", equipment: ["Pull-up Bar", "Resistance Band"] },
-        { name: "Pull-ups (Weighted)", equipment: ["Pull-up Bar", "Weight Belt"] },
-        { name: "Chin-ups", equipment: ["Pull-up Bar"] },
-      ],
-      "bench press": [
-        { name: "Bench press", equipment: ["Barbell", "Bench", "Weight Plates"] },
-        { name: "Bench press (Dumbbells)", equipment: ["Dumbbells", "Bench"] },
-        { name: "Bench press (Incline)", equipment: ["Barbell", "Incline Bench", "Weight Plates"] },
-        { name: "Bench press (Decline)", equipment: ["Barbell", "Decline Bench", "Weight Plates"] },
-      ],
-      "squats": [
-        { name: "Squats", equipment: ["Barbell", "Weight Plates", "Squat Rack"] },
-        { name: "Squats (Dumbbells)", equipment: ["Dumbbells"] },
-        { name: "Squats (Goblet)", equipment: ["Kettlebell"] },
-        { name: "Squats (Bodyweight)", equipment: [] },
-      ],
-      "mechanics drill - balance point": [
-        { name: "Mechanics Drill - Balance Point", equipment: ["Baseball"] },
-        { name: "Mechanics Drill - Balance Point (Weighted)", equipment: ["Baseball", "Weighted Ball"] },
-        { name: "Mechanics Drill - Balance Point (Mirror)", equipment: ["Baseball", "Mirror"] },
-      ],
-      "long toss": [
-        { name: "Long toss", equipment: ["Baseball", "Glove"] },
-        { name: "Long toss (Progressive)", equipment: ["Baseball", "Glove", "Pitching Target"] },
-        { name: "Long toss (Flat Ground)", equipment: ["Baseball", "Glove"] },
-      ],
-    };
-
-    const key = exerciseName.toLowerCase();
-    return variationsMap[key] || [{ name: exerciseName, equipment: getRoutineEquipment(routineType, []).slice(0, 2) }];
-  };
-
-  // Get variation count for an exercise
-  const getVariationCount = (exerciseName: string, routineType: string): number => {
-    const variations = getExerciseVariations(exerciseName, routineType);
-    return variations.length > 1 ? variations.length : 0;
-  };
 
   return (
     <div className="min-h-screen bg-surface-base">
@@ -964,12 +900,13 @@ export default function SessionView() {
 
       {/* Equipment Details Bottom Sheet */}
       {showEquipmentSheet && selectedEquipment && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50"
-          onClick={() => setShowEquipmentSheet(false)}
-        >
+         <div 
+           className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50"
+           onClick={handleCloseEquipmentSheet}
+         >
           <div 
-            className="bg-[#0d0d0c] w-full rounded-t-xl max-h-[70vh] overflow-y-auto"
+            className="bg-[#0d0d0c] w-full rounded-t-xl overflow-y-auto"
+            style={{ maxHeight: EQUIPMENT_SHEET_MAX_HEIGHT }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -979,12 +916,13 @@ export default function SessionView() {
                   <Dumbbell className="w-5 h-5 text-[#f7f6f2]" />
                   <h1 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">{selectedEquipment}</h1>
                 </div>
-                <button 
-                  onClick={() => setShowEquipmentSheet(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#171716] transition-colors"
-                >
-                  <X className="w-5 h-5 text-[#f7f6f2]" />
-                </button>
+                 <button 
+                   onClick={handleCloseEquipmentSheet}
+                   className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#171716] transition-colors"
+                   data-testid="close-equipment-sheet-button"
+                 >
+                   <X className="w-5 h-5 text-[#f7f6f2]" />
+                 </button>
               </div>
             </div>
 
@@ -1004,30 +942,32 @@ export default function SessionView() {
 
       {/* Exercise Variations Bottom Sheet */}
       {showVariationsSheet && selectedExerciseForVariations && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50"
-          onClick={() => setShowVariationsSheet(false)}
-        >
+         <div 
+           className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50"
+           onClick={handleCloseVariationsSheet}
+         >
           <div 
-            className="bg-[#0d0d0c] w-full rounded-t-xl max-h-[80vh] overflow-y-auto"
+            className="bg-[#0d0d0c] w-full rounded-t-xl overflow-y-auto"
+            style={{ maxHeight: VARIATIONS_SHEET_MAX_HEIGHT }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="sticky top-0 z-50 bg-[#0d0d0c] border-b border-[#292928] rounded-t-xl">
               <div className="flex items-center justify-between h-14 px-4">
                 <h1 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">Exercise Variations</h1>
-                <button 
-                  onClick={() => setShowVariationsSheet(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#171716] transition-colors"
-                >
-                  <X className="w-5 h-5 text-[#f7f6f2]" />
-                </button>
+                 <button 
+                   onClick={handleCloseVariationsSheet}
+                   className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#171716] transition-colors"
+                   data-testid="close-variations-sheet-button"
+                 >
+                   <X className="w-5 h-5 text-[#f7f6f2]" />
+                 </button>
               </div>
             </div>
 
             {/* Variations List */}
             <div className="px-4 py-6 space-y-3">
-              {getExerciseVariations(selectedExerciseForVariations.name, selectedExerciseForVariations.routineType).map((variation, index) => {
+              {getExerciseVariations(selectedExerciseForVariations.name, selectedExerciseForVariations.routineType, getRoutineEquipment(selectedExerciseForVariations.routineType, []).slice(0, 2)).map((variation, index) => {
                 const isCurrentExercise = variation.name === selectedExerciseForVariations.name;
                 return (
                   <div

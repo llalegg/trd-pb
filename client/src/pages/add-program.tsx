@@ -1099,16 +1099,7 @@ export default function AddProgram() {
 
       // Warnings
       // (Mid-week end date warnings removed - blocks can end on any day)
-
-      if (duration < 4 && duration >= 1) {
-        warnings.push({
-          type: 'warning',
-          category: 'Block Duration',
-          description: `Block ${index + 1} is only ${duration} weeks (recommended minimum 4 weeks)`,
-          affected: `Block ${index + 1}`,
-          action: 'Extend Block'
-        });
-      }
+      // (Block duration warnings removed - duration is automatic based on season/sub-seasons)
     });
 
     // Program Duration Issues
@@ -3058,10 +3049,10 @@ export default function AddProgram() {
   }, [getExerciseBands, exerciseColors]);
 
   return (
-    <div className="min-h-screen bg-surface-base">
+    <div className="flex flex-col h-screen bg-surface-base overflow-hidden">
       {/* Fixed Header Component */}
-      <div className="fixed top-0 left-0 right-0 z-50 border-b bg-surface-base">
-        <div className="flex h-16 items-center px-5">
+      <div className="fixed top-0 left-0 right-0 z-50 border-b bg-surface-base w-full">
+        <div className="flex h-16 items-center px-5 w-full">
           {/* Left Section (30%) */}
           <div className="flex items-center w-[30%]">
             <Button
@@ -3193,7 +3184,7 @@ export default function AddProgram() {
       </div>
 
       {/* Spacer for fixed header */}
-      <div className="h-16" />
+      <div className={cn("h-16", (currentStep === 2 || currentStep === 3) && "h-32")} />
 
       {/* Discard Confirmation Modal */}
       <AlertDialog open={showDiscardModal} onOpenChange={setShowDiscardModal}>
@@ -3223,8 +3214,8 @@ export default function AddProgram() {
 
       {/* Step 2 Sub-Header */}
       {currentStep === 2 && (
-        <div className="sticky top-16 z-40 border-b bg-surface-base">
-          <div className="flex h-16 items-center px-5 relative">
+        <div className="fixed top-16 left-0 right-0 z-40 border-b bg-surface-base w-full">
+          <div className="flex h-16 items-center px-5 relative w-full">
             {/* Left side: Sidebar Toggle */}
             <div className="absolute left-5">
               <Button
@@ -3254,6 +3245,104 @@ export default function AddProgram() {
                 </ToggleGroupItem>
                 <ToggleGroupItem value="weeks" aria-label="Week view" data-testid="view-weeks">
                   Week view
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3 Sub-Header */}
+      {currentStep === 3 && (
+        <div className="fixed top-16 left-0 right-0 z-40 border-b bg-surface-base w-full">
+          <div className="flex h-16 items-center justify-between px-5 relative w-full">
+            {/* Left side: Sidebar Toggle */}
+            <div className="absolute left-5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setAthleteSidebarOpen(!athleteSidebarOpen);
+                }}
+                className="h-8 w-8"
+              >
+                {athleteSidebarOpen ? (
+                  <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+            
+            {/* Center: Block Selection and Week Navigation */}
+            <div className="flex items-center gap-4 mx-auto">
+              <Select value={reviewBlockIndex.toString()} onValueChange={(val) => {
+                setReviewBlockIndex(parseInt(val));
+                setReviewWeekIndex(0);
+              }}>
+                <SelectTrigger className="w-[180px] h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {blocks.map((block, idx) => (
+                    <SelectItem key={idx} value={idx.toString()}>
+                      Block {idx + 1}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {getCurrentTemplateName() !== "No Template Selected" && (
+                <span className="text-xs text-muted-foreground">
+                  Template: {getCurrentTemplateName()}
+                </span>
+              )}
+              {reviewViewMode === "week" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setReviewWeekIndex(Math.max(0, reviewWeekIndex - 1))}
+                    disabled={reviewWeekIndex === 0}
+                    className="p-1.5 hover:bg-muted rounded disabled:opacity-50"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="text-xs font-medium">
+                    Week {reviewWeekIndex + 1} of {getWeeksInBlock.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setReviewWeekIndex(Math.min(getWeeksInBlock.length - 1, reviewWeekIndex + 1))}
+                    disabled={reviewWeekIndex >= getWeeksInBlock.length - 1}
+                    className="p-1.5 hover:bg-muted rounded disabled:opacity-50"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                  {currentWeek && (
+                    <span className="text-xs text-muted-foreground">
+                      {format(currentWeek.startDate, "MMM d")} - {format(currentWeek.endDate, "MMM d, yyyy")}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Right side: View Mode Toggle */}
+            <div className="flex items-center gap-4 absolute right-5">
+              <span className="text-xs font-medium text-foreground">View</span>
+              <ToggleGroup
+                type="single"
+                value={reviewViewMode}
+                onValueChange={(val) => val && setReviewViewMode(val as "week" | "block")}
+                variant="segmented"
+              >
+                <ToggleGroupItem value="block" aria-label="Block view" className="text-xs">
+                  Block View
+                </ToggleGroupItem>
+                <ToggleGroupItem value="week" aria-label="Week view" className="text-xs">
+                  Week View
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
@@ -3375,18 +3464,21 @@ export default function AddProgram() {
 
         {/* Main Content */}
         <div
-          className={cn(
-            "flex-1 transition-all duration-300",
-            (currentStep === 2 || currentStep === 3) && athleteSidebarOpen && "ml-[320px]"
-          )}
+            className={cn(
+              "flex-1 min-h-0 transition-all duration-300 overflow-y-auto",
+              (currentStep === 2 || currentStep === 3) && athleteSidebarOpen && "ml-[320px]"
+            )}
+            style={{ height: 'calc(100vh - 4rem)' }}
         >
         <Form {...form}>
-          <form id="program-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+          <form id="program-form" onSubmit={form.handleSubmit(handleSubmit)} className={currentStep === 1 ? "flex flex-col" : "space-y-8"}>
             {/* Step 1: General Settings */}
             {currentStep === 1 && (
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-0 min-h-[calc(100vh-4rem)]">
-                {/* Left: Form + Blocks table (40% - 2 columns) */}
-                <div className="lg:col-span-2 space-y-6 bg-surface-base border-r border-[#292928] px-6 py-6 lg:min-h-[calc(100vh-4rem)]">
+              <div className="flex flex-col">
+                {/* Top: Two Column Layout */}
+                <div className="flex flex-col lg:flex-row">
+                  {/* Column 1: Form + Blocks table */}
+                  <div className="flex-1 flex flex-col space-y-6 bg-surface-base lg:border-r border-[#292928] px-6 py-6 min-w-0 lg:min-w-[400px] lg:flex-shrink-0">
                 <FormField
                   control={form.control}
                   name="athleteId"
@@ -3655,7 +3747,7 @@ export default function AddProgram() {
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <div className="flex items-center gap-1">
-                        <FormLabel className="text-xs">Start date</FormLabel>
+                      <FormLabel className="text-xs">Start date</FormLabel>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -4426,89 +4518,492 @@ export default function AddProgram() {
                       </TableBody>
                     </Table>
                   </div>
-                  
-                  {/* Validation Messages */}
-                  {(() => {
-                    const validationErrors: string[] = [];
-                    
-                    blocks.forEach((block, index) => {
-                      const blockEndDate = blockEndDates.get(index) || block.endDate;
-                      const blockStartDate = blockStartDates.get(index) || block.startDate;
-                      const duration = differenceInWeeks(blockEndDate, blockStartDate);
-                      
-                      if (duration < 1) {
-                        validationErrors.push(`Block ${index + 1} duration is less than 1 week`);
-                      }
-                      
-                      if (blockEndDate < blockStartDate) {
-                        validationErrors.push(`Block ${index + 1} end date is before start date`);
-                      }
-                      
-                    });
-                    
-                    if (validationErrors.length === 0) {
-                      return null;
-                    }
-                    
-                    return (
-                      <div className="space-y-2 mt-4">
-                        {validationErrors.map((error, idx) => (
-                          <div key={idx} className="flex items-center gap-2 text-xs text-red-400">
-                            <AlertTriangle className="h-4 w-4" />
-                            <span>{error}</span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
                 </div>
               )}
+                  </div>
+                  
+                  {/* Column 2: Key Dates and Other Info */}
+                  <div className="flex-1 flex flex-col px-4 py-6 lg:min-w-[300px] lg:flex-shrink-0 bg-surface-base">
+
+                  {/* Programming History - Moved to right panel above Key Dates */}
+                  {selectedAthleteId && athletePrograms.length > 0 && (
+                    <div className="mt-4 rounded-md">
+                      <h4 className="text-xs font-semibold text-[#f7f6f2] font-['Montserrat'] mb-3">Programming History</h4>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {athletePrograms.map((program) => {
+                          const programStart = new Date(program.startDate);
+                          const programEnd = new Date(program.endDate);
+                          const today = new Date();
+                          const isPast = programEnd < today;
+                          const isCurrent = programStart <= today && programEnd >= today;
+                          const overlapsWithNew = startDate && (
+                            (programStart <= startDate && programEnd >= startDate) ||
+                            (programStart <= endDate && programEnd >= endDate) ||
+                            (programStart >= startDate && programEnd <= endDate)
+                          );
+                          
+                          return (
+                            <div
+                              key={program.id}
+                              className={cn(
+                                "rounded-lg p-3 text-xs",
+                                overlapsWithNew ? "border-yellow-500 bg-yellow-500/10" : "bg-[#171716]"
+                              )}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-semibold text-[#f7f6f2] font-['Montserrat']">{program.programId}</span>
+                                <Badge variant={isPast ? "tertiary" : "default"} className="text-xs">
+                                  {isPast ? "Past" : isCurrent ? "Current" : "Upcoming"}
+                                </Badge>
+                              </div>
+                              <div className="text-[#979795] font-['Montserrat'] text-xs">
+                                {format(programStart, "MMM d, yyyy")} - {format(programEnd, "MMM d, yyyy")}
+                              </div>
+                              {overlapsWithNew && (
+                                <div className="mt-2 text-xs text-yellow-500 font-['Montserrat'] flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Overlaps with proposed program
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Key Dates Panel - Only show when athlete is selected */}
+                  {selectedAthleteId && (
+                    <Collapsible defaultOpen={true} className="mt-4 rounded-md">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full text-left hover:bg-muted/50 rounded-md px-1 py-1 transition-colors">
+                        <h3 className="text-xs font-medium">Key Dates</h3>
+                        <ChevronDown className="h-4 w-4 text-[#979795] transition-transform duration-200 data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="space-y-2 mt-3">
+                  {(() => {
+                          // Generate mock athlete events randomly across November, December, and January
+                          const currentYear = new Date().getFullYear();
+                          const eventTypes = ["Game", "Assessment", "Training"] as const;
+                          const eventLabels: Record<string, string[]> = {
+                            Game: ["Game Day", "Championship Game", "Regular Season Game", "Playoff Game"],
+                            Assessment: ["Performance Assessment", "Fitness Test", "Medical Assessment"],
+                            Training: ["Training Camp", "Intensive Training", "Recovery Session"],
+                          };
+
+                          // Generate random dates across November (10), December (11), and January (0)
+                          const generateRandomDate = (month: number, year: number) => {
+                            const daysInMonth = new Date(year, month + 1, 0).getDate();
+                            const day = Math.floor(Math.random() * daysInMonth) + 1;
+                            return new Date(year, month, day);
+                          };
+
+                          const mockEvents: Array<{ date: Date; type: string; label: string }> = [];
+                          
+                          // November events (month 10)
+                          for (let i = 0; i < 4; i++) {
+                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+                            const labels = eventLabels[type];
+                            mockEvents.push({
+                              date: generateRandomDate(10, currentYear),
+                              type,
+                              label: labels[Math.floor(Math.random() * labels.length)],
+                            });
+                          }
+
+                          // December events (month 11)
+                          for (let i = 0; i < 5; i++) {
+                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+                            const labels = eventLabels[type];
+                            mockEvents.push({
+                              date: generateRandomDate(11, currentYear),
+                              type,
+                              label: labels[Math.floor(Math.random() * labels.length)],
+                            });
+                          }
+
+                          // January events (month 0)
+                          for (let i = 0; i < 4; i++) {
+                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+                            const labels = eventLabels[type];
+                            mockEvents.push({
+                              date: generateRandomDate(0, currentYear),
+                              type,
+                              label: labels[Math.floor(Math.random() * labels.length)],
+                            });
+                          }
+
+                          // Remove duplicates and filter events that fall within program date range if available
+                          const uniqueEvents = Array.from(
+                            new Map(mockEvents.map(event => [event.date.getTime(), event])).values()
+                          );
+
+                          const filteredEvents = startDate && endDate
+                            ? uniqueEvents.filter(event => {
+                                const eventDate = new Date(event.date);
+                                eventDate.setHours(0, 0, 0, 0);
+                                const start = new Date(startDate);
+                                start.setHours(0, 0, 0, 0);
+                                const end = new Date(endDate);
+                                end.setHours(0, 0, 0, 0);
+                                return eventDate >= start && eventDate <= end;
+                              })
+                            : uniqueEvents;
+
+                          // Sort by date
+                          const sortedEvents = filteredEvents.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+                          if (sortedEvents.length === 0) {
+                            return (
+                              <p className="text-xs text-muted-foreground text-center py-4">
+                                No key dates in the selected date range
+                              </p>
+                            );
+                          }
+
+                          return sortedEvents.map((event, index) => {
+                            const typeColors: Record<string, string> = {
+                              Game: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+                              Assessment: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+                              Training: "bg-green-500/20 text-green-400 border-green-500/30",
+                            };
+                    
+                    return (
+                              <div
+                                key={`${event.date.getTime()}-${index}`}
+                                className="flex items-center gap-2 p-2 rounded-md bg-surface-raised hover:bg-muted/50 transition-colors"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs font-medium text-foreground">
+                                      {format(event.date, "MMM d, yyyy")}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-xs px-2 py-0.5",
+                                        typeColors[event.type] || "bg-gray-500/20 text-gray-400 border-gray-500/30"
+                                      )}
+                                    >
+                                      {event.type}
+                                    </Badge>
+                          </div>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {event.label}
+                                  </p>
+                                </div>
+                      </div>
+                    );
+                          });
+                  })()}
+                </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+
+                  {/* Last Assessment/Re-assessment Section */}
+                  {selectedAthleteId && (
+                    <Collapsible defaultOpen={true} className="mt-4 rounded-md">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full text-left hover:bg-muted/50 rounded-md px-1 py-1 transition-colors">
+                        <h3 className="text-xs font-medium">Last assessment/re-assessment</h3>
+                        <ChevronDown className="h-4 w-4 text-[#979795] transition-transform duration-200 data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="space-y-2 mt-3">
+                          {(() => {
+                            // Mock assessment data - in real app, this would come from API
+                            const mockAssessments = [
+                              {
+                                date: new Date(2024, 10, 15), // November 15, 2024
+                                type: "Performance Assessment",
+                                details: "Full body movement screen",
+                              },
+                              {
+                                date: new Date(2024, 9, 1), // October 1, 2024
+                                type: "Re-assessment",
+                                details: "Follow-up evaluation",
+                              },
+                            ];
+
+                            // Filter assessments within date range if available
+                            const filteredAssessments = startDate && endDate
+                              ? mockAssessments.filter(assessment => {
+                                  const assessmentDate = new Date(assessment.date);
+                                  assessmentDate.setHours(0, 0, 0, 0);
+                                  const start = new Date(startDate);
+                                  start.setHours(0, 0, 0, 0);
+                                  const end = new Date(endDate);
+                                  end.setHours(0, 0, 0, 0);
+                                  return assessmentDate >= start && assessmentDate <= end;
+                                })
+                              : mockAssessments;
+
+                            // Sort by date (most recent first)
+                            const sortedAssessments = filteredAssessments.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+                            if (sortedAssessments.length === 0) {
+                              return (
+                                <p className="text-xs text-muted-foreground text-center py-4">
+                                  No assessments in the selected date range
+                                </p>
+                              );
+                            }
+
+                            return sortedAssessments.map((assessment, index) => (
+                              <div
+                                key={`assessment-${assessment.date.getTime()}-${index}`}
+                                className="flex items-center gap-2 p-2 rounded-md bg-surface-raised hover:bg-muted/50 transition-colors"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs font-medium text-foreground">
+                                      {format(assessment.date, "MMM d, yyyy")}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                    >
+                                      {assessment.type}
+                                    </Badge>
+                      </div>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {assessment.details}
+                                  </p>
+                                </div>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+
+                  {/* New Injuries/Treatment Sessions Section */}
+                  {selectedAthleteId && (
+                    <Collapsible defaultOpen={true} className="mt-4 rounded-md">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full text-left hover:bg-muted/50 rounded-md px-1 py-1 transition-colors">
+                        <h3 className="text-xs font-medium">New injuries/treatment sessions</h3>
+                        <ChevronDown className="h-4 w-4 text-[#979795] transition-transform duration-200 data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="space-y-2 mt-3">
+                          {(() => {
+                            // Mock injury/treatment data - in real app, this would come from API
+                            const mockInjuries = [
+                              {
+                                date: new Date(2024, 11, 5), // December 5, 2024
+                                type: "Injury",
+                                details: "Shoulder impingement - Right shoulder",
+                                treatment: "Physical therapy session",
+                              },
+                              {
+                                date: new Date(2024, 11, 12), // December 12, 2024
+                                type: "Treatment",
+                                details: "Follow-up treatment",
+                                treatment: "Manual therapy",
+                              },
+                            ];
+
+                            // Filter injuries/treatments within date range if available
+                            const filteredInjuries = startDate && endDate
+                              ? mockInjuries.filter(injury => {
+                                  const injuryDate = new Date(injury.date);
+                                  injuryDate.setHours(0, 0, 0, 0);
+                                  const start = new Date(startDate);
+                                  start.setHours(0, 0, 0, 0);
+                                  const end = new Date(endDate);
+                                  end.setHours(0, 0, 0, 0);
+                                  return injuryDate >= start && injuryDate <= end;
+                                })
+                              : mockInjuries;
+
+                            // Sort by date (most recent first)
+                            const sortedInjuries = filteredInjuries.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+                            if (sortedInjuries.length === 0) {
+                    return (
+                                <p className="text-xs text-muted-foreground text-center py-4">
+                                  No injuries or treatment sessions in the selected date range
+                                </p>
+                              );
+                            }
+
+                            return sortedInjuries.map((injury, index) => {
+                              const typeColors: Record<string, string> = {
+                                Injury: "bg-red-500/20 text-red-400 border-red-500/30",
+                                Treatment: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+                              };
+
+                              return (
+                                <div
+                                  key={`injury-${injury.date.getTime()}-${index}`}
+                                  className="flex items-center gap-2 p-2 rounded-md bg-surface-raised hover:bg-muted/50 transition-colors"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-xs font-medium text-foreground">
+                                        {format(injury.date, "MMM d, yyyy")}
+                                      </span>
+                                      <Badge
+                                        variant="outline"
+                                        className={cn(
+                                          "text-xs px-2 py-0.5",
+                                          typeColors[injury.type] || "bg-gray-500/20 text-gray-400 border-gray-500/30"
+                                        )}
+                                      >
+                                        {injury.type}
+                                      </Badge>
+                          </div>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                      {injury.details}
+                                    </p>
+                                    {injury.treatment && (
+                                      <p className="text-xs text-muted-foreground mt-0.5">
+                                        {injury.treatment}
+                                      </p>
+                                    )}
+                          </div>
+                      </div>
+                    );
+                            });
+                  })()}
+                </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+              )}
+              </div>
               </div>
 
-                {/* Right: Monthly Calendar Visualization (60% - 3 columns) */}
-                <div className="lg:col-span-3 lg:sticky lg:top-16 px-4">
-                  <div className="rounded-md">
-                    <div className="flex items-center justify-between mb-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setCalendarMonth((prev) => addMonths(prev, -1))}
-                        aria-label="Previous month"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
+                {/* Calendar Section - Scrollable with Content */}
+                <div 
+                  className="bg-[#0d0d0c] border-t-2 border-[#292928] w-full"
+                  style={{ height: '200px', overflowY: 'auto' }}
+                >
+                  <div className="px-4 py-4">
+                    {/* Calendar Title with Legend Button */}
+                    <div className="mb-3 flex items-center justify-between">
                       <div className="text-xs font-medium">
-                        {format(calendarMonth, "MMMM yyyy")}
+                        {startDate ? `60 Days from ${format(startDate, "MMM d, yyyy")}` : "Select start date to view calendar"}
                       </div>
+                      {(blocks.length > 0 || selectedAthleteId || activePrograms.length > 0) && (
+                        <Popover>
+                          <PopoverTrigger asChild>
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon"
-                        onClick={() => setCalendarMonth((prev) => addMonths(prev, 1))}
-                        aria-label="Next month"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                       >
-                        <ChevronRight className="h-4 w-4" />
+                              <Info className="h-3 w-3 mr-1" />
+                              Legend
                       </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 p-3 z-[60]" align="end" side="top">
+                            <div className="space-y-3">
+                              <h4 className="text-xs font-semibold mb-2">Legend</h4>
+                              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                                {/* Column 1: Program Blocks */}
+                                <div className="space-y-2">
+                                  {blocks.length > 0 && (
+                                    <div className="space-y-1.5">
+                                      <p className="text-xs font-medium text-muted-foreground mb-1">Program Blocks:</p>
+                                      <div className="space-y-1">
+                                        {blocks.map((block, index) => {
+                                          const blockColors = [
+                                            "bg-blue-500",
+                                            "bg-blue-600",
+                                            "bg-blue-400",
+                                            "bg-blue-700",
+                                            "bg-blue-300",
+                                            "bg-blue-800",
+                                          ];
+                                          const blockColor = blockColors[index % blockColors.length];
+                                          return (
+                                            <div key={index} className="flex items-center gap-2">
+                                              <span className={cn("h-3 w-3 rounded-sm inline-block", blockColor)} />
+                                              <span className="text-xs text-muted-foreground">{block.name}</span>
+                    </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Program Duration */}
+                                  {startDate && endDate && (
+                                    <div className="flex items-center gap-2">
+                                      <div className="h-3 w-3 rounded-sm bg-blue-500/20 border border-blue-500" />
+                                      <span className="text-xs text-muted-foreground">Program Duration</span>
+                    </div>
+                                  )}
+                                  
+                                  {/* Existing Programming */}
+                                  {activePrograms.length > 0 && (
+                                    <div className="flex items-center gap-2">
+                                      <div 
+                                        className="h-3 w-3 rounded-sm"
+                                        style={{
+                                          backgroundImage: 'repeating-linear-gradient(45deg, #808080, #808080 10px, transparent 10px, transparent 20px)'
+                                        }}
+                                      />
+                                      <span className="text-xs text-muted-foreground">Existing Programming</span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Phase Boundary */}
+                                  {selectedAthlete?.phaseEndDate && (
+                                    <div className="flex items-center gap-2">
+                                      <div className="h-3 w-3 rounded-sm bg-orange-500/20 border border-orange-500 border-dashed" />
+                                      <span className="text-xs text-muted-foreground">Phase Boundary</span>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Column 2: Key Dates */}
+                                <div className="space-y-2">
+                                  {selectedAthleteId && (
+                                    <div className="space-y-1.5">
+                                      <p className="text-xs font-medium text-muted-foreground mb-1">Key Dates:</p>
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                          <div className="h-3 w-3 rounded-full bg-blue-400" />
+                                          <span className="text-xs text-muted-foreground">Game</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <div className="h-3 w-3 rounded-full bg-amber-400" />
+                                          <span className="text-xs text-muted-foreground">Assessment</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <div className="h-3 w-3 rounded-full bg-green-400" />
+                                          <span className="text-xs text-muted-foreground">Training</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
                     </div>
 
-                    {/* Weekday headers */}
-                    <div className="grid grid-cols-7 gap-1 text-[11px] text-muted-foreground mb-1">
-                      {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d) => (
-                        <div key={d} className="text-center py-1">{d}</div>
-                      ))}
-                    </div>
-
-                    {/* Month grid with large cells */}
-                    <div className="grid grid-cols-7 gap-1">
+                    {/* Horizontal scrollable calendar */}
+                    <div className="overflow-x-auto">
+                      <div className="flex gap-1 min-w-max">
                       {(() => {
-                        const start = startOfWeek(startOfMonth(calendarMonth), { weekStartsOn: 1 });
-                        const end = endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 1 });
+                          if (!startDate) {
+                            return (
+                              <div className="w-full text-center py-8 text-xs text-muted-foreground">
+                                Please select a start date to view the calendar
+                              </div>
+                            );
+                          }
+
+                          // Generate 60 days from start date
                         const days: Date[] = [];
-                        let cursor = new Date(start);
-                        while (cursor <= end) {
-                          days.push(new Date(cursor));
-                          cursor = addDays(cursor, 1);
+                          for (let i = 0; i < 60; i++) {
+                            days.push(addDays(startDate, i));
                         }
 
                         // Generate different shades of blue for each block
@@ -4601,8 +5096,8 @@ export default function AddProgram() {
                         const keyDates = selectedAthleteId ? getKeyDates() : [];
                         
                         return days.map((day, dayIndex) => {
-                          const inMonth = day.getMonth() === calendarMonth.getMonth();
                           const dayOfWeek = day.getDay();
+                          const dayName = format(day, "EEE"); // Mon, Tue, etc.
                           
                           // Check if this is the start of a new week (Monday)
                           const isWeekStart = dayOfWeek === 1;
@@ -4644,14 +5139,14 @@ export default function AddProgram() {
                             <div
                               key={day.toISOString()}
                               className={cn(
-                                "min-h-[96px] rounded-md border p-1 flex flex-col relative",
-                                inMonth ? "bg-background" : "bg-muted/30",
+                                "w-[120px] min-h-[96px] rounded-md border p-1.5 flex flex-col relative shrink-0",
+                                "bg-background",
                                 isPhaseBoundary && "border-l-2 border-l-orange-500 border-dashed"
                               )}
                             >
                               {/* Week Number Label */}
                               {showWeekLabel && (
-                                <div className="absolute top-0 left-0 bg-muted/80 text-xs font-medium px-1.5 py-0.5 rounded-br-md z-20">
+                                <div className="absolute -top-3 left-0 bg-muted/80 text-[10px] font-medium px-1.5 py-0.5 rounded z-20 whitespace-nowrap">
                                   Week {weekNumber}
                                 </div>
                               )}
@@ -4671,17 +5166,27 @@ export default function AddProgram() {
                                 />
                               )}
                               
-                              <div className="text-[11px] text-right mb-1 text-muted-foreground flex items-center justify-end gap-1 relative z-10">
+                              {/* Day Header */}
+                              <div className="flex flex-col mb-1.5 relative z-10">
+                                <div className="text-[10px] text-muted-foreground font-medium">
+                                  {dayName}
+                                </div>
+                                <div className="text-xs font-semibold text-foreground">
                                 {format(day, "d")}
+                                </div>
+                                <div className="text-[9px] text-muted-foreground">
+                                  {format(day, "MMM")}
+                                </div>
                               </div>
                               
                               {/* Program Duration Label */}
                               {isProgramStart && startDate && (
-                                <div className="absolute top-1 left-1 z-10 bg-blue-500/80 text-white text-[9px] px-1.5 py-0.5 rounded">
-                                  New Program
+                                <div className="absolute top-1 right-1 z-10 bg-blue-500/80 text-white text-[9px] px-1.5 py-0.5 rounded">
+                                  Start
                                 </div>
                               )}
                               
+                              {/* Day Content */}
                               <div className="flex-1 flex flex-col gap-1 relative z-10">
                                 {dayBlocks.slice(0, dayKeyDate ? 2 : 3).map((b, idx) => {
                                   const isStart = isSameDay(day, b.startDate);
@@ -4734,285 +5239,8 @@ export default function AddProgram() {
                         });
                       })()}
                     </div>
-
-                    {/* Comprehensive Legend */}
-                    {(blocks.length > 0 || selectedAthleteId || activePrograms.length > 0) && (
-                      <div className="mt-3 rounded-lg bg-[#171716] p-3" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setLegendExpanded(!legendExpanded);
-                          }}
-                          className="flex items-center justify-between w-full text-left hover:bg-muted/50 rounded-md px-1 py-1 transition-colors"
-                        >
-                          <h4 className="text-xs font-semibold">Legend</h4>
-                          <ChevronDown className={cn("h-4 w-4 transition-transform", legendExpanded && "rotate-180")} />
-                        </button>
-                        
-                        {legendExpanded && (
-                          <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3">
-                            {/* Column 1: Program Blocks */}
-                            <div className="space-y-2">
-                              {blocks.length > 0 && (
-                                <div className="space-y-1.5">
-                                  <p className="text-xs font-medium text-muted-foreground mb-1">Program Blocks:</p>
-                                  <div className="space-y-1">
-                                    {blocks.map((block, index) => {
-                                      const blockColors = [
-                                        "bg-blue-500",
-                                        "bg-blue-600",
-                                        "bg-blue-400",
-                                        "bg-blue-700",
-                                        "bg-blue-300",
-                                        "bg-blue-800",
-                                      ];
-                                      const blockColor = blockColors[index % blockColors.length];
-                                      return (
-                                        <div key={index} className="flex items-center gap-2">
-                                          <span className={cn("h-3 w-3 rounded-sm inline-block", blockColor)} />
-                                          <span className="text-xs text-muted-foreground">{block.name}</span>
                                         </div>
-                                      );
-                                    })}
                                   </div>
-                                </div>
-                              )}
-                              
-                              {/* Program Duration */}
-                              {startDate && endDate && (
-                                <div className="flex items-center gap-2">
-                                  <div className="h-3 w-3 rounded-sm bg-blue-500/20 border border-blue-500" />
-                                  <span className="text-xs text-muted-foreground">Program Duration</span>
-                                </div>
-                              )}
-                              
-                              {/* Existing Programming */}
-                              {activePrograms.length > 0 && (
-                                <div className="flex items-center gap-2">
-                                  <div 
-                                    className="h-3 w-3 rounded-sm"
-                                    style={{
-                                      backgroundImage: 'repeating-linear-gradient(45deg, #808080, #808080 10px, transparent 10px, transparent 20px)'
-                                    }}
-                                  />
-                                  <span className="text-xs text-muted-foreground">Existing Programming</span>
-                                </div>
-                              )}
-                              
-                              {/* Phase Boundary */}
-                              {selectedAthlete?.phaseEndDate && (
-                                <div className="flex items-center gap-2">
-                                  <div className="h-3 w-3 rounded-sm bg-orange-500/20 border border-orange-500 border-dashed" />
-                                  <span className="text-xs text-muted-foreground">Phase Boundary</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Column 2: Key Dates */}
-                            <div className="space-y-2">
-                              {selectedAthleteId && (
-                                <div className="space-y-1.5">
-                                  <p className="text-xs font-medium text-muted-foreground mb-1">Key Dates:</p>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-3 w-3 rounded-full bg-blue-400" />
-                                      <span className="text-xs text-muted-foreground">Game</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-3 w-3 rounded-full bg-amber-400" />
-                                      <span className="text-xs text-muted-foreground">Assessment</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-3 w-3 rounded-full bg-green-400" />
-                                      <span className="text-xs text-muted-foreground">Training</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Programming History - Moved to right panel above Key Dates */}
-                  {selectedAthleteId && athletePrograms.length > 0 && (
-                    <div className="mt-4 rounded-md">
-                      <h4 className="text-xs font-semibold text-[#f7f6f2] font-['Montserrat'] mb-3">Programming History</h4>
-                      <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {athletePrograms.map((program) => {
-                          const programStart = new Date(program.startDate);
-                          const programEnd = new Date(program.endDate);
-                          const today = new Date();
-                          const isPast = programEnd < today;
-                          const isCurrent = programStart <= today && programEnd >= today;
-                          const overlapsWithNew = startDate && (
-                            (programStart <= startDate && programEnd >= startDate) ||
-                            (programStart <= endDate && programEnd >= endDate) ||
-                            (programStart >= startDate && programEnd <= endDate)
-                          );
-                          
-                          return (
-                            <div
-                              key={program.id}
-                              className={cn(
-                                "rounded-lg p-3 text-xs",
-                                overlapsWithNew ? "border-yellow-500 bg-yellow-500/10" : "bg-[#171716]"
-                              )}
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="font-semibold text-[#f7f6f2] font-['Montserrat']">{program.programId}</span>
-                                <Badge variant={isPast ? "tertiary" : "default"} className="text-xs">
-                                  {isPast ? "Past" : isCurrent ? "Current" : "Upcoming"}
-                                </Badge>
-                              </div>
-                              <div className="text-[#979795] font-['Montserrat'] text-xs">
-                                {format(programStart, "MMM d, yyyy")} - {format(programEnd, "MMM d, yyyy")}
-                              </div>
-                              {overlapsWithNew && (
-                                <div className="mt-2 text-xs text-yellow-500 font-['Montserrat'] flex items-center gap-1">
-                                  <AlertTriangle className="h-3 w-3" />
-                                  Overlaps with proposed program
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Key Dates Panel - Only show when athlete is selected */}
-                  {selectedAthleteId && (
-                    <Collapsible defaultOpen={true} className="mt-4 rounded-md">
-                      <CollapsibleTrigger className="flex items-center justify-between w-full text-left hover:bg-muted/50 rounded-md px-1 py-1 transition-colors">
-                        <h3 className="text-xs font-medium">Key Dates</h3>
-                        <ChevronDown className="h-4 w-4 text-[#979795] transition-transform duration-200 data-[state=open]:rotate-180" />
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <div className="space-y-2 max-h-96 overflow-y-auto mt-3">
-                        {(() => {
-                          // Generate mock athlete events randomly across November, December, and January
-                          const currentYear = new Date().getFullYear();
-                          const eventTypes = ["Game", "Assessment", "Training"] as const;
-                          const eventLabels: Record<string, string[]> = {
-                            Game: ["Game Day", "Championship Game", "Regular Season Game", "Playoff Game"],
-                            Assessment: ["Performance Assessment", "Fitness Test", "Medical Assessment"],
-                            Training: ["Training Camp", "Intensive Training", "Recovery Session"],
-                          };
-
-                          // Generate random dates across November (10), December (11), and January (0)
-                          const generateRandomDate = (month: number, year: number) => {
-                            const daysInMonth = new Date(year, month + 1, 0).getDate();
-                            const day = Math.floor(Math.random() * daysInMonth) + 1;
-                            return new Date(year, month, day);
-                          };
-
-                          const mockEvents: Array<{ date: Date; type: string; label: string }> = [];
-                          
-                          // November events (month 10)
-                          for (let i = 0; i < 4; i++) {
-                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-                            const labels = eventLabels[type];
-                            mockEvents.push({
-                              date: generateRandomDate(10, currentYear),
-                              type,
-                              label: labels[Math.floor(Math.random() * labels.length)],
-                            });
-                          }
-
-                          // December events (month 11)
-                          for (let i = 0; i < 5; i++) {
-                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-                            const labels = eventLabels[type];
-                            mockEvents.push({
-                              date: generateRandomDate(11, currentYear),
-                              type,
-                              label: labels[Math.floor(Math.random() * labels.length)],
-                            });
-                          }
-
-                          // January events (month 0)
-                          for (let i = 0; i < 4; i++) {
-                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-                            const labels = eventLabels[type];
-                            mockEvents.push({
-                              date: generateRandomDate(0, currentYear),
-                              type,
-                              label: labels[Math.floor(Math.random() * labels.length)],
-                            });
-                          }
-
-                          // Remove duplicates and filter events that fall within program date range if available
-                          const uniqueEvents = Array.from(
-                            new Map(mockEvents.map(event => [event.date.getTime(), event])).values()
-                          );
-
-                          const filteredEvents = startDate && endDate
-                            ? uniqueEvents.filter(event => {
-                                const eventDate = new Date(event.date);
-                                eventDate.setHours(0, 0, 0, 0);
-                                const start = new Date(startDate);
-                                start.setHours(0, 0, 0, 0);
-                                const end = new Date(endDate);
-                                end.setHours(0, 0, 0, 0);
-                                return eventDate >= start && eventDate <= end;
-                              })
-                            : uniqueEvents;
-
-                          // Sort by date
-                          const sortedEvents = filteredEvents.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-                          if (sortedEvents.length === 0) {
-                            return (
-                              <p className="text-xs text-muted-foreground text-center py-4">
-                                No key dates in the selected date range
-                              </p>
-                            );
-                          }
-
-                          return sortedEvents.map((event, index) => {
-                            const typeColors: Record<string, string> = {
-                              Game: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-                              Assessment: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-                              Training: "bg-green-500/20 text-green-400 border-green-500/30",
-                            };
-
-                            return (
-                              <div
-                                key={`${event.date.getTime()}-${index}`}
-                                className="flex items-center gap-2 p-2 rounded-md bg-surface-raised hover:bg-muted/50 transition-colors"
-                              >
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs font-medium text-foreground">
-                                      {format(event.date, "MMM d, yyyy")}
-                                    </span>
-                                    <Badge
-                                      variant="outline"
-                                      className={cn(
-                                        "text-xs px-2 py-0.5",
-                                        typeColors[event.type] || "bg-gray-500/20 text-gray-400 border-gray-500/30"
-                                      )}
-                                    >
-                                      {event.type}
-                                    </Badge>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-0.5">
-                                    {event.label}
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          });
-                        })()}
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  )}
                 </div>
               </div>
             )}
@@ -5755,9 +5983,9 @@ export default function AddProgram() {
                               {hasOverrides("throwing", "phase", blockIndex, level) && (
                                 <AlertCircle className="absolute right-6 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-blue-500" 
                                      title="Customized at lower level" />
-                              )}
-                            </>
-                          )}
+                )}
+              </>
+            )}
                         </div>
 
                           {/* Exclusions Dropdown */}
@@ -5772,28 +6000,28 @@ export default function AddProgram() {
                                 onValueChange={(value) => handleValueChange("throwing", "exclusions", value, blockIndex, weekIndex, dayIndex, level)}
                               >
                                 <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
                                   <SelectItem value="none">None</SelectItem>
                                   <SelectItem value="flatground">Flatground</SelectItem>
                                   <SelectItem value="mound">Mound</SelectItem>
                                   <SelectItem value="long-toss">Long Toss</SelectItem>
                                   <SelectItem value="weighted-balls">Weighted Balls</SelectItem>
                                   <SelectItem value="high-intent">High Intent</SelectItem>
-                                </SelectContent>
-                              </Select>
+                        </SelectContent>
+                      </Select>
                               {hasOverrides("throwing", "exclusions", blockIndex, level) && (
                                 <AlertCircle className="absolute right-6 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-blue-500" 
                                      title="Customized at lower level" />
-                              )}
-                            </>
-                            )}
-                      </div>
-                        </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
                         );
                       })}
-                            </div>
+                    </div>
                           )}
                   </div>
                 )}
@@ -5803,113 +6031,22 @@ export default function AddProgram() {
             {/* Step 3: Review Program */}
             {currentStep === 3 && (
               <>
-                {/* Step 3 Sub-Header */}
-                <div className="sticky top-16 z-40 border-b bg-surface-base">
-                  <div className="flex h-16 items-center justify-between px-5 relative">
-                    {/* Left side: Sidebar Toggle */}
-                    <div className="absolute left-5">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setAthleteSidebarOpen(!athleteSidebarOpen)}
-                        className="h-8 w-8"
-                      >
-                        {athleteSidebarOpen ? (
-                          <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                    
-                    {/* Center: Block Selection and Week Navigation */}
-                    <div className="flex items-center gap-4 mx-auto">
-                      <Select value={reviewBlockIndex.toString()} onValueChange={(val) => {
-                        setReviewBlockIndex(parseInt(val));
-                        setReviewWeekIndex(0);
-                      }}>
-                        <SelectTrigger className="w-[180px] h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {blocks.map((block, idx) => (
-                            <SelectItem key={idx} value={idx.toString()}>
-                              Block {idx + 1}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {getCurrentTemplateName() !== "No Template Selected" && (
-                        <span className="text-xs text-muted-foreground">
-                          Template: {getCurrentTemplateName()}
-                        </span>
-                      )}
-                      {reviewViewMode === "week" && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => setReviewWeekIndex(Math.max(0, reviewWeekIndex - 1))}
-                            disabled={reviewWeekIndex === 0}
-                            className="p-1.5 hover:bg-muted rounded disabled:opacity-50"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </button>
-                          <span className="text-xs font-medium">
-                            Week {reviewWeekIndex + 1} of {getWeeksInBlock.length}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setReviewWeekIndex(Math.min(getWeeksInBlock.length - 1, reviewWeekIndex + 1))}
-                            disabled={reviewWeekIndex >= getWeeksInBlock.length - 1}
-                            className="p-1.5 hover:bg-muted rounded disabled:opacity-50"
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </button>
-                          {currentWeek && (
-                            <span className="text-xs text-muted-foreground">
-                              {format(currentWeek.startDate, "MMM d")} - {format(currentWeek.endDate, "MMM d, yyyy")}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    {/* Right side: View Mode Toggle */}
-                    <div className="flex items-center gap-4 absolute right-5">
-                      <span className="text-xs font-medium text-foreground">View</span>
-                      <ToggleGroup
-                        type="single"
-                        value={reviewViewMode}
-                        onValueChange={(val) => val && setReviewViewMode(val as "week" | "block")}
-                        variant="segmented"
-                      >
-                        <ToggleGroupItem value="block" aria-label="Block view" className="text-xs">
-                          Block View
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="week" aria-label="Week view" className="text-xs">
-                          Week View
-                        </ToggleGroupItem>
-                      </ToggleGroup>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Content Area */}
-                <div className="w-full flex flex-col h-[calc(100vh-8rem)]">
+                <div className="w-full flex flex-col flex-1 overflow-hidden">
                   <div className="flex-1 overflow-hidden flex flex-col">
-                {/* Empty State - Show when no weeks available */}
-                  {getWeeksInBlock.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center space-y-2">
-                      <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
-                      <p className="text-sm font-medium text-muted-foreground">No weeks available</p>
-                      <p className="text-xs text-muted-foreground">Please ensure blocks are configured with valid dates.</p>
-                    </div>
-                  </div>
-                  ) : (
+                    {/* Empty State - Show when no weeks available */}
+                    {getWeeksInBlock.length === 0 ? (
+                      <div className="flex-1 flex items-center justify-center">
+                        <div className="text-center space-y-2">
+                          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
+                          <p className="text-sm font-medium text-muted-foreground">No weeks available</p>
+                          <p className="text-xs text-muted-foreground">Please ensure blocks are configured with valid dates.</p>
+                        </div>
+                      </div>
+                    ) : (
                     <>
-                      {/* Week Grid View */}
-                      {reviewViewMode === "week" && (
+                {/* Week Grid View */}
+                  {reviewViewMode === "week" && (
                         <div className="flex-1 overflow-auto w-full bg-surface-base">
                       {/* Week Grid - Table Layout */}
                       <div className="w-full overflow-x-auto">
@@ -6444,7 +6581,7 @@ export default function AddProgram() {
                 )}
 
                   {/* Block View */}
-                      {reviewViewMode === "block" && (
+                  {reviewViewMode === "block" && (
                     <div className="flex-1 overflow-auto w-full bg-surface-base">
                       <div className="w-full overflow-x-auto">
                         {/* Day Headers */}
