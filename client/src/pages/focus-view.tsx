@@ -16,6 +16,29 @@ const DEFAULT_RPE = "6";
 const WEIGHT_CONVERSION_FACTOR = 0.45359237;
 const ROUNDING_PRECISION = 10;
 
+// Rest time selector constants
+const DEFAULT_REST_MINUTES = 2;
+const DEFAULT_REST_SECONDS = 0;
+const MAX_REST_MINUTES = 59;
+const REST_SECONDS_INCREMENT = 15;
+
+// Exercise defaults by routine type
+const DEFAULT_REPS_STRENGTH = 8;
+const DEFAULT_WEIGHT_STRENGTH = 135;
+const DEFAULT_REST_STRENGTH = "3:00";
+
+const DEFAULT_REPS_MOVEMENT = 15;
+const DEFAULT_WEIGHT_MOVEMENT = 0;
+const DEFAULT_REST_MOVEMENT = "1:00";
+
+const DEFAULT_REPS_THROWING = 20;
+const DEFAULT_WEIGHT_THROWING = 0;
+const DEFAULT_REST_THROWING = "2:00";
+
+const DEFAULT_REPS_GENERAL = 12;
+const DEFAULT_WEIGHT_GENERAL = 135;
+const DEFAULT_REST_GENERAL = "2:00";
+
 interface SessionExercise {
   name: string;
   sets: number;

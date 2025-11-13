@@ -214,6 +214,7 @@ export default function SessionView() {
   
   const DEFAULT_DAY = 17;
   const EQUIPMENT_SHEET_MAX_HEIGHT = "70vh";
+  const VARIATIONS_SHEET_MAX_HEIGHT = "80vh";
   // Get the selected day from URL params or default to current day
   const urlParams = new URLSearchParams(window.location.search);
   const selectedDay = parseInt(urlParams.get('day') || String(DEFAULT_DAY), 10);
@@ -656,7 +657,8 @@ export default function SessionView() {
                         {routineEquipment.map((equipment, index) => (
                           <button
                             key={index}
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setSelectedEquipment(equipment);
                               setShowEquipmentSheet(true);
                             }}
