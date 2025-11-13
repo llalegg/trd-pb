@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { CalendarIcon, X, ChevronDown, ChevronRight, ChevronLeft, EyeOff, Lock, Shuffle, Trash2, Moon, Plus, Star, Info, Cloud, Settings, Undo2, Redo2, GripVertical, Edit, Bed, Copy, CheckCircle, AlertCircle, PanelLeftClose, PanelLeftOpen, User } from "lucide-react";
+import { CalendarIcon, X, ChevronDown, ChevronRight, ChevronLeft, EyeOff, Lock, Shuffle, Trash2, Moon, Plus, Star, Info, Cloud, Settings, Undo2, Redo2, GripVertical, Edit, Bed, Copy, CheckCircle, AlertCircle, PanelLeftClose, PanelLeftOpen, User, Target, Zap, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
+import { ExerciseCard } from "@/components/ExerciseCard";
 import {
   Tooltip,
   TooltipContent,
@@ -477,6 +478,7 @@ export default function AddProgram() {
   
   // Calendar month state for monthly visualization on Settings step
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
+  const calendarScrollRef = useRef<HTMLDivElement>(null);
   
   // Block durations state
   const [blockDurations, setBlockDurations] = useState<Map<number, number>>(new Map());
@@ -1020,6 +1022,29 @@ export default function AddProgram() {
       setReviewWeekIndex(0);
     }
   }, [blocks.length, reviewBlockIndex]);
+
+  // Scroll calendar to show startDate by default
+  useEffect(() => {
+    if (calendarScrollRef.current && startDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      
+      // Calculate how many days from today to startDate
+      const daysFromToday = Math.floor((start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Scroll to position startDate (each day is ~120px wide + 4px gap)
+      const scrollPosition = Math.max(0, daysFromToday * 124);
+      
+      // Use setTimeout to ensure DOM is ready
+      setTimeout(() => {
+        if (calendarScrollRef.current) {
+          calendarScrollRef.current.scrollLeft = scrollPosition;
+        }
+      }, 100);
+    }
+  }, [startDate]);
 
   // Check if step 1 is complete (all required fields filled)
   // Note: blockDuration is fixed at 4 weeks, so we don't need to check it
@@ -2371,7 +2396,7 @@ export default function AddProgram() {
     return (
       <div className="border-b bg-background">
         <div className="flex min-w-max">
-          <div className="w-[150px] shrink-0 border-r bg-muted/20 sticky left-0 z-20">
+          <div className="w-[150px] shrink-0 border-r bg-surface-base sticky left-0 z-20">
             <div className="px-3 py-4 min-h-[100px] flex flex-col justify-center gap-1.5">
               <div className="text-xs font-semibold">Movement</div>
               <div className="text-[10px] text-muted-foreground">
@@ -2394,8 +2419,8 @@ export default function AddProgram() {
               <div
                 key={`movement-${dayName}`}
                 className={cn(
-                  "w-[240px] min-w-[240px] shrink-0 border-r min-h-[120px] p-3 transition-colors",
-                  isRest ? "bg-transparent" : "bg-violet-500/10 hover:bg-violet-500/20"
+                  "w-[240px] min-w-[240px] shrink-0 border-r min-h-[120px] p-1 transition-colors",
+                  isRest ? "bg-transparent" : "bg-surface-base hover:bg-muted/10"
                 )}
               >
                 {!isRest && (
@@ -2403,33 +2428,26 @@ export default function AddProgram() {
                     <div className="text-[11px] font-medium text-muted-foreground/80">
                       Intensity: {dayData.intensity || "moderate"} • Volume: {dayData.volume || "standard"}
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 relative min-h-[120px]">
                       {dayData.exercises.length === 0 ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="w-full border-dashed text-xs font-medium"
-                            >
-                              <Plus className="h-3.5 w-3.5 mr-1.5" />
-                              Add exercise
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="w-48">
-                            <DropdownMenuItem onClick={() => addMovementExerciseToBlock(adjustedDayOfWeek)}>
-                              <span className="text-xs">Add exercise</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => addMovementExerciseToBlock(adjustedDayOfWeek)}
+                          className="absolute bottom-0 left-0 h-7 w-7 p-0"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
                       ) : (
                         <>
                           {dayData.exercises.map((exercise, idx) => {
                             const exerciseKey = exercise.blockExerciseId ?? exercise.id;
                             return (
-                              <div
+                              <ExerciseCard
                                 key={exerciseKey}
-                                className="relative rounded-lg border border-border bg-card/80 px-3 py-2 shadow-sm transition hover:border-muted-foreground/40 group cursor-pointer"
+                                exercise={exercise}
+                                showRepSchemes={true}
                                 onClick={() => {
                                   const weekIdx = Math.min(reviewWeekIndex, Math.max(0, getWeeksInBlock.length - 1));
                                   const weekData = getMovementDayData(weekIdx, adjustedDayOfWeek);
@@ -2446,89 +2464,25 @@ export default function AddProgram() {
                                     setExerciseEditModalOpen(true);
                                   }
                                 }}
-                              >
-                                <div className="flex justify-between gap-2">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-xs font-semibold truncate">{exercise.name}</div>
-                                    <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                                      {exercise.sets} x {exercise.reps}
-                                      {exercise.restTime ? ` • Rest ${exercise.restTime}` : ""}
-                                    </div>
-                                    {(exercise.repScheme || exercise.progression) && (
-                                      <div className="text-[10px] text-muted-foreground/80 mt-1 flex flex-col gap-0.5">
-                                        {exercise.repScheme && <span>Scheme: {exercise.repScheme}</span>}
-                                        {exercise.progression && <span>Progression: {exercise.progression}</span>}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="absolute top-1 right-1 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
-                                  <TooltipProvider delayDuration={200}>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-6 w-6"
-                                          onClick={() => {
-                                            const weekIdx = Math.min(reviewWeekIndex, Math.max(0, getWeeksInBlock.length - 1));
-                                            const key = getMovementDayKey(weekIdx, adjustedDayOfWeek);
-                                            const weekData = getMovementDayData(weekIdx, adjustedDayOfWeek);
-                                            const exerciseIndex = weekData.exercises.findIndex(ex => (ex.blockExerciseId ?? ex.id) === exerciseKey);
-                                            if (exerciseIndex !== -1) {
-                                              setSelectedExerciseForEdit({
-                                                weekIndex: weekIdx,
-                                                dayIndex: adjustedDayOfWeek,
-                                                section: "exercises",
-                                                exerciseIndex,
-                                                routineType: "movement",
-                                                exercise: weekData.exercises[exerciseIndex],
-                                              });
-                                              setExerciseEditModalOpen(true);
-                                            }
-                                          }}
-                                        >
-                                          <Edit className="h-3.5 w-3.5" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Edit exercise</TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                  <TooltipProvider delayDuration={200}>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-6 w-6"
-                                          onClick={() => shuffleMovementExerciseInBlock(adjustedDayOfWeek, exercise.blockExerciseId ?? exercise.id)}
-                                        >
-                                          <Shuffle className="h-3.5 w-3.5" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Shuffle suggestion</TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                  <TooltipProvider delayDuration={200}>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-6 w-6"
-                                          onClick={() => removeMovementExerciseFromBlock(adjustedDayOfWeek, exercise.blockExerciseId ?? exercise.id)}
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Remove exercise</TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                </div>
-                              </div>
+                                onEdit={() => {
+                                  const weekIdx = Math.min(reviewWeekIndex, Math.max(0, getWeeksInBlock.length - 1));
+                                  const weekData = getMovementDayData(weekIdx, adjustedDayOfWeek);
+                                  const exerciseIndex = weekData.exercises.findIndex(ex => (ex.blockExerciseId ?? ex.id) === exerciseKey);
+                                  if (exerciseIndex !== -1) {
+                                    setSelectedExerciseForEdit({
+                                      weekIndex: weekIdx,
+                                      dayIndex: adjustedDayOfWeek,
+                                      section: "exercises",
+                                      exerciseIndex,
+                                      routineType: "movement",
+                                      exercise: weekData.exercises[exerciseIndex],
+                                    });
+                                    setExerciseEditModalOpen(true);
+                                  }
+                                }}
+                                onShuffle={() => shuffleMovementExerciseInBlock(adjustedDayOfWeek, exercise.blockExerciseId ?? exercise.id)}
+                                onRemove={() => removeMovementExerciseFromBlock(adjustedDayOfWeek, exercise.blockExerciseId ?? exercise.id)}
+                              />
                             );
                           })}
                           <DropdownMenu>
@@ -2590,8 +2544,8 @@ export default function AddProgram() {
               <div
                 key={`throwing-${dayName}`}
                 className={cn(
-                  "w-[240px] min-w-[240px] shrink-0 border-r min-h-[120px] p-3 transition-colors",
-                  isRest ? "bg-transparent" : "bg-blue-500/10 hover:bg-blue-500/20"
+                  "w-[240px] min-w-[240px] shrink-0 border-r min-h-[120px] p-1 transition-colors",
+                  isRest ? "bg-transparent" : "bg-surface-base hover:bg-muted/10"
                 )}
               >
                 {!isRest && (
@@ -2625,7 +2579,7 @@ export default function AddProgram() {
                             return (
                               <div
                                 key={exerciseKey}
-                                className="relative rounded-lg border border-border bg-card/80 px-3 py-2 shadow-sm transition hover:border-muted-foreground/40 group cursor-pointer"
+                                className="relative rounded-lg border border-border bg-surface-overlay px-1 py-1 shadow-sm transition hover:border-muted-foreground/40 group cursor-pointer"
                                 onClick={() => {
                                   const weekIdx = Math.min(reviewWeekIndex, Math.max(0, getWeeksInBlock.length - 1));
                                   const weekData = getThrowingDayData(weekIdx, adjustedDayOfWeek);
@@ -3553,7 +3507,7 @@ export default function AddProgram() {
                 {/* Athlete Profile Card */}
                 {selectedAthlete && (
                   <Collapsible defaultOpen={true} className="rounded-lg bg-surface-overlay">
-                    <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-[#1C1C1B] transition-colors">
+                    <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-[#1C1C1B] transition-colors rounded-lg">
                       <div className="flex items-center gap-3">
                         {selectedAthlete.photo ? (
                           <img src={selectedAthlete.photo} alt={selectedAthlete.name} className="w-12 h-12 rounded-full" />
@@ -4372,126 +4326,9 @@ export default function AddProgram() {
                               </div>
                             </TableCell>
                             <TableCell className="whitespace-nowrap" data-testid={`block-end-date-${index + 1}`}>
-                              <Popover onOpenChange={(open) => open && setEditingBlockIndex(index)}>
-                                <PopoverTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className={cn(
-                                      "flex h-8 w-fit items-center justify-start gap-2 rounded-lg border border-[#292928] bg-[#292928] px-3 py-2 text-xs font-['Montserrat'] ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors text-[#f7f6f2]"
-                                    )}
-                                  >
-                                    <span>{format(blockEndDate, "EEE, MM/dd/yy")}</span>
-                                    {isMidWeek && !isInvalid && (
-                                      <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                    )}
-                                    {isInvalid && (
-                                      <AlertCircle className="h-4 w-4 text-red-500" />
-                                    )}
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar
-                                    mode="single"
-                                    selected={blockEndDates.get(index) || block.endDate}
-                                    onSelect={(date) => {
-                                      if (!date) return;
-                                      
-                                      const currentStartDate = blockStartDates.get(index) || block.startDate;
-                                      
-                                      // End date can't be less than start date
-                                      if (date < currentStartDate) {
-                                        return;
-                                      }
-                                      
-                                      // End date can't be less than previous block's start date
-                                      if (index > 0) {
-                                        const prevBlockStartDate = blockStartDates.get(index - 1) || blocks[index - 1].startDate;
-                                        if (date < prevBlockStartDate) {
-                                          return;
-                                        }
-                                      }
-                                      
-                                      // End date can't be more than next block's start date
-                                      if (index < blocks.length - 1) {
-                                        const nextBlockStartDate = blockStartDates.get(index + 1) || blocks[index + 1].startDate;
-                                        if (date >= nextBlockStartDate) {
-                                          return;
-                                        }
-                                      }
-                                      
-                                      setBlockEndDates(prev => {
-                                        const newMap = new Map(prev);
-                                        newMap.set(index, date);
-                                        
-                                        // Mark this block as recently changed
-                                        setRecentlyChangedBlocks(prev => new Set(prev).add(index));
-                                        setTimeout(() => {
-                                          setRecentlyChangedBlocks(prev => {
-                                            const newSet = new Set(prev);
-                                            newSet.delete(index);
-                                            return newSet;
-                                          });
-                                        }, 2000);
-                                        
-                                        // Cascade: Update next block's start date to the day after this block ends
-                                        if (index < blocks.length - 1) {
-                                          const nextBlockStart = addDays(date, 1);
-                                          
-                                          // Update next block's start date
-                                          setBlockStartDates(prevStarts => {
-                                            const newStartMap = new Map(prevStarts);
-                                            newStartMap.set(index + 1, nextBlockStart);
-                                            return newStartMap;
-                                          });
-                                          
-                                          // Mark next block as recently changed
-                                          setRecentlyChangedBlocks(prev => new Set(prev).add(index + 1));
-                                          setTimeout(() => {
-                                            setRecentlyChangedBlocks(prev => {
-                                              const newSet = new Set(prev);
-                                              newSet.delete(index + 1);
-                                              return newSet;
-                                            });
-                                          }, 2000);
-                                          
-                                          // If next block's end date is now invalid (before start), adjust it
-                                          const nextBlockEnd = blockEndDates.get(index + 1) || blocks[index + 1].endDate;
-                                          if (nextBlockEnd < nextBlockStart) {
-                                            // Extend next block to maintain minimum 1 week, or use program end date
-                                            const minEnd = addDays(nextBlockStart, 6); // 1 week minimum
-                                            const programEnd = endDate;
-                                            const adjustedEnd = minEnd > programEnd ? programEnd : minEnd;
-                                            newMap.set(index + 1, adjustedEnd);
-                                          }
-                                        }
-                                        
-                                        return newMap;
-                                      });
-                                    }}
-                                    disabled={(date) => {
-                                      const currentStartDate = blockStartDates.get(index) || block.startDate;
-                                      
-                                      // Disable dates before start date
-                                      if (date < currentStartDate) return true;
-                                      
-                                      // Disable dates before previous block's start date
-                                      if (index > 0) {
-                                        const prevBlockStartDate = blockStartDates.get(index - 1) || blocks[index - 1].startDate;
-                                        if (date < prevBlockStartDate) return true;
-                                      }
-                                      
-                                      // Disable dates on or after next block's start date
-                                      if (index < blocks.length - 1) {
-                                        const nextBlockStartDate = blockStartDates.get(index + 1) || blocks[index + 1].startDate;
-                                        if (date >= nextBlockStartDate) return true;
-                                      }
-                                      
-                                      return false;
-                                    }}
-                                    initialFocus
-                                  />
-                                </PopoverContent>
-                              </Popover>
+                              <div className="text-xs text-muted-foreground">
+                                {format(blockEndDate, "EEE, MM/dd/yy")}
+                              </div>
                             </TableCell>
                             <TableCell className="whitespace-nowrap">
                               <div className="text-xs text-muted-foreground">
@@ -4526,48 +4363,86 @@ export default function AddProgram() {
                   <div className="flex-1 flex flex-col px-4 py-6 lg:min-w-[300px] lg:flex-shrink-0 bg-surface-base">
 
                   {/* Programming History - Moved to right panel above Key Dates */}
-                  {selectedAthleteId && athletePrograms.length > 0 && (
+                  {selectedAthleteId && (
                     <div className="mt-4 rounded-md">
                       <h4 className="text-xs font-semibold text-[#f7f6f2] font-['Montserrat'] mb-3">Programming History</h4>
                       <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {athletePrograms.map((program) => {
-                          const programStart = new Date(program.startDate);
-                          const programEnd = new Date(program.endDate);
+                        {(() => {
+                          // Mock programs - more programs for some athletes
                           const today = new Date();
-                          const isPast = programEnd < today;
-                          const isCurrent = programStart <= today && programEnd >= today;
-                          const overlapsWithNew = startDate && (
-                            (programStart <= startDate && programEnd >= startDate) ||
-                            (programStart <= endDate && programEnd >= endDate) ||
-                            (programStart >= startDate && programEnd <= endDate)
-                          );
-                          
-                          return (
-                            <div
-                              key={program.id}
-                              className={cn(
-                                "rounded-lg p-3 text-xs",
-                                overlapsWithNew ? "border-yellow-500 bg-yellow-500/10" : "bg-[#171716]"
-                              )}
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="font-semibold text-[#f7f6f2] font-['Montserrat']">{program.programId}</span>
-                                <Badge variant={isPast ? "tertiary" : "default"} className="text-xs">
-                                  {isPast ? "Past" : isCurrent ? "Current" : "Upcoming"}
-                                </Badge>
-                              </div>
-                              <div className="text-[#979795] font-['Montserrat'] text-xs">
-                                {format(programStart, "MMM d, yyyy")} - {format(programEnd, "MMM d, yyyy")}
-                              </div>
-                              {overlapsWithNew && (
-                                <div className="mt-2 text-xs text-yellow-500 font-['Montserrat'] flex items-center gap-1">
-                                  <AlertTriangle className="h-3 w-3" />
-                                  Overlaps with proposed program
+                          const routineIcons = {
+                            throwing: Target,
+                            movement: Zap,
+                            lifting: Dumbbell,
+                          };
+
+                          // Athletes with more programs: "1", "2", "4", "8", "10"
+                          const athletesWithMorePrograms = ["1", "2", "4", "8", "10"];
+                          const hasMorePrograms = selectedAthleteId && athletesWithMorePrograms.includes(selectedAthleteId);
+
+                          const mockPrograms = hasMorePrograms ? [
+                            {
+                              startDate: new Date(2025, 9, 12), // Oct 12, 2025
+                              endDate: new Date(2026, 2, 12), // Mar 12, 2026
+                              routines: ["movement", "throwing", "lifting"] as const,
+                            },
+                            {
+                              startDate: new Date(2025, 5, 1), // Jun 1, 2025
+                              endDate: new Date(2025, 9, 11), // Oct 11, 2025
+                              routines: ["movement", "lifting"] as const,
+                            },
+                            {
+                              startDate: new Date(2025, 0, 15), // Jan 15, 2025
+                              endDate: new Date(2025, 4, 30), // May 30, 2025
+                              routines: ["movement", "throwing"] as const,
+                            },
+                            {
+                              startDate: new Date(2024, 8, 1), // Sep 1, 2024
+                              endDate: new Date(2025, 0, 14), // Jan 14, 2025
+                              routines: ["lifting"] as const,
+                            },
+                          ] : [
+                            {
+                              startDate: new Date(2025, 9, 12), // Oct 12, 2025
+                              endDate: new Date(2026, 2, 12), // Mar 12, 2026
+                              routines: ["movement", "throwing", "lifting"] as const,
+                            },
+                            {
+                              startDate: new Date(2025, 2, 1), // Mar 1, 2025
+                              endDate: new Date(2025, 9, 11), // Oct 11, 2025
+                              routines: ["movement", "lifting"] as const,
+                            },
+                          ];
+
+                          return mockPrograms.map((program, index) => {
+                            const isPast = program.endDate < today;
+                            const isCurrent = program.startDate <= today && program.endDate >= today;
+                            
+                            return (
+                              <div
+                                key={index}
+                                className="rounded-lg p-3 text-xs bg-[#171716]"
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <Badge variant={isPast ? "tertiary" : "default"} className="text-xs">
+                                    {isPast ? "Past" : isCurrent ? "Current" : "Upcoming"}
+                                  </Badge>
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                                <div className="text-[#979795] font-['Montserrat'] text-xs mb-2">
+                                  {format(program.startDate, "MMM d, yyyy")} - {format(program.endDate, "MMM d, yyyy")}
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  {program.routines.map((routineType) => {
+                                    const Icon = routineIcons[routineType];
+                                    return Icon ? (
+                                      <Icon key={routineType} className="h-3 w-3 text-[#979795]" />
+                                    ) : null;
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
                       </div>
                     </div>
                   )}
@@ -4711,19 +4586,55 @@ export default function AddProgram() {
                       <CollapsibleContent>
                         <div className="space-y-2 mt-3">
                           {(() => {
-                            // Mock assessment data - in real app, this would come from API
-                            const mockAssessments = [
-                              {
-                                date: new Date(2024, 10, 15), // November 15, 2024
-                                type: "Performance Assessment",
-                                details: "Full body movement screen",
-                              },
-                              {
-                                date: new Date(2024, 9, 1), // October 1, 2024
-                                type: "Re-assessment",
-                                details: "Follow-up evaluation",
-                              },
-                            ];
+                            // Mock assessment data - varies by athlete
+                            const getMockAssessments = (athleteId: string | undefined) => {
+                              if (!athleteId) return [];
+                              
+                              // Different assessments for different athletes
+                              const assessmentsByAthlete: Record<string, Array<{ date: Date; type: string; details: string }>> = {
+                                "1": [
+                                  { date: new Date(2024, 10, 20), type: "Performance Assessment", details: "Full body movement screen and strength testing" },
+                                  { date: new Date(2024, 8, 5), type: "Re-assessment", details: "Follow-up evaluation post-season" },
+                                ],
+                                "2": [
+                                  { date: new Date(2024, 11, 1), type: "Performance Assessment", details: "Comprehensive fitness assessment" },
+                                ],
+                                "3": [
+                                  { date: new Date(2024, 9, 15), type: "Re-assessment", details: "Medical clearance evaluation" },
+                                ],
+                                "4": [
+                                  { date: new Date(2024, 10, 10), type: "Performance Assessment", details: "Pre-season movement analysis" },
+                                  { date: new Date(2024, 7, 20), type: "Re-assessment", details: "Mid-season progress check" },
+                                ],
+                                "5": [
+                                  { date: new Date(2024, 11, 5), type: "Performance Assessment", details: "Baseline assessment" },
+                                ],
+                                "6": [
+                                  { date: new Date(2024, 10, 25), type: "Re-assessment", details: "Post-injury re-evaluation" },
+                                ],
+                                "7": [
+                                  { date: new Date(2024, 9, 1), type: "Performance Assessment", details: "Injury assessment and evaluation" },
+                                  { date: new Date(2024, 8, 10), type: "Re-assessment", details: "Initial injury screening" },
+                                ],
+                                "8": [
+                                  { date: new Date(2024, 11, 8), type: "Performance Assessment", details: "Full body movement screen" },
+                                  { date: new Date(2024, 9, 20), type: "Re-assessment", details: "Follow-up evaluation" },
+                                ],
+                                "9": [
+                                  { date: new Date(2024, 10, 15), type: "Performance Assessment", details: "Comprehensive assessment" },
+                                ],
+                                "10": [
+                                  { date: new Date(2024, 11, 12), type: "Performance Assessment", details: "Pre-season performance testing" },
+                                  { date: new Date(2024, 8, 25), type: "Re-assessment", details: "Post-season evaluation" },
+                                ],
+                              };
+
+                              return assessmentsByAthlete[athleteId] || [
+                                { date: new Date(2024, 10, 15), type: "Performance Assessment", details: "Full body movement screen" },
+                              ];
+                            };
+
+                            const mockAssessments = getMockAssessments(selectedAthleteId);
 
                             // Filter assessments within date range if available
                             const filteredAssessments = startDate && endDate
@@ -4883,7 +4794,16 @@ export default function AddProgram() {
                     {/* Calendar Title with Legend Button */}
                     <div className="mb-3 flex items-center justify-between">
                       <div className="text-xs font-medium">
-                        {startDate ? `60 Days from ${format(startDate, "MMM d, yyyy")}` : "Select start date to view calendar"}
+                        {startDate ? (
+                          (() => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const start = new Date(startDate);
+                            start.setHours(0, 0, 0, 0);
+                            const endDate = addDays(start, 60);
+                            return `${format(today < start ? today : start, "MMM d, yyyy")} - ${format(endDate, "MMM d, yyyy")}`;
+                          })()
+                        ) : "Select start date to view calendar"}
                       </div>
                       {(blocks.length > 0 || selectedAthleteId || activePrograms.length > 0) && (
                         <Popover>
@@ -4989,7 +4909,7 @@ export default function AddProgram() {
                     </div>
 
                     {/* Horizontal scrollable calendar */}
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto" ref={calendarScrollRef}>
                       <div className="flex gap-1 min-w-max">
                       {(() => {
                           if (!startDate) {
@@ -5000,11 +4920,22 @@ export default function AddProgram() {
                             );
                           }
 
-                          // Generate 60 days from start date
-                        const days: Date[] = [];
-                          for (let i = 0; i < 60; i++) {
-                            days.push(addDays(startDate, i));
-                        }
+                          // Generate days from today to startDate + 60 days
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const start = new Date(startDate);
+                          start.setHours(0, 0, 0, 0);
+                          const endDate = addDays(start, 60);
+                          
+                          // Always start from today
+                          const calendarStart = today;
+                          
+                          const days: Date[] = [];
+                          let currentDate = new Date(calendarStart);
+                          while (currentDate <= endDate) {
+                            days.push(new Date(currentDate));
+                            currentDate = addDays(currentDate, 1);
+                          }
 
                         // Generate different shades of blue for each block
                         const blockColors = [
@@ -5991,7 +5922,7 @@ export default function AddProgram() {
                           {/* Exclusions Dropdown */}
                           <div className={cn(
                             "h-10 flex items-center relative",
-                            isDayOff ? "bg-muted/20" : "bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
+                            isDayOff ? "bg-muted/20" : "bg-surface-base hover:bg-muted/10 transition-colors"
                           )}>
                             {!isDayOff && (
                             <>
@@ -6031,25 +5962,24 @@ export default function AddProgram() {
             {/* Step 3: Review Program */}
             {currentStep === 3 && (
               <>
-                {/* Content Area */}
-                <div className="w-full flex flex-col flex-1 overflow-hidden">
-                  <div className="flex-1 overflow-hidden flex flex-col">
-                    {/* Empty State - Show when no weeks available */}
-                    {getWeeksInBlock.length === 0 ? (
-                      <div className="flex-1 flex items-center justify-center">
-                        <div className="text-center space-y-2">
-                          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
-                          <p className="text-sm font-medium text-muted-foreground">No weeks available</p>
-                          <p className="text-xs text-muted-foreground">Please ensure blocks are configured with valid dates.</p>
-                        </div>
+                {/* Content Area - Fixed height container starting below sub-header */}
+                <div className="w-full flex flex-col absolute top-32 left-0 right-0 bottom-0" style={{ top: '8rem' }}>
+                  {/* Empty State - Show when no weeks available */}
+                  {getWeeksInBlock.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="text-center space-y-2">
+                        <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
+                        <p className="text-sm font-medium text-muted-foreground">No weeks available</p>
+                        <p className="text-xs text-muted-foreground">Please ensure blocks are configured with valid dates.</p>
                       </div>
-                    ) : (
+                    </div>
+                  ) : (
                     <>
                 {/* Week Grid View */}
                   {reviewViewMode === "week" && (
                         <div className="flex-1 overflow-auto w-full bg-surface-base">
                       {/* Week Grid - Table Layout */}
-                      <div className="w-full overflow-x-auto">
+                      <div className="w-full">
                         {/* Column Headers */}
                         <div className="flex border-b bg-surface-base sticky top-0 z-30">
                           {/* Empty space for routine column */}
@@ -6072,7 +6002,7 @@ export default function AddProgram() {
                           <div className="flex border-b">
                             {/* Routine Label Column (Vertical) */}
                             <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-surface-base overflow-hidden">
-                              <div className="w-10 border-r bg-orange-500/10 flex items-center justify-center" style={{ height: 'calc(3 * 2.5rem + 5rem + 3rem)' }}>
+                              <div className="w-10 border-r bg-surface-base flex items-center justify-center" style={{ height: 'calc(3 * 2.5rem + 5rem + 3rem)' }}>
                                   <div className="-rotate-90 whitespace-nowrap transform origin-center">
                                     <span className="text-xs font-medium text-orange-700">Lifting</span>
                                   </div>
@@ -6101,7 +6031,7 @@ export default function AddProgram() {
                                   )}
                                 >
                                     {/* Intensity */}
-                                    <div className="px-3 py-2.5 text-center border-b h-10 flex items-center justify-center">
+                                    <div className="px-3 py-2.5 text-center border-b h-10 flex items-center justify-center bg-surface-base">
                                       {day.isRest ? (
                                         <Bed className="h-4 w-4 mx-auto text-muted-foreground" />
                                       ) : (
@@ -6122,7 +6052,7 @@ export default function AddProgram() {
                                 )}
                                     </div>
                                     {/* Focus */}
-                                    <div className="px-3 py-2.5 border-b h-10 flex items-center">
+                                    <div className="px-3 py-2.5 border-b h-10 flex items-center bg-surface-base">
                                       {day.isRest ? (
                                         <Bed className="h-4 w-4 mx-auto text-muted-foreground" />
                                       ) : (
@@ -6145,7 +6075,7 @@ export default function AddProgram() {
                                 )}
                                     </div>
                                     {/* Emphasis */}
-                                    <div className="px-3 py-2.5 border-b h-10 flex items-center">
+                                    <div className="px-3 py-2.5 border-b h-10 flex items-center bg-surface-base">
                                       {day.isRest ? (
                                         <Bed className="h-4 w-4 mx-auto text-muted-foreground" />
                                       ) : (
@@ -6166,79 +6096,44 @@ export default function AddProgram() {
                                 )}
                                     </div>
                                     {/* Exercises */}
-                                    <div className="px-3 py-2 border-b min-h-[80px]">
+                                    <div className="p-1 border-b min-h-[80px] bg-surface-base">
                                       {day.isRest ? (
                                         <div className="flex items-center justify-center min-h-[80px]">
                                           <Bed className="h-5 w-5 mx-auto text-muted-foreground" />
                                         </div>
                                       ) : (
-                                        <div className="space-y-1.5">
+                                        <div className="space-y-1.5 relative min-h-[80px]">
                                           {dayData.exercises.length === 0 ? (
-                                            <button
+                                            <Button
                                               type="button"
+                                              variant="secondary"
+                                              size="sm"
                                               onClick={() => addExercises(reviewWeekIndex, day.dayIndex)}
                                               disabled={isWeekViewReadOnly}
-                                              className="w-full h-14 border-2 border-dashed rounded-md flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                              className="absolute bottom-0 left-0 h-7 w-7 p-0"
                                             >
-                                              <Plus className="h-4 w-4 text-muted-foreground" />
-                                            </button>
+                                              <Plus className="h-3.5 w-3.5" />
+                                            </Button>
                                           ) : (
                                             dayData.exercises.map((exercise, exIdx) => (
-                                              <div
+                                              <ExerciseCard
                                                 key={exercise.id || exIdx}
-                                                className="bg-card border border-border rounded-md p-1.5 relative group"
-                                              >
-                                                <div className="flex items-start justify-between gap-1">
-                                                  <div className="flex-1 min-w-0">
-                                                    <div className="text-xs font-semibold truncate">{exercise.name}</div>
-                                                    {showRepSchemes && (
-                                                      <>
-                                                        <div className="text-xs text-muted-foreground mt-0.5">
-                                                          {exercise.sets} x {exercise.reps}
-                                                        </div>
-                                                        {(exercise.repScheme || exercise.progression) && (
-                                                          <div className="text-[10px] text-muted-foreground/80 mt-1 flex flex-col gap-0.5">
-                                                            {exercise.repScheme && <span>Scheme: {exercise.repScheme}</span>}
-                                                            {exercise.progression && <span>Progression: {exercise.progression}</span>}
-                                                          </div>
-                                                        )}
-                                                      </>
-                                                    )}
-                                                  </div>
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                      setSelectedExerciseForEdit({
-                                                        weekIndex: reviewWeekIndex,
-                                                        dayIndex: day.dayIndex,
-                                                        section: "exercises",
-                                                        exerciseIndex: exIdx,
-                                                        routineType: "lifting",
-                                                        exercise: exercise,
-                                                      });
-                                                      setExerciseEditModalOpen(true);
-                                                    }}
-                                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-muted rounded"
-                                                  >
-                                                    <Edit className="h-3 w-3" />
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => shuffleExercise(reviewWeekIndex, day.dayIndex, exIdx)}
-                                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-muted rounded"
-                                                    title="Replace with alternate exercise"
-                                                  >
-                                                    <Shuffle className="h-3 w-3" />
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => removeExercise(reviewWeekIndex, day.dayIndex, exIdx)}
-                                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-destructive/10 hover:text-destructive rounded"
-                                                  >
-                                                    <Trash2 className="h-3 w-3" />
-                                                  </button>
-                                                </div>
-                                              </div>
+                                                exercise={exercise}
+                                                showRepSchemes={showRepSchemes}
+                                                onEdit={() => {
+                                                  setSelectedExerciseForEdit({
+                                                    weekIndex: reviewWeekIndex,
+                                                    dayIndex: day.dayIndex,
+                                                    section: "exercises",
+                                                    exerciseIndex: exIdx,
+                                                    routineType: "lifting",
+                                                    exercise: exercise,
+                                                  });
+                                                  setExerciseEditModalOpen(true);
+                                                }}
+                                                onShuffle={() => shuffleExercise(reviewWeekIndex, day.dayIndex, exIdx)}
+                                                onRemove={() => removeExercise(reviewWeekIndex, day.dayIndex, exIdx)}
+                                              />
                                             ))
                                           )}
                                         </div>
@@ -6256,7 +6151,7 @@ export default function AddProgram() {
                           <div className="flex border-b">
                             {/* Routine Label Column (Vertical) */}
                             <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-surface-base overflow-hidden">
-                              <div className="w-10 border-r bg-blue-500/10 flex items-center justify-center" style={{ height: 'calc(1 * 2.5rem + 5rem + 3rem)' }}>
+                              <div className="w-10 border-r bg-surface-base flex items-center justify-center" style={{ height: 'calc(1 * 2.5rem + 5rem + 3rem)' }}>
                                   <div className="-rotate-90 whitespace-nowrap transform origin-center">
                                     <span className="text-xs font-medium text-blue-700">Throwing</span>
                                   </div>
@@ -6266,9 +6161,9 @@ export default function AddProgram() {
                             {/* Table Content */}
                             <div className="flex">
                               {/* Section Column */}
-                              <div className="w-[120px] shrink-0 border-r bg-muted/20">
-                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center">Intensity</div>
-                                <div className="font-medium px-3 py-2.5 text-xs border-b min-h-[80px] flex items-start pt-2.5">Exercises</div>
+                              <div className="w-[120px] shrink-0 border-r bg-surface-base">
+                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center bg-surface-base">Intensity</div>
+                                <div className="font-medium px-3 py-2.5 text-xs border-b min-h-[80px] flex items-start pt-2.5 bg-surface-base">Exercises</div>
                               </div>
                               {/* Day Columns */}
                               {getDaysOfWeek.map((day, dayIdx) => (
@@ -6276,11 +6171,11 @@ export default function AddProgram() {
                                   key={dayIdx}
                                   className={cn(
                                     "w-[240px] min-w-[240px] shrink-0 border-r",
-                                    day.isRest ? "bg-muted/30" : "bg-card/40"
+                                    day.isRest ? "bg-muted/30" : "bg-surface-base"
                                   )}
                                 >
                                   {/* Intensity */}
-                                  <div className="px-3 py-2.5 border-b h-10 flex items-center">
+                                  <div className="p-1 border-b h-10 flex items-center bg-surface-base">
                                     {day.isRest ? (
                                       <Bed className="h-4 w-4 mx-auto text-muted-foreground" />
                                     ) : (
@@ -6288,82 +6183,47 @@ export default function AddProgram() {
                                     )}
                                   </div>
                                   {/* Exercises */}
-                                  <div className="px-3 py-2 border-b min-h-[80px]">
+                                  <div className="p-1 border-b min-h-[80px] bg-surface-base">
                                     {day.isRest ? (
                                       <div className="flex items-center justify-center min-h-[80px]">
                                         <Bed className="h-5 w-5 mx-auto text-muted-foreground" />
                                       </div>
                                     ) : (
-                                      <div className="space-y-1.5">
+                                      <div className="space-y-1.5 relative min-h-[80px]">
                                         {getThrowingDayData(reviewWeekIndex, day.dayIndex).exercises.length === 0 ? (
-                                                <button
-                                                  type="button"
+                                          <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="sm"
                                             onClick={() => addThrowingExercise(reviewWeekIndex, day.dayIndex)}
                                             disabled={isWeekViewReadOnly}
-                                            className="w-full h-14 border-2 border-dashed rounded-md flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                >
-                                            <Plus className="h-4 w-4 text-muted-foreground" />
-                                                </button>
+                                            className="absolute bottom-0 left-0 h-7 w-7 p-0"
+                                          >
+                                            <Plus className="h-3.5 w-3.5" />
+                                          </Button>
                                         ) : (
                                           getThrowingDayData(reviewWeekIndex, day.dayIndex).exercises.map((exercise, exIdx) => (
-                                            <div
+                                            <ExerciseCard
                                               key={exercise.id || exIdx}
-                                              className="bg-card border border-border rounded-md p-1.5 relative group"
-                                            >
-                                              <div className="flex items-start justify-between gap-1">
-                                              <div className="flex-1 min-w-0">
-                                                  <div className="text-xs font-semibold truncate">{exercise.name}</div>
-                                                  {showRepSchemes && (
-                                                    <>
-                                                      <div className="text-xs text-muted-foreground mt-0.5">
-                                                        {exercise.sets} x {exercise.reps}
-                                                      </div>
-                                                      {(exercise.repScheme || exercise.progression) && (
-                                                        <div className="text-[10px] text-muted-foreground/80 mt-1 flex flex-col gap-0.5">
-                                                          {exercise.repScheme && <span>Scheme: {exercise.repScheme}</span>}
-                                                          {exercise.progression && <span>Progression: {exercise.progression}</span>}
-                                                        </div>
-                                                      )}
-                                                    </>
-                                                  )}
-                                                </div>
-                                                      <button
-                                                        type="button"
-                                                  onClick={() => {
-                                                    setSelectedExerciseForEdit({
-                                                      weekIndex: reviewWeekIndex,
-                                                      dayIndex: day.dayIndex,
-                                                      section: "exercises",
-                                                      exerciseIndex: exIdx,
-                                                      routineType: "throwing",
-                                                      exercise: exercise,
-                                                    });
-                                                    setExerciseEditModalOpen(true);
-                                                  }}
-                                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-muted rounded"
-                                                >
-                                                  <Edit className="h-3 w-3" />
-                                                      </button>
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => shuffleThrowingExercise(reviewWeekIndex, day.dayIndex, exIdx)}
-                                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-muted rounded"
-                                                        title="Replace with alternate exercise"
-                                                      >
-                                                        <Shuffle className="h-3 w-3" />
-                                                      </button>
-                                                      <button
-                                                        type="button"
-                                                  onClick={() => removeThrowingExercise(reviewWeekIndex, day.dayIndex, exIdx)}
-                                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-destructive/10 hover:text-destructive rounded"
-                                                      >
-                                                        <Trash2 className="h-3 w-3" />
-                                                      </button>
-                                              </div>
-                                            </div>
+                                              exercise={exercise}
+                                              showRepSchemes={showRepSchemes}
+                                              onEdit={() => {
+                                                setSelectedExerciseForEdit({
+                                                  weekIndex: reviewWeekIndex,
+                                                  dayIndex: day.dayIndex,
+                                                  section: "exercises",
+                                                  exerciseIndex: exIdx,
+                                                  routineType: "throwing",
+                                                  exercise: exercise,
+                                                });
+                                                setExerciseEditModalOpen(true);
+                                              }}
+                                              onShuffle={() => shuffleThrowingExercise(reviewWeekIndex, day.dayIndex, exIdx)}
+                                              onRemove={() => removeThrowingExercise(reviewWeekIndex, day.dayIndex, exIdx)}
+                                            />
                                           ))
                                         )}
-                                              </div>
+                                      </div>
                                     )}
                                               </div>
                                               </div>
@@ -6377,7 +6237,7 @@ export default function AddProgram() {
                           <div className="flex border-b">
                             {/* Routine Label Column (Vertical) */}
                             <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-surface-base overflow-hidden">
-                              <div className="w-10 border-r bg-violet-500/10 flex items-center justify-center" style={{ height: 'calc(2 * 2.5rem + 5rem + 3rem)' }}>
+                              <div className="w-10 border-r bg-surface-base flex items-center justify-center" style={{ height: 'calc(2 * 2.5rem + 5rem + 3rem)' }}>
                                   <div className="-rotate-90 whitespace-nowrap transform origin-center">
                                     <span className="text-xs font-medium text-violet-700">Movement</span>
                                               </div>
@@ -6387,10 +6247,10 @@ export default function AddProgram() {
                             {/* Table Content */}
                             <div className="flex">
                               {/* Section Column */}
-                              <div className="w-[120px] shrink-0 border-r bg-muted/20">
-                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center">Intensity</div>
-                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center">Volume</div>
-                                <div className="font-medium px-3 py-2.5 text-xs border-b min-h-[80px] flex items-start pt-2.5">Exercises</div>
+                              <div className="w-[120px] shrink-0 border-r bg-surface-base">
+                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center bg-surface-base">Intensity</div>
+                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center bg-surface-base">Volume</div>
+                                <div className="font-medium px-3 py-2.5 text-xs border-b min-h-[80px] flex items-start pt-2.5 bg-surface-base">Exercises</div>
                               </div>
                               {/* Day Columns */}
                               {getDaysOfWeek.map((day, dayIdx) => (
@@ -6398,11 +6258,11 @@ export default function AddProgram() {
                                   key={dayIdx}
                                   className={cn(
                                     "w-[240px] min-w-[240px] shrink-0 border-r",
-                                    day.isRest ? "bg-muted/30" : "bg-card/40"
+                                    day.isRest ? "bg-muted/30" : "bg-surface-base"
                                   )}
                                 >
                                   {/* Intensity */}
-                                  <div className="px-3 py-2.5 border-b h-10 flex items-center">
+                                  <div className="p-1 border-b h-10 flex items-center bg-surface-base">
                                     {day.isRest ? (
                                       <Bed className="h-4 w-4 mx-auto text-muted-foreground" />
                                     ) : (
@@ -6410,7 +6270,7 @@ export default function AddProgram() {
                                     )}
                                   </div>
                                   {/* Volume */}
-                                  <div className="px-3 py-2.5 border-b h-10 flex items-center">
+                                  <div className="p-1 border-b h-10 flex items-center bg-surface-base">
                                     {day.isRest ? (
                                       <Bed className="h-4 w-4 mx-auto text-muted-foreground" />
                                     ) : (
@@ -6418,79 +6278,44 @@ export default function AddProgram() {
                                     )}
                                   </div>
                                   {/* Exercises */}
-                                  <div className="px-3 py-2 border-b min-h-[80px]">
+                                  <div className="p-1 border-b min-h-[80px] bg-surface-base">
                                     {day.isRest ? (
                                       <div className="flex items-center justify-center min-h-[80px]">
                                         <Bed className="h-5 w-5 mx-auto text-muted-foreground" />
                                       </div>
                                     ) : (
-                                      <div className="space-y-1.5">
+                                      <div className="space-y-1.5 relative min-h-[80px]">
                                         {getMovementDayData(reviewWeekIndex, day.dayIndex).exercises.length === 0 ? (
-                                        <button
-                                          type="button"
+                                          <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="sm"
                                             onClick={() => addMovementExercise(reviewWeekIndex, day.dayIndex)}
                                             disabled={isWeekViewReadOnly}
-                                            className="w-full h-14 border-2 border-dashed rounded-md flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <Plus className="h-4 w-4 text-muted-foreground" />
-                                        </button>
+                                            className="absolute bottom-0 left-0 h-7 w-7 p-0"
+                                          >
+                                            <Plus className="h-3.5 w-3.5" />
+                                          </Button>
                                         ) : (
                                           getMovementDayData(reviewWeekIndex, day.dayIndex).exercises.map((exercise, exIdx) => (
-                                            <div
+                                            <ExerciseCard
                                               key={exercise.id || exIdx}
-                                              className="bg-card border border-border rounded-md p-1.5 relative group"
-                                            >
-                                              <div className="flex items-start justify-between gap-1">
-                                                <div className="flex-1 min-w-0">
-                                                  <div className="text-xs font-semibold truncate">{exercise.name}</div>
-                                                  {showRepSchemes && (
-                                                    <>
-                                                      <div className="text-xs text-muted-foreground mt-0.5">
-                                                        {exercise.sets} x {exercise.reps}
-                                                      </div>
-                                                      {(exercise.repScheme || exercise.progression) && (
-                                                        <div className="text-[10px] text-muted-foreground/80 mt-1 flex flex-col gap-0.5">
-                                                          {exercise.repScheme && <span>Scheme: {exercise.repScheme}</span>}
-                                                          {exercise.progression && <span>Progression: {exercise.progression}</span>}
-                                                        </div>
-                                                      )}
-                                                    </>
-                                                  )}
-                                    </div>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    setSelectedExerciseForEdit({
-                                                      weekIndex: reviewWeekIndex,
-                                                      dayIndex: day.dayIndex,
-                                                      section: "exercises",
-                                                      exerciseIndex: exIdx,
-                                                      routineType: "movement",
-                                                      exercise: exercise,
-                                                    });
-                                                    setExerciseEditModalOpen(true);
-                                                  }}
-                                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-muted rounded"
-                                                >
-                                                  <Edit className="h-3 w-3" />
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => shuffleMovementExercise(reviewWeekIndex, day.dayIndex, exIdx)}
-                                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-muted rounded"
-                                                  title="Replace with alternate exercise"
-                                                >
-                                                  <Shuffle className="h-3 w-3" />
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => removeMovementExercise(reviewWeekIndex, day.dayIndex, exIdx)}
-                                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-destructive/10 hover:text-destructive rounded"
-                                                >
-                                                  <Trash2 className="h-3 w-3" />
-                                                </button>
-                                              </div>
-                                            </div>
+                                              exercise={exercise}
+                                              showRepSchemes={showRepSchemes}
+                                              onEdit={() => {
+                                                setSelectedExerciseForEdit({
+                                                  weekIndex: reviewWeekIndex,
+                                                  dayIndex: day.dayIndex,
+                                                  section: "exercises",
+                                                  exerciseIndex: exIdx,
+                                                  routineType: "movement",
+                                                  exercise: exercise,
+                                                });
+                                                setExerciseEditModalOpen(true);
+                                              }}
+                                              onShuffle={() => shuffleMovementExercise(reviewWeekIndex, day.dayIndex, exIdx)}
+                                              onRemove={() => removeMovementExercise(reviewWeekIndex, day.dayIndex, exIdx)}
+                                            />
                                           ))
                                         )}
                                       </div>
@@ -6507,7 +6332,7 @@ export default function AddProgram() {
                           <div className="flex border-b">
                             {/* Routine Label Column (Vertical) */}
                             <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-surface-base overflow-hidden">
-                              <div className="w-10 border-r bg-orange-500/10 flex items-center justify-center" style={{ height: 'calc(2 * 2.5rem + 3rem)' }}>
+                              <div className="w-10 border-r bg-surface-base flex items-center justify-center" style={{ height: 'calc(2 * 2.5rem + 3rem)' }}>
                                   <div className="-rotate-90 whitespace-nowrap transform origin-center">
                                     <span className="text-xs font-medium text-orange-700">Conditioning</span>
                                   </div>
@@ -6583,7 +6408,7 @@ export default function AddProgram() {
                   {/* Block View */}
                   {reviewViewMode === "block" && (
                     <div className="flex-1 overflow-auto w-full bg-surface-base">
-                      <div className="w-full overflow-x-auto">
+                      <div className="w-full">
                         {/* Day Headers */}
                         <div className="sticky top-0 z-30 bg-surface-base border-b">
                           <div className="flex min-w-max">
@@ -6701,8 +6526,8 @@ export default function AddProgram() {
                                     <div
                                       key={dayIdx}
                                       className={cn(
-                                        "w-[240px] min-w-[240px] shrink-0 border-r min-h-[120px] p-3 transition-colors",
-                                        isRest ? "bg-transparent" : "bg-orange-500/10 hover:bg-orange-500/20"
+                                        "w-[240px] min-w-[240px] shrink-0 border-r min-h-[120px] p-1 transition-colors",
+                                        isRest ? "bg-transparent" : "bg-surface-base hover:bg-muted/10"
                                       )}
                                     >
                                       {!isRest && (
@@ -6832,7 +6657,6 @@ export default function AddProgram() {
                     </>
                   )}
                 </div>
-              </div>
               </>
             )}
 
