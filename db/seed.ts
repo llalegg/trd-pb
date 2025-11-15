@@ -1,0 +1,705 @@
+import { type Athlete, type Block, type Phase, type AthleteWithPhase } from "@shared/schema";
+
+// Helper functions for date manipulation
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const daysAgo = (days: number): string => {
+  const date = new Date(today);
+  date.setDate(date.getDate() - days);
+  return date.toISOString();
+};
+
+const daysFromNow = (days: number): string => {
+  const date = new Date(today);
+  date.setDate(date.getDate() + days);
+  return date.toISOString();
+};
+
+// Generate mock athlete-centric data
+export function generateSeedAthletes(): AthleteWithPhase[] {
+  const athletes: AthleteWithPhase[] = [];
+
+  // 1. Athlete with 1 active block
+  athletes.push({
+    athlete: {
+      id: "athlete-1",
+      name: "Marcus Johnson",
+      photo: undefined,
+      status: null,
+    },
+    currentPhase: {
+      id: "phase-athlete-1",
+      athleteId: "athlete-1",
+      phaseNumber: 1,
+      startDate: daysAgo(14),
+      blocks: [
+        {
+          id: "block-1-1",
+          athleteId: "athlete-1",
+          blockNumber: 1,
+          name: "Pre-Season Block 1",
+          season: "Pre-Season",
+          subSeason: "Early",
+          startDate: daysAgo(14),
+          endDate: daysFromNow(14),
+          status: "active",
+          currentDay: { block: 1, week: 2, day: 3 },
+          lastModification: daysAgo(2),
+          lastSubmission: daysAgo(1),
+          nextBlockDue: daysFromNow(12),
+          daysComplete: 15,
+          daysAvailable: 28,
+        },
+      ],
+    },
+    blocks: [
+      {
+        id: "block-1-1",
+        athleteId: "athlete-1",
+        blockNumber: 1,
+        name: "Pre-Season Block 1",
+        season: "Pre-Season",
+        subSeason: "Early",
+        startDate: daysAgo(14),
+        endDate: daysFromNow(14),
+        status: "active",
+        currentDay: { block: 1, week: 2, day: 3 },
+        lastModification: daysAgo(2),
+        lastSubmission: daysAgo(1),
+        nextBlockDue: daysFromNow(12),
+        daysComplete: 15,
+        daysAvailable: 28,
+      },
+    ],
+  });
+
+  // 2. Athlete with 3 blocks (1 complete, 1 active, 1 draft)
+  athletes.push({
+    athlete: {
+      id: "athlete-2",
+      name: "Samuel Chen",
+      photo: undefined,
+      status: null,
+    },
+    currentPhase: {
+      id: "phase-athlete-2",
+      athleteId: "athlete-2",
+      phaseNumber: 1,
+      startDate: daysAgo(7),
+      blocks: [
+        {
+          id: "block-2-2",
+          athleteId: "athlete-2",
+          blockNumber: 2,
+          name: "In-Season Block 2",
+          season: "In-Season",
+          subSeason: "Mid",
+          startDate: daysAgo(7),
+          endDate: daysFromNow(21),
+          status: "active",
+          currentDay: { block: 2, week: 1, day: 5 },
+          lastModification: daysAgo(3),
+          lastSubmission: daysAgo(1),
+          nextBlockDue: daysFromNow(18),
+          daysComplete: 5,
+          daysAvailable: 28,
+        },
+      ],
+    },
+    blocks: [
+      {
+        id: "block-2-1",
+        athleteId: "athlete-2",
+        blockNumber: 1,
+        name: "Pre-Season Block 1",
+        season: "Pre-Season",
+        subSeason: "Early",
+        startDate: daysAgo(60),
+        endDate: daysAgo(30),
+        status: "complete",
+        currentDay: { block: 1, week: 4, day: 7 },
+        lastModification: daysAgo(35),
+        lastSubmission: daysAgo(32),
+        daysComplete: 28,
+        daysAvailable: 28,
+      },
+      {
+        id: "block-2-2",
+        athleteId: "athlete-2",
+        blockNumber: 2,
+        name: "In-Season Block 2",
+        season: "In-Season",
+        subSeason: "Mid",
+        startDate: daysAgo(7),
+        endDate: daysFromNow(21),
+        status: "active",
+        currentDay: { block: 2, week: 1, day: 5 },
+        lastModification: daysAgo(3),
+        lastSubmission: daysAgo(1),
+        nextBlockDue: daysFromNow(18),
+        daysComplete: 5,
+        daysAvailable: 28,
+      },
+      {
+        id: "block-2-3",
+        athleteId: "athlete-2",
+        blockNumber: 3,
+        name: "In-Season Block 3",
+        season: "In-Season",
+        subSeason: "Late",
+        startDate: daysFromNow(22),
+        endDate: daysFromNow(50),
+        status: "draft",
+        lastModification: daysAgo(5),
+        daysComplete: 0,
+        daysAvailable: 28,
+      },
+    ],
+  });
+
+  // 3. Athlete with block pending sign-off (urgent state)
+  athletes.push({
+    athlete: {
+      id: "athlete-3",
+      name: "James Rodriguez",
+      photo: undefined,
+      status: null,
+    },
+    currentPhase: {
+      id: "phase-athlete-3",
+      athleteId: "athlete-3",
+      phaseNumber: 1,
+      startDate: daysAgo(10),
+      blocks: [
+        {
+          id: "block-3-1",
+          athleteId: "athlete-3",
+          blockNumber: 1,
+          name: "Pre-Season Block 1",
+          season: "Pre-Season",
+          subSeason: "Early",
+          startDate: daysAgo(10),
+          endDate: daysFromNow(18),
+          status: "pending-signoff",
+          currentDay: { block: 1, week: 1, day: 7 },
+          lastModification: daysAgo(1),
+          lastSubmission: undefined,
+          nextBlockDue: daysFromNow(2),
+          daysComplete: 7,
+          daysAvailable: 28,
+        },
+      ],
+    },
+    blocks: [
+      {
+        id: "block-3-1",
+        athleteId: "athlete-3",
+        blockNumber: 1,
+        name: "Pre-Season Block 1",
+        season: "Pre-Season",
+        subSeason: "Early",
+        startDate: daysAgo(10),
+        endDate: daysFromNow(18),
+        status: "pending-signoff",
+        currentDay: { block: 1, week: 1, day: 7 },
+        lastModification: daysAgo(1),
+        lastSubmission: undefined,
+        nextBlockDue: daysFromNow(2),
+        daysComplete: 7,
+        daysAvailable: 28,
+      },
+    ],
+  });
+
+  // 4. Injured athlete with active block
+  athletes.push({
+    athlete: {
+      id: "athlete-4",
+      name: "Ethan Martinez",
+      photo: undefined,
+      status: "injured",
+    },
+    currentPhase: {
+      id: "phase-athlete-4",
+      athleteId: "athlete-4",
+      phaseNumber: 1,
+      startDate: daysAgo(5),
+      blocks: [
+        {
+          id: "block-4-1",
+          athleteId: "athlete-4",
+          blockNumber: 1,
+          name: "Rehab Block 1",
+          season: "Off-Season",
+          subSeason: "Early",
+          startDate: daysAgo(5),
+          endDate: daysFromNow(23),
+          status: "active",
+          currentDay: { block: 1, week: 1, day: 2 },
+          lastModification: daysAgo(1),
+          lastSubmission: daysAgo(1),
+          nextBlockDue: daysFromNow(20),
+          daysComplete: 2,
+          daysAvailable: 28,
+        },
+      ],
+    },
+    blocks: [
+      {
+        id: "block-4-1",
+        athleteId: "athlete-4",
+        blockNumber: 1,
+        name: "Rehab Block 1",
+        season: "Off-Season",
+        subSeason: "Early",
+        startDate: daysAgo(5),
+        endDate: daysFromNow(23),
+        status: "active",
+        currentDay: { block: 1, week: 1, day: 2 },
+        lastModification: daysAgo(1),
+        lastSubmission: daysAgo(1),
+        nextBlockDue: daysFromNow(20),
+        daysComplete: 2,
+        daysAvailable: 28,
+      },
+    ],
+  });
+
+  // 5. Athlete with lingering issues
+  athletes.push({
+    athlete: {
+      id: "athlete-5",
+      name: "David Kim",
+      photo: undefined,
+      status: "lingering-issues",
+    },
+    currentPhase: {
+      id: "phase-athlete-5",
+      athleteId: "athlete-5",
+      phaseNumber: 1,
+      startDate: daysAgo(20),
+      blocks: [
+        {
+          id: "block-5-1",
+          athleteId: "athlete-5",
+          blockNumber: 1,
+          name: "In-Season Block 1",
+          season: "In-Season",
+          subSeason: "Mid",
+          startDate: daysAgo(20),
+          endDate: daysFromNow(8),
+          status: "active",
+          currentDay: { block: 1, week: 3, day: 4 },
+          lastModification: daysAgo(4),
+          lastSubmission: daysAgo(2),
+          nextBlockDue: daysFromNow(5),
+          daysComplete: 20,
+          daysAvailable: 28,
+        },
+      ],
+    },
+    blocks: [
+      {
+        id: "block-5-1",
+        athleteId: "athlete-5",
+        blockNumber: 1,
+        name: "In-Season Block 1",
+        season: "In-Season",
+        subSeason: "Mid",
+        startDate: daysAgo(20),
+        endDate: daysFromNow(8),
+        status: "active",
+        currentDay: { block: 1, week: 3, day: 4 },
+        lastModification: daysAgo(4),
+        lastSubmission: daysAgo(2),
+        nextBlockDue: daysFromNow(5),
+        daysComplete: 20,
+        daysAvailable: 28,
+      },
+    ],
+  });
+
+  // 6. Athlete in different phase (off-season)
+  athletes.push({
+    athlete: {
+      id: "athlete-6",
+      name: "Alex Thompson",
+      photo: undefined,
+      status: null,
+    },
+    currentPhase: {
+      id: "phase-athlete-6",
+      athleteId: "athlete-6",
+      phaseNumber: 1,
+      startDate: daysAgo(30),
+      blocks: [
+        {
+          id: "block-6-2",
+          athleteId: "athlete-6",
+          blockNumber: 2,
+          name: "Off-Season Block 2",
+          season: "Off-Season",
+          subSeason: "Mid",
+          startDate: daysAgo(30),
+          endDate: daysFromNow(2),
+          status: "active",
+          currentDay: { block: 2, week: 4, day: 5 },
+          lastModification: daysAgo(3),
+          lastSubmission: daysAgo(1),
+          nextBlockDue: daysFromNow(1),
+          daysComplete: 26,
+          daysAvailable: 32,
+        },
+      ],
+    },
+    blocks: [
+      {
+        id: "block-6-1",
+        athleteId: "athlete-6",
+        blockNumber: 1,
+        name: "In-Season Block 1",
+        season: "In-Season",
+        subSeason: "Late",
+        startDate: daysAgo(90),
+        endDate: daysAgo(60),
+        status: "complete",
+        currentDay: { block: 1, week: 4, day: 7 },
+        lastModification: daysAgo(65),
+        lastSubmission: daysAgo(62),
+        daysComplete: 30,
+        daysAvailable: 30,
+      },
+      {
+        id: "block-6-2",
+        athleteId: "athlete-6",
+        blockNumber: 2,
+        name: "Off-Season Block 2",
+        season: "Off-Season",
+        subSeason: "Mid",
+        startDate: daysAgo(30),
+        endDate: daysFromNow(2),
+        status: "active",
+        currentDay: { block: 2, week: 4, day: 5 },
+        lastModification: daysAgo(3),
+        lastSubmission: daysAgo(1),
+        nextBlockDue: daysFromNow(1),
+        daysComplete: 26,
+        daysAvailable: 32,
+      },
+    ],
+  });
+
+  // 7. Athlete with rehabbing status
+  athletes.push({
+    athlete: {
+      id: "athlete-7",
+      name: "Jordan Williams",
+      photo: undefined,
+      status: "rehabbing",
+    },
+    currentPhase: {
+      id: "phase-athlete-7",
+      athleteId: "athlete-7",
+      phaseNumber: 1,
+      startDate: daysAgo(12),
+      blocks: [
+        {
+          id: "block-7-1",
+          athleteId: "athlete-7",
+          blockNumber: 1,
+          name: "Rehab Block 1",
+          season: "Off-Season",
+          subSeason: "Early",
+          startDate: daysAgo(12),
+          endDate: daysFromNow(16),
+          status: "active",
+          currentDay: { block: 1, week: 2, day: 1 },
+          lastModification: daysAgo(2),
+          lastSubmission: daysAgo(1),
+          nextBlockDue: daysFromNow(14),
+          daysComplete: 8,
+          daysAvailable: 28,
+        },
+      ],
+    },
+    blocks: [
+      {
+        id: "block-7-1",
+        athleteId: "athlete-7",
+        blockNumber: 1,
+        name: "Rehab Block 1",
+        season: "Off-Season",
+        subSeason: "Early",
+        startDate: daysAgo(12),
+        endDate: daysFromNow(16),
+        status: "active",
+        currentDay: { block: 1, week: 2, day: 1 },
+        lastModification: daysAgo(2),
+        lastSubmission: daysAgo(1),
+        nextBlockDue: daysFromNow(14),
+        daysComplete: 8,
+        daysAvailable: 28,
+      },
+    ],
+  });
+
+  // 8. Athlete with multiple phases and varied block statuses
+  athletes.push({
+    athlete: {
+      id: "athlete-8",
+      name: "Tyler Brown",
+      photo: undefined,
+      status: null,
+    },
+    currentPhase: {
+      id: "phase-athlete-8",
+      athleteId: "athlete-8",
+      phaseNumber: 2,
+      startDate: daysAgo(3),
+      blocks: [
+        {
+          id: "block-8-3",
+          athleteId: "athlete-8",
+          blockNumber: 3,
+          name: "Pre-Season Block 3",
+          season: "Pre-Season",
+          subSeason: "Late",
+          startDate: daysAgo(3),
+          endDate: daysFromNow(25),
+          status: "active",
+          currentDay: { block: 3, week: 1, day: 1 },
+          lastModification: daysAgo(1),
+          lastSubmission: undefined,
+          nextBlockDue: daysFromNow(22),
+          daysComplete: 1,
+          daysAvailable: 28,
+        },
+      ],
+    },
+    blocks: [
+      {
+        id: "block-8-1",
+        athleteId: "athlete-8",
+        blockNumber: 1,
+        name: "Pre-Season Block 1",
+        season: "Pre-Season",
+        subSeason: "Early",
+        startDate: daysAgo(70),
+        endDate: daysAgo(42),
+        status: "complete",
+        currentDay: { block: 1, week: 4, day: 7 },
+        lastModification: daysAgo(45),
+        lastSubmission: daysAgo(43),
+        daysComplete: 28,
+        daysAvailable: 28,
+      },
+      {
+        id: "block-8-2",
+        athleteId: "athlete-8",
+        blockNumber: 2,
+        name: "Pre-Season Block 2",
+        season: "Pre-Season",
+        subSeason: "Mid",
+        startDate: daysAgo(42),
+        endDate: daysAgo(14),
+        status: "complete",
+        currentDay: { block: 2, week: 4, day: 7 },
+        lastModification: daysAgo(17),
+        lastSubmission: daysAgo(15),
+        daysComplete: 28,
+        daysAvailable: 28,
+      },
+      {
+        id: "block-8-3",
+        athleteId: "athlete-8",
+        blockNumber: 3,
+        name: "Pre-Season Block 3",
+        season: "Pre-Season",
+        subSeason: "Late",
+        startDate: daysAgo(3),
+        endDate: daysFromNow(25),
+        status: "active",
+        currentDay: { block: 3, week: 1, day: 1 },
+        lastModification: daysAgo(1),
+        lastSubmission: undefined,
+        nextBlockDue: daysFromNow(22),
+        daysComplete: 1,
+        daysAvailable: 28,
+      },
+      {
+        id: "block-8-4",
+        athleteId: "athlete-8",
+        blockNumber: 4,
+        name: "In-Season Block 1",
+        season: "In-Season",
+        subSeason: "Early",
+        startDate: daysFromNow(26),
+        endDate: daysFromNow(54),
+        status: "draft",
+        lastModification: daysAgo(2),
+        daysComplete: 0,
+        daysAvailable: 28,
+      },
+    ],
+  });
+
+  // 9. Athlete with block due very soon (high priority)
+  athletes.push({
+    athlete: {
+      id: "athlete-9",
+      name: "Michael Lee",
+      photo: undefined,
+      status: null,
+    },
+    currentPhase: {
+      id: "phase-athlete-9",
+      athleteId: "athlete-9",
+      phaseNumber: 1,
+      startDate: daysAgo(25),
+      blocks: [
+        {
+          id: "block-9-1",
+          athleteId: "athlete-9",
+          blockNumber: 1,
+          name: "In-Season Block 1",
+          season: "In-Season",
+          subSeason: "Mid",
+          startDate: daysAgo(25),
+          endDate: daysFromNow(3),
+          status: "active",
+          currentDay: { block: 1, week: 4, day: 2 },
+          lastModification: daysAgo(5),
+          lastSubmission: daysAgo(2),
+          nextBlockDue: daysFromNow(1), // Due tomorrow - urgent!
+          daysComplete: 23,
+          daysAvailable: 28,
+        },
+      ],
+    },
+    blocks: [
+      {
+        id: "block-9-1",
+        athleteId: "athlete-9",
+        blockNumber: 1,
+        name: "In-Season Block 1",
+        season: "In-Season",
+        subSeason: "Mid",
+        startDate: daysAgo(25),
+        endDate: daysFromNow(3),
+        status: "active",
+        currentDay: { block: 1, week: 4, day: 2 },
+        lastModification: daysAgo(5),
+        lastSubmission: daysAgo(2),
+        nextBlockDue: daysFromNow(1), // Due tomorrow - urgent!
+        daysComplete: 23,
+        daysAvailable: 28,
+      },
+    ],
+  });
+
+  // 10. Athlete with recent activity and multiple blocks
+  athletes.push({
+    athlete: {
+      id: "athlete-10",
+      name: "Casey Davis",
+      photo: undefined,
+      status: null,
+    },
+    currentPhase: {
+      id: "phase-athlete-10",
+      athleteId: "athlete-10",
+      phaseNumber: 1,
+      startDate: daysAgo(18),
+      blocks: [
+        {
+          id: "block-10-2",
+          athleteId: "athlete-10",
+          blockNumber: 2,
+          name: "Pre-Season Block 2",
+          season: "Pre-Season",
+          subSeason: "Mid",
+          startDate: daysAgo(18),
+          endDate: daysFromNow(10),
+          status: "active",
+          currentDay: { block: 2, week: 3, day: 2 },
+          lastModification: daysAgo(0), // Modified today!
+          lastSubmission: daysAgo(0), // Submitted today!
+          nextBlockDue: daysFromNow(8),
+          daysComplete: 18,
+          daysAvailable: 28,
+        },
+        {
+          id: "block-10-3",
+          athleteId: "athlete-10",
+          blockNumber: 3,
+          name: "Pre-Season Block 3",
+          season: "Pre-Season",
+          subSeason: "Late",
+          startDate: daysFromNow(10),
+          endDate: daysFromNow(38),
+          status: "pending-signoff",
+          lastModification: daysAgo(2),
+          lastSubmission: undefined,
+          nextBlockDue: daysFromNow(8),
+          daysComplete: 0,
+          daysAvailable: 28,
+        },
+      ],
+    },
+    blocks: [
+      {
+        id: "block-10-1",
+        athleteId: "athlete-10",
+        blockNumber: 1,
+        name: "Pre-Season Block 1",
+        season: "Pre-Season",
+        subSeason: "Early",
+        startDate: daysAgo(46),
+        endDate: daysAgo(18),
+        status: "complete",
+        currentDay: { block: 1, week: 4, day: 7 },
+        lastModification: daysAgo(20),
+        lastSubmission: daysAgo(19),
+        daysComplete: 28,
+        daysAvailable: 28,
+      },
+      {
+        id: "block-10-2",
+        athleteId: "athlete-10",
+        blockNumber: 2,
+        name: "Pre-Season Block 2",
+        season: "Pre-Season",
+        subSeason: "Mid",
+        startDate: daysAgo(18),
+        endDate: daysFromNow(10),
+        status: "active",
+        currentDay: { block: 2, week: 3, day: 2 },
+        lastModification: daysAgo(0), // Modified today!
+        lastSubmission: daysAgo(0), // Submitted today!
+        nextBlockDue: daysFromNow(8),
+        daysComplete: 18,
+        daysAvailable: 28,
+      },
+      {
+        id: "block-10-3",
+        athleteId: "athlete-10",
+        blockNumber: 3,
+        name: "Pre-Season Block 3",
+        season: "Pre-Season",
+        subSeason: "Late",
+        startDate: daysFromNow(10),
+        endDate: daysFromNow(38),
+        status: "pending-signoff",
+        lastModification: daysAgo(2),
+        lastSubmission: undefined,
+        nextBlockDue: daysFromNow(8),
+        daysComplete: 0,
+        daysAvailable: 28,
+      },
+    ],
+  });
+
+  return athletes;
+}
+

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 import { format, differenceInWeeks, addDays, startOfWeek, endOfWeek, isWithinInterval, getDay, startOfMonth, endOfMonth, addMonths, eachDayOfInterval } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
-import { type Program } from "@shared/schema";
+import { type Program, type AthleteWithPhase, type Block } from "@shared/schema";
 import { getSessionData } from "@/lib/sessionData";
 
 // Generate blocks from program
@@ -52,24 +52,51 @@ export default function ProgramPage() {
   const [location, setLocation] = useLocation();
   const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
   
-  // Get program ID from URL params safely
-  const programId = useMemo(() => {
+  // Get block ID from URL params safely
+  const blockId = useMemo(() => {
     if (typeof window === 'undefined') return null;
     const params = new URLSearchParams(window.location.search);
-    return params.get('id');
+    return params.get('blockId') || params.get('id'); // Support both blockId and id for backward compatibility
   }, [location]);
   
-  // Fetch program data
-  const { data: programs, isLoading } = useQuery<Program[]>({
-    queryKey: ["/api/programs"],
-    enabled: !!programId,
+  // Fetch athletes data to find the block
+  const { data: athletesData, isLoading } = useQuery<AthleteWithPhase[]>({
+    queryKey: ["/api/athletes"],
+    enabled: !!blockId,
   });
 
-  const programData = programs?.find(p => p.id === programId);
-  const blocks = programData ? generateBlocks(programData) : [];
+  // Find the block and athlete from athletes data
+  const blockData = useMemo(() => {
+    if (!athletesData || !blockId) return null;
+    
+    for (const athleteData of athletesData) {
+      const block = athleteData.blocks.find(b => b.id === blockId);
+      if (block) {
+        return { block, athlete: athleteData.athlete, allBlocks: athleteData.blocks };
+      }
+    }
+    return null;
+  }, [athletesData, blockId]);
+
+  // Generate blocks for display (use all blocks from athlete, or generate from block if needed)
+  const blocks = blockData ? blockData.allBlocks.map((b, idx) => ({
+    id: idx + 1,
+    name: b.name,
+    startDate: new Date(b.startDate),
+    endDate: new Date(b.endDate),
+  })) : [];
+  
+  // Find the index of the current block
+  const currentBlockIndex = blockData ? blocks.findIndex((b, idx) => {
+    const originalBlock = blockData.allBlocks[idx];
+    return originalBlock?.id === blockId;
+  }) : 0;
+  
+  // Use current block index if found, otherwise use selectedBlockIndex
+  const displayBlockIndex = currentBlockIndex >= 0 ? currentBlockIndex : selectedBlockIndex;
   
   // Get selected block
-  const selectedBlock = blocks[selectedBlockIndex];
+  const selectedBlock = blocks[displayBlockIndex];
   
   // Generate all days in the selected block
   const allDays = selectedBlock ? eachDayOfInterval({
@@ -78,8 +105,8 @@ export default function ProgramPage() {
   }) : [];
 
   const handleDayClick = (day: Date) => {
-    if (programId) {
-      setLocation(`/coach-session-view?programId=${programId}&day=${day.getDate()}`);
+    if (blockId) {
+      setLocation(`/coach-session-view?blockId=${blockId}&day=${day.getDate()}`);
     }
   };
 
@@ -93,11 +120,11 @@ export default function ProgramPage() {
     );
   }
 
-  if (!programData) {
+  if (!blockData || !selectedBlock) {
     return (
       <div className="min-h-screen bg-surface-base flex items-center justify-center">
         <div className="text-center">
-          <p className="text-muted-foreground">Program not found</p>
+          <p className="text-muted-foreground">Block not found</p>
           <Button onClick={() => setLocation("/programs")} className="mt-4">
             Back to Programs
           </Button>
@@ -123,31 +150,28 @@ export default function ProgramPage() {
             </Button>
             <div className="flex items-center gap-3">
               <h1 className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">
-                {programData.programId}
+                {blockData.block.name}
               </h1>
               <span className="text-sm text-[#979795]">•</span>
-              <span className="text-sm text-[#979795] font-['Montserrat']">{programData.athleteName}</span>
+              <span className="text-sm text-[#979795] font-['Montserrat']">{blockData.athlete.name}</span>
               <span className="text-sm text-[#979795]">•</span>
               <span className="text-sm text-[#979795] font-['Montserrat']">
-                {format(new Date(programData.startDate), "MM/dd/yyyy")} - {format(new Date(programData.endDate), "MM/dd/yyyy")}
+                {format(new Date(blockData.block.startDate), "MM/dd/yyyy")} - {format(new Date(blockData.block.endDate), "MM/dd/yyyy")}
               </span>
               <span className="text-sm text-[#979795]">•</span>
-              <div className="flex gap-1">
-                {programData.routineTypes.map((type) => (
-                  <Badge key={type} variant="tertiary" className="text-xs capitalize font-['Montserrat']">
-                    {type}
-                  </Badge>
-                ))}
-              </div>
+              <Badge variant="tertiary" className="text-xs capitalize font-['Montserrat']">
+                {blockData.block.season}
+                {blockData.block.subSeason && ` (${blockData.block.subSeason})`}
+              </Badge>
             </div>
           </div>
           <Button
             variant="secondary"
-            onClick={() => setLocation(`/add-program?edit=${programId}`)}
+            onClick={() => setLocation(`/add-program?mode=edit&blockId=${blockId}`)}
             className="bg-[#171716] text-[#f7f6f2] hover:bg-[#1a1a19] border-[#292928] font-['Montserrat']"
           >
             <Edit className="h-4 w-4 mr-2" />
-            Edit Program
+            Edit Block
           </Button>
         </div>
       </div>

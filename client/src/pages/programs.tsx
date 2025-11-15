@@ -1,50 +1,36 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { Plus, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, AlertTriangle, Activity, AlertCircle, X } from "lucide-react";
+import { Plus, Search, Filter, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from "@/components/ui/sheet";
-import { type Program } from "@shared/schema";
+import { type AthleteWithPhase, type Block } from "@shared/schema";
+import AthleteRow from "@/components/AthleteRow";
 import { cn } from "@/lib/utils";
 
-type SortField = "athleteName" | "startDate" | "endDate" | "lastModification" | "lastSubmission" | "nextBlockDue";
+type SortField = "athleteName" | "nextActionDate" | "lastActivity" | "phaseProgress";
 type SortDirection = "asc" | "desc";
 
 interface FilterState {
-  phaseTimelineStart: string;
-  phaseTimelineEnd: string;
-  statuses: string[];
+  athleteStatuses: string[]; // injured/rehabbing/lingering-issues
+  blockStatuses: string[]; // active/complete/draft/pending-signoff
   seasons: string[];
   subSeasons: string[];
-  currentDayBlock: string;
-  currentDayWeek: string;
-  currentDayDay: string;
-  lastModificationStart: string;
-  lastModificationEnd: string;
-  lastSubmissionStart: string;
-  lastSubmissionEnd: string;
+  urgency: string[]; // due-this-week, overdue, no-active-block
   nextBlockDueStart: string;
   nextBlockDueEnd: string;
+  lastActivityStart: string;
+  lastActivityEnd: string;
 }
 
 const STATUS_OPTIONS = [
@@ -52,188 +38,322 @@ const STATUS_OPTIONS = [
   { value: "rehabbing", label: "Rehabbing" },
   { value: "lingering-issues", label: "Lingering Issues" },
 ];
+const BLOCK_STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "complete", label: "Complete" },
+  { value: "draft", label: "Draft" },
+  { value: "pending-signoff", label: "Pending Sign-off" },
+];
 const SEASON_OPTIONS = ["Pre-Season", "In-Season", "Off-Season"];
 const SUB_SEASON_OPTIONS = ["Early", "Mid", "Late"];
+const URGENCY_OPTIONS = [
+  { value: "due-this-week", label: "Due this week" },
+  { value: "overdue", label: "Overdue" },
+  { value: "no-active-block", label: "No active block" },
+];
 
 export default function Programs() {
   const [, setLocation] = useLocation();
-  const [status, setStatus] = useState<"current" | "past" | "drafts">("current");
+  const [status, setStatus] = useState<"current" | "past" | "needs-signoff">("current");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState<SortField>("startDate");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [sortField, setSortField] = useState<SortField>("nextActionDate");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [expandedAthletes, setExpandedAthletes] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<FilterState>({
-    phaseTimelineStart: "",
-    phaseTimelineEnd: "",
-    statuses: [],
+    athleteStatuses: [],
+    blockStatuses: [],
     seasons: [],
     subSeasons: [],
-    currentDayBlock: "",
-    currentDayWeek: "",
-    currentDayDay: "",
-    lastModificationStart: "",
-    lastModificationEnd: "",
-    lastSubmissionStart: "",
-    lastSubmissionEnd: "",
+    urgency: [],
     nextBlockDueStart: "",
     nextBlockDueEnd: "",
+    lastActivityStart: "",
+    lastActivityEnd: "",
+  });
+
+  // Fetch athletes - uses default queryFn from queryClient
+  const { data: athletesData = [], isLoading } = useQuery<AthleteWithPhase[]>({
+    queryKey: ["/api/athletes"],
   });
   
+  const toggleAthleteExpanded = (athleteId: string) => {
+    setExpandedAthletes(prev => {
+      const next = new Set(prev);
+      if (next.has(athleteId)) {
+        next.delete(athleteId);
+      } else {
+        next.add(athleteId);
+      }
+      return next;
+    });
+  };
 
-  // Fetch programs - uses default queryFn from queryClient
-  const { data: programs = [], isLoading } = useQuery<Program[]>({
-    queryKey: ["/api/programs"],
-  });
-
-  // Filter and sort programs
-  const filteredAndSortedPrograms = useMemo(() => {
+  // Filter and sort athletes
+  const filteredAndSortedAthletes = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let filtered = programs.filter((program) => {
-      // Filter by status (active/completed)
-      const endDate = new Date(program.endDate);
-      endDate.setHours(0, 0, 0, 0);
-      const isActive = endDate >= today;
+    let filtered = athletesData.filter((athleteData) => {
+      const { athlete, blocks } = athleteData;
 
-      if (status === "current" && !isActive) return false;
-      if (status === "past" && isActive) return false;
-
-      // Filter by search query
+      // Filter by search query (athlete name only)
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const matchesSearch =
-          program.athleteName.toLowerCase().includes(query) ||
-          program.athleteId.toLowerCase().includes(query);
-        if (!matchesSearch) return false;
+        if (!athlete.name.toLowerCase().includes(query)) return false;
       }
 
-      // Filter by status
-      if (filters.statuses.length > 0) {
-        if (!program.status || !filters.statuses.includes(program.status)) return false;
+      // Filter by athlete status
+      if (filters.athleteStatuses.length > 0) {
+        if (!athlete.status || !filters.athleteStatuses.includes(athlete.status)) return false;
       }
 
-      // Filter by phase timeline
-      if (filters.phaseTimelineStart) {
-        const startDate = new Date(program.startDate);
-        startDate.setHours(0, 0, 0, 0);
-        const filterStart = new Date(filters.phaseTimelineStart);
-        filterStart.setHours(0, 0, 0, 0);
-        if (startDate < filterStart) return false;
-      }
-      if (filters.phaseTimelineEnd) {
-        const endDate = new Date(program.endDate);
-        endDate.setHours(0, 0, 0, 0);
-        const filterEnd = new Date(filters.phaseTimelineEnd);
-        filterEnd.setHours(23, 59, 59, 999);
-        if (endDate > filterEnd) return false;
+      // Filter by status (current/past/needs-signoff) - check if ANY block matches
+      if (status === "current") {
+        const hasActiveBlock = blocks.some(block => {
+          const endDate = new Date(block.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          return block.status === "active" && endDate >= today;
+        });
+        if (!hasActiveBlock) return false;
+      } else if (status === "past") {
+        const hasPastBlock = blocks.some(block => {
+          const endDate = new Date(block.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          return block.status === "complete" || endDate < today;
+        });
+        if (!hasPastBlock) return false;
+      } else if (status === "needs-signoff") {
+        const hasPendingSignoff = blocks.some(block => block.status === "pending-signoff");
+        if (!hasPendingSignoff) return false;
       }
 
-      // Filter by season
+      // Filter by block status - check if ANY block matches
+      if (filters.blockStatuses.length > 0) {
+        const hasMatchingStatus = blocks.some(block => 
+          filters.blockStatuses.includes(block.status)
+        );
+        if (!hasMatchingStatus) return false;
+      }
+
+      // Filter by season - check if ANY block matches
       if (filters.seasons.length > 0) {
-        if (!program.season || !filters.seasons.includes(program.season)) return false;
+        const hasMatchingSeason = blocks.some(block => 
+          filters.seasons.includes(block.season)
+        );
+        if (!hasMatchingSeason) return false;
       }
 
-      // Filter by sub-season
+      // Filter by sub-season - check if ANY block matches
       if (filters.subSeasons.length > 0) {
-        if (!program.subSeason || !filters.subSeasons.includes(program.subSeason)) return false;
+        const hasMatchingSubSeason = blocks.some(block => 
+          block.subSeason && filters.subSeasons.includes(block.subSeason)
+        );
+        if (!hasMatchingSubSeason) return false;
       }
 
-      // Filter by current day
-      if (filters.currentDayBlock && filters.currentDayBlock.trim() !== "") {
-        const blockNum = parseInt(filters.currentDayBlock);
-        if (isNaN(blockNum) || !program.currentDay || program.currentDay.block !== blockNum) return false;
-      }
-      if (filters.currentDayWeek && filters.currentDayWeek.trim() !== "") {
-        const weekNum = parseInt(filters.currentDayWeek);
-        if (isNaN(weekNum) || !program.currentDay || program.currentDay.week !== weekNum) return false;
-      }
-      if (filters.currentDayDay && filters.currentDayDay.trim() !== "") {
-        const dayNum = parseInt(filters.currentDayDay);
-        if (isNaN(dayNum) || !program.currentDay || program.currentDay.day !== dayNum) return false;
-      }
-
-      // Filter by last modification
-      if (filters.lastModificationStart && program.lastModification) {
-        const modDate = new Date(program.lastModification);
-        modDate.setHours(0, 0, 0, 0);
-        const filterStart = new Date(filters.lastModificationStart);
-        filterStart.setHours(0, 0, 0, 0);
-        if (modDate < filterStart) return false;
-      }
-      if (filters.lastModificationEnd && program.lastModification) {
-        const modDate = new Date(program.lastModification);
-        modDate.setHours(0, 0, 0, 0);
-        const filterEnd = new Date(filters.lastModificationEnd);
-        filterEnd.setHours(23, 59, 59, 999);
-        if (modDate > filterEnd) return false;
-      }
-
-      // Filter by last submission
-      if (filters.lastSubmissionStart && program.lastSubmission) {
-        const subDate = new Date(program.lastSubmission);
-        subDate.setHours(0, 0, 0, 0);
-        const filterStart = new Date(filters.lastSubmissionStart);
-        filterStart.setHours(0, 0, 0, 0);
-        if (subDate < filterStart) return false;
-      }
-      if (filters.lastSubmissionEnd && program.lastSubmission) {
-        const subDate = new Date(program.lastSubmission);
-        subDate.setHours(0, 0, 0, 0);
-        const filterEnd = new Date(filters.lastSubmissionEnd);
-        filterEnd.setHours(23, 59, 59, 999);
-        if (subDate > filterEnd) return false;
+      // Filter by last activity (coach modification OR athlete submission) - check if ANY block matches
+      if (filters.lastActivityStart || filters.lastActivityEnd) {
+        const hasMatchingActivity = blocks.some(block => {
+          // Get the most recent activity date (either modification or submission)
+          const activityDates: Date[] = [];
+          if (block.lastModification) {
+            activityDates.push(new Date(block.lastModification));
+          }
+          if (block.lastSubmission) {
+            activityDates.push(new Date(block.lastSubmission));
+          }
+          
+          if (activityDates.length === 0) return false;
+          
+          const mostRecentActivity = new Date(Math.max(...activityDates.map(d => d.getTime())));
+          mostRecentActivity.setHours(0, 0, 0, 0);
+          
+          if (filters.lastActivityStart) {
+            const filterStart = new Date(filters.lastActivityStart);
+            filterStart.setHours(0, 0, 0, 0);
+            if (mostRecentActivity < filterStart) return false;
+          }
+          if (filters.lastActivityEnd) {
+            const filterEnd = new Date(filters.lastActivityEnd);
+            filterEnd.setHours(23, 59, 59, 999);
+            if (mostRecentActivity > filterEnd) return false;
+          }
+          return true;
+        });
+        if (!hasMatchingActivity) return false;
       }
 
-      // Filter by next block due
-      if (filters.nextBlockDueStart && program.nextBlockDue) {
-        const dueDate = new Date(program.nextBlockDue);
-        dueDate.setHours(0, 0, 0, 0);
-        const filterStart = new Date(filters.nextBlockDueStart);
-        filterStart.setHours(0, 0, 0, 0);
-        if (dueDate < filterStart) return false;
+      // Filter by next block due - check if ANY block matches
+      if (filters.nextBlockDueStart || filters.nextBlockDueEnd) {
+        const hasMatchingBlock = blocks.some(block => {
+          if (!block.nextBlockDue) return false;
+          const dueDate = new Date(block.nextBlockDue);
+          dueDate.setHours(0, 0, 0, 0);
+          if (filters.nextBlockDueStart) {
+            const filterStart = new Date(filters.nextBlockDueStart);
+            filterStart.setHours(0, 0, 0, 0);
+            if (dueDate < filterStart) return false;
+          }
+          if (filters.nextBlockDueEnd) {
+            const filterEnd = new Date(filters.nextBlockDueEnd);
+            filterEnd.setHours(23, 59, 59, 999);
+            if (dueDate > filterEnd) return false;
+          }
+          return true;
+        });
+        if (!hasMatchingBlock) return false;
       }
-      if (filters.nextBlockDueEnd && program.nextBlockDue) {
-        const dueDate = new Date(program.nextBlockDue);
-        dueDate.setHours(0, 0, 0, 0);
-        const filterEnd = new Date(filters.nextBlockDueEnd);
-        filterEnd.setHours(23, 59, 59, 999);
-        if (dueDate > filterEnd) return false;
+
+      // Filter by urgency - check if ANY block matches
+      if (filters.urgency.length > 0) {
+        const hasMatchingUrgency = filters.urgency.some(urgencyType => {
+          if (urgencyType === "no-active-block") {
+            const hasActiveBlock = blocks.some(block => block.status === "active");
+            return !hasActiveBlock;
+          }
+          
+          // For "due-this-week" and "overdue", check nextBlockDue dates
+          const matchingBlocks = blocks.filter(block => {
+            if (!block.nextBlockDue) return false;
+            const dueDate = new Date(block.nextBlockDue);
+            dueDate.setHours(0, 0, 0, 0);
+            const daysDiff = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (urgencyType === "overdue") {
+              return daysDiff < 0;
+            } else if (urgencyType === "due-this-week") {
+              return daysDiff >= 0 && daysDiff <= 7;
+            }
+            return false;
+          });
+          
+          return matchingBlocks.length > 0;
+        });
+        if (!hasMatchingUrgency) return false;
       }
 
       return true;
     });
 
-    // Sort programs
+    // Sort athletes
     filtered.sort((a, b) => {
+      // Special sorting for "needs-signoff" tab - sort by urgency first
+      if (status === "needs-signoff") {
+        const getPendingSignoffUrgency = (blocks: Block[]): number => {
+          const pendingBlocks = blocks.filter(b => b.status === "pending-signoff");
+          if (pendingBlocks.length === 0) return Number.MAX_SAFE_INTEGER;
+          
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          // Get earliest nextBlockDue date from pending blocks
+          const dueDates = pendingBlocks
+            .filter(b => b.nextBlockDue)
+            .map(b => {
+              const dueDate = new Date(b.nextBlockDue!);
+              dueDate.setHours(0, 0, 0, 0);
+              return dueDate.getTime();
+            });
+          
+          if (dueDates.length === 0) return 0; // No due date = urgent
+          
+          const earliestDue = Math.min(...dueDates);
+          const daysDiff = Math.ceil((earliestDue - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Negative = overdue (most urgent), then by days until due
+          return daysDiff;
+        };
+        
+        const aUrgency = getPendingSignoffUrgency(a.blocks);
+        const bUrgency = getPendingSignoffUrgency(b.blocks);
+        
+        if (aUrgency !== bUrgency) {
+          return aUrgency - bUrgency; // Most urgent first
+        }
+        
+        // If same urgency, sort by athlete name
+        return a.athlete.name.localeCompare(b.athlete.name);
+      }
+      
       let aValue: string | number;
       let bValue: string | number;
 
       switch (sortField) {
         case "athleteName":
-          aValue = a.athleteName;
-          bValue = b.athleteName;
+          aValue = a.athlete.name;
+          bValue = b.athlete.name;
           break;
-        case "startDate":
-          aValue = new Date(a.startDate).getTime();
-          bValue = new Date(b.startDate).getTime();
+        case "nextActionDate": {
+          // Get earliest block needing attention (pending-signoff takes priority, then nextBlockDue)
+          const getNextActionDate = (blocks: Block[]): number => {
+            const actionDates: number[] = [];
+            
+            // First priority: blocks pending sign-off (use today as action date)
+            const pendingSignoff = blocks.some(b => b.status === "pending-signoff");
+            if (pendingSignoff) {
+              actionDates.push(new Date().getTime());
+            }
+            
+            // Second priority: nextBlockDue dates
+            blocks.forEach(block => {
+              if (block.nextBlockDue) {
+                actionDates.push(new Date(block.nextBlockDue).getTime());
+              }
+            });
+            
+            return actionDates.length > 0 ? Math.min(...actionDates) : Number.MAX_SAFE_INTEGER;
+          };
+          
+          aValue = getNextActionDate(a.blocks);
+          bValue = getNextActionDate(b.blocks);
           break;
-        case "endDate":
-          aValue = new Date(a.endDate).getTime();
-          bValue = new Date(b.endDate).getTime();
+        }
+        case "lastActivity": {
+          // Get most recent activity (modification OR submission) from all blocks
+          const getLastActivity = (blocks: Block[]): number => {
+            const activityDates: number[] = [];
+            blocks.forEach(block => {
+              if (block.lastModification) {
+                activityDates.push(new Date(block.lastModification).getTime());
+              }
+              if (block.lastSubmission) {
+                activityDates.push(new Date(block.lastSubmission).getTime());
+              }
+            });
+            return activityDates.length > 0 
+              ? Math.max(...activityDates)
+              : Number.MAX_SAFE_INTEGER;
+          };
+          
+          aValue = getLastActivity(a.blocks);
+          bValue = getLastActivity(b.blocks);
           break;
-        case "lastModification":
-          aValue = a.lastModification ? new Date(a.lastModification).getTime() : Number.MAX_SAFE_INTEGER;
-          bValue = b.lastModification ? new Date(b.lastModification).getTime() : Number.MAX_SAFE_INTEGER;
+        }
+        case "phaseProgress": {
+          // Calculate phase progress (% complete) from current phase blocks
+          const getPhaseProgress = (athleteData: AthleteWithPhase): number => {
+            if (!athleteData.currentPhase || athleteData.currentPhase.blocks.length === 0) {
+              return 0;
+            }
+            
+            const phaseBlocks = athleteData.currentPhase.blocks;
+            let totalDaysComplete = 0;
+            let totalDaysAvailable = 0;
+            
+            phaseBlocks.forEach(block => {
+              totalDaysComplete += block.daysComplete ?? 0;
+              totalDaysAvailable += block.daysAvailable ?? 0;
+            });
+            
+            if (totalDaysAvailable === 0) return 0;
+            return (totalDaysComplete / totalDaysAvailable) * 100;
+          };
+          
+          aValue = getPhaseProgress(a);
+          bValue = getPhaseProgress(b);
           break;
-        case "lastSubmission":
-          aValue = a.lastSubmission ? new Date(a.lastSubmission).getTime() : Number.MAX_SAFE_INTEGER;
-          bValue = b.lastSubmission ? new Date(b.lastSubmission).getTime() : Number.MAX_SAFE_INTEGER;
-          break;
-        case "nextBlockDue":
-          aValue = a.nextBlockDue ? new Date(a.nextBlockDue).getTime() : Number.MAX_SAFE_INTEGER;
-          bValue = b.nextBlockDue ? new Date(b.nextBlockDue).getTime() : Number.MAX_SAFE_INTEGER;
-          break;
+        }
         default:
           return 0;
       }
@@ -248,14 +368,103 @@ export default function Programs() {
     });
 
     return filtered;
-  }, [programs, status, searchQuery, sortField, sortDirection, filters]);
+  }, [athletesData, status, searchQuery, sortField, sortDirection, filters]);
 
-  const handleStatusToggle = (status: string) => {
+  // Helper function to check if a block matches the current filters
+  const blockMatchesFilters = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return (block: Block): boolean => {
+      // Check block status filter
+      if (filters.blockStatuses.length > 0) {
+        if (!filters.blockStatuses.includes(block.status)) return false;
+      }
+
+      // Check season filter
+      if (filters.seasons.length > 0) {
+        if (!filters.seasons.includes(block.season)) return false;
+      }
+
+      // Check sub-season filter
+      if (filters.subSeasons.length > 0) {
+        if (!block.subSeason || !filters.subSeasons.includes(block.subSeason)) return false;
+      }
+
+      // Check urgency filter
+      if (filters.urgency.length > 0) {
+        const matchesUrgency = filters.urgency.some(urgencyType => {
+          if (urgencyType === "overdue" || urgencyType === "due-this-week") {
+            if (!block.nextBlockDue) return false;
+            const dueDate = new Date(block.nextBlockDue);
+            dueDate.setHours(0, 0, 0, 0);
+            const daysDiff = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (urgencyType === "overdue") {
+              return daysDiff < 0;
+            } else if (urgencyType === "due-this-week") {
+              return daysDiff >= 0 && daysDiff <= 7;
+            }
+          }
+          return false;
+        });
+        if (!matchesUrgency) return false;
+      }
+
+      // Check next block due filter
+      if (filters.nextBlockDueStart || filters.nextBlockDueEnd) {
+        if (!block.nextBlockDue) return false;
+        const dueDate = new Date(block.nextBlockDue);
+        dueDate.setHours(0, 0, 0, 0);
+        if (filters.nextBlockDueStart) {
+          const filterStart = new Date(filters.nextBlockDueStart);
+          filterStart.setHours(0, 0, 0, 0);
+          if (dueDate < filterStart) return false;
+        }
+        if (filters.nextBlockDueEnd) {
+          const filterEnd = new Date(filters.nextBlockDueEnd);
+          filterEnd.setHours(23, 59, 59, 999);
+          if (dueDate > filterEnd) return false;
+        }
+      }
+
+      // Check last activity filter
+      if (filters.lastActivityStart || filters.lastActivityEnd) {
+        const activityDates: Date[] = [];
+        if (block.lastModification) {
+          activityDates.push(new Date(block.lastModification));
+        }
+        if (block.lastSubmission) {
+          activityDates.push(new Date(block.lastSubmission));
+        }
+        
+        if (activityDates.length === 0) return false;
+        
+        const mostRecentActivity = new Date(Math.max(...activityDates.map(d => d.getTime())));
+        mostRecentActivity.setHours(0, 0, 0, 0);
+        
+        if (filters.lastActivityStart) {
+          const filterStart = new Date(filters.lastActivityStart);
+          filterStart.setHours(0, 0, 0, 0);
+          if (mostRecentActivity < filterStart) return false;
+        }
+        if (filters.lastActivityEnd) {
+          const filterEnd = new Date(filters.lastActivityEnd);
+          filterEnd.setHours(23, 59, 59, 999);
+          if (mostRecentActivity > filterEnd) return false;
+        }
+      }
+
+      return true;
+    };
+  }, [filters]);
+
+  const handleAthleteStatusToggle = (status: string) => {
     setFilters(prev => ({
       ...prev,
-      statuses: prev.statuses.includes(status)
-        ? prev.statuses.filter(s => s !== status)
-        : [...prev.statuses, status]
+      athleteStatuses: prev.athleteStatuses.includes(status)
+        ? prev.athleteStatuses.filter(s => s !== status)
+        : [...prev.athleteStatuses, status]
     }));
   };
 
@@ -277,191 +486,104 @@ export default function Programs() {
     }));
   };
 
+  const handleBlockStatusToggle = (blockStatus: string) => {
+    setFilters(prev => ({
+      ...prev,
+      blockStatuses: prev.blockStatuses.includes(blockStatus)
+        ? prev.blockStatuses.filter(s => s !== blockStatus)
+        : [...prev.blockStatuses, blockStatus]
+    }));
+  };
+
+  const handleUrgencyToggle = (urgency: string) => {
+    setFilters(prev => ({
+      ...prev,
+      urgency: prev.urgency.includes(urgency)
+        ? prev.urgency.filter(u => u !== urgency)
+        : [...prev.urgency, urgency]
+    }));
+  };
+
   const clearFilters = () => {
     setFilters({
-      phaseTimelineStart: "",
-      phaseTimelineEnd: "",
-      statuses: [],
+      athleteStatuses: [],
+      blockStatuses: [],
       seasons: [],
       subSeasons: [],
-      currentDayBlock: "",
-      currentDayWeek: "",
-      currentDayDay: "",
-      lastModificationStart: "",
-      lastModificationEnd: "",
-      lastSubmissionStart: "",
-      lastSubmissionEnd: "",
+      urgency: [],
       nextBlockDueStart: "",
       nextBlockDueEnd: "",
+      lastActivityStart: "",
+      lastActivityEnd: "",
     });
   };
 
   const hasActiveFilters = useMemo(() => {
     return !!(
-      filters.phaseTimelineStart ||
-      filters.phaseTimelineEnd ||
-      filters.statuses.length > 0 ||
+      filters.athleteStatuses.length > 0 ||
+      filters.blockStatuses.length > 0 ||
       filters.seasons.length > 0 ||
       filters.subSeasons.length > 0 ||
-      filters.currentDayBlock ||
-      filters.currentDayWeek ||
-      filters.currentDayDay ||
-      filters.lastModificationStart ||
-      filters.lastModificationEnd ||
-      filters.lastSubmissionStart ||
-      filters.lastSubmissionEnd ||
+      filters.urgency.length > 0 ||
       filters.nextBlockDueStart ||
-      filters.nextBlockDueEnd
+      filters.nextBlockDueEnd ||
+      filters.lastActivityStart ||
+      filters.lastActivityEnd
     );
   }, [filters]);
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
+  // Auto-expand athletes that match filters or have pending sign-off blocks
+  useEffect(() => {
+    const newExpanded = new Set(expandedAthletes);
+    
+    // Always auto-expand athletes with pending sign-off blocks when on "needs-signoff" tab
+    if (status === "needs-signoff") {
+      filteredAndSortedAthletes.forEach(athleteData => {
+        const hasPendingSignoff = athleteData.blocks.some(block => block.status === "pending-signoff");
+        if (hasPendingSignoff) {
+          newExpanded.add(athleteData.athlete.id);
+        }
+      });
+    } else if (hasActiveFilters && filteredAndSortedAthletes.length > 0) {
+      filteredAndSortedAthletes.forEach(athleteData => {
+        // Check if athlete has blocks matching filters
+        const hasMatchingBlocks = athleteData.blocks.some(block => blockMatchesFilters(block));
+        if (hasMatchingBlocks) {
+          newExpanded.add(athleteData.athlete.id);
+        }
+      });
     }
-  };
-
-  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => {
-    const isActive = sortField === field;
-    return (
-      <TableHead 
-        className={cn(
-          "cursor-pointer hover:bg-[#171716] text-xs font-['Montserrat'] transition-colors text-[#979795]",
-          isActive && "text-[#f7f6f2]"
-        )}
-        onClick={() => handleSort(field)}
-      >
-        <div className="flex items-center gap-2">
-          {children}
-          {isActive ? (
-            sortDirection === "asc" ? (
-              <ArrowUp className="h-4 w-4 text-[#f7f6f2]" />
-            ) : (
-              <ArrowDown className="h-4 w-4 text-[#f7f6f2]" />
-            )
-          ) : (
-            <ArrowUpDown className="h-4 w-4 opacity-50 text-[#979795]" />
-          )}
-        </div>
-      </TableHead>
-    );
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, "MM/dd/yy");
-  };
-
-  const formatDateShort = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, "MM/dd/yy");
-  };
-
-  const formatRelativeDate = (dateString: string) => {
-    const date = new Date(dateString);
+    
+    // Only update if there are new athletes to expand
+    if (newExpanded.size !== expandedAthletes.size) {
+      setExpandedAthletes(newExpanded);
+    }
+  }, [status, hasActiveFilters, filteredAndSortedAthletes, filters, blockMatchesFilters, expandedAthletes]);
+  
+  // Count athletes needing sign-off
+  const needsSignoffCount = useMemo(() => {
+    if (status !== "needs-signoff") return 0;
+    return athletesData.filter(athleteData => 
+      athleteData.blocks.some(block => block.status === "pending-signoff")
+    ).length;
+  }, [athletesData, status]);
+  
+  // Check if any blocks are overdue
+  const hasOverdueSignoff = useMemo(() => {
+    if (status !== "needs-signoff") return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const diffTime = date.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays < 0) {
-      return `${Math.abs(diffDays)}d ago`;
-    } else if (diffDays === 0) {
-      return "Today";
-    } else if (diffDays === 1) {
-      return "Tomorrow";
-    } else if (diffDays <= 7) {
-      return `In ${diffDays}d`;
-    } else {
-      return formatDateShort(dateString);
-    }
-  };
-
-  // Calculate progress: days complete / days available in phase
-  const calculateProgress = (program: Program) => {
-    // Use provided values if available, otherwise calculate from block duration
-    const daysComplete = program.daysComplete ?? 0;
-    const daysAvailable = program.daysAvailable ?? (program.blockDuration * 4); // Default: 4 days per week
-    
-    return {
-      completed: daysComplete,
-      total: daysAvailable,
-      percentage: daysAvailable > 0 ? (daysComplete / daysAvailable) * 100 : 0,
-    };
-  };
-
-  // Get status icon for athlete status
-  const getStatusIcon = (status?: "injured" | "rehabbing" | "lingering-issues" | null) => {
-    if (!status) return null;
-    
-    switch (status) {
-      case "injured":
-        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
-      case "rehabbing":
-        return <Activity className="h-4 w-4 text-blue-500" />;
-      case "lingering-issues":
-        return <AlertCircle className="h-4 w-4 text-orange-500" />;
-      default:
-        return null;
-    }
-  };
-
-  // Get status tooltip text
-  const getStatusTooltip = (status?: "injured" | "rehabbing" | "lingering-issues" | null) => {
-    if (!status) return "";
-    
-    switch (status) {
-      case "injured":
-        return "Injured";
-      case "rehabbing":
-        return "Rehabbing";
-      case "lingering-issues":
-        return "Lingering Issues";
-      default:
-        return "";
-    }
-  };
-
-  // Format season display
-  const formatSeason = (program: Program) => {
-    if (!program.season) return "—";
-    const subSeason = program.subSeason ? ` (${program.subSeason})` : "";
-    return `${program.season}${subSeason}`;
-  };
-
-  // Format current day display
-  const formatCurrentDay = (program: Program) => {
-    if (!program.currentDay) return "—";
-    return `${program.currentDay.block}.${program.currentDay.week}.${program.currentDay.day}`;
-  };
-
-  // Narrow stacked progress bar component
-  const StackedProgressBar = ({ completed, total }: { completed: number; total: number }) => {
-    // Use up to 20 segments for display
-    const segments = Math.min(Math.max(total, 10), 20);
-    const segmentValue = total / segments;
-    const completedSegments = Math.min(Math.floor(completed / segmentValue), segments);
-    
-    return (
-      <div className="flex items-center gap-0.5 h-3 w-full">
-        {Array.from({ length: segments }).map((_, index) => {
-          const isCompleted = index < completedSegments;
-          return (
-            <div
-              key={index}
-              className={cn(
-                "flex-1 h-full rounded-sm transition-colors",
-                isCompleted ? "bg-primary" : "bg-muted"
-              )}
-            />
-          );
-        })}
-      </div>
+    return athletesData.some(athleteData => 
+      athleteData.blocks.some(block => {
+        if (block.status !== "pending-signoff" || !block.nextBlockDue) return false;
+        const dueDate = new Date(block.nextBlockDue);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate < today;
+      })
     );
-  };
+  }, [athletesData, status]);
+
 
 
   return (
@@ -477,7 +599,7 @@ export default function Programs() {
             <ToggleGroup
               type="single"
               value={status}
-              onValueChange={(value) => value && setStatus(value as "current" | "past" | "drafts")}
+              onValueChange={(value) => value && setStatus(value as "current" | "past" | "needs-signoff")}
               variant="segmented"
             >
               <ToggleGroupItem value="current" aria-label="Current programs">
@@ -486,8 +608,18 @@ export default function Programs() {
               <ToggleGroupItem value="past" aria-label="Past programs">
                 Past
               </ToggleGroupItem>
-              <ToggleGroupItem value="drafts" aria-label="Draft programs" disabled>
-                Drafts
+              <ToggleGroupItem value="needs-signoff" aria-label="Needs sign-off">
+                <div className="flex items-center gap-2">
+                  <span>Needs Sign-off</span>
+                  {needsSignoffCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-[#171716] text-[#979795] text-[10px] font-['Montserrat'] border border-[#292928]">
+                      {needsSignoffCount}
+                    </span>
+                  )}
+                  {hasOverdueSignoff && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                  )}
+                </div>
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -519,106 +651,100 @@ export default function Programs() {
                 <span className="ml-1.5 h-1.5 w-1.5 rounded-full bg-primary"></span>
               )}
             </Button>
-            {/* Add Program Button */}
+            {/* Create Block Button */}
             <Button
-              onClick={() => setLocation("/add-program")}
+              onClick={() => setLocation("/add-program?mode=create")}
               size="sm"
               className="h-8 px-3 rounded-full bg-[#e5e4e1] text-black hover:bg-[#d5d4d1] font-['Montserrat']"
             >
               <Plus className="h-4 w-4 mr-2" />
-              <span className="text-xs font-semibold font-['Montserrat']">Add Program</span>
+              <span className="text-xs font-semibold font-['Montserrat']">Create Block</span>
             </Button>
           </div>
         </div>
 
         {/* Content Area */}
         <div className="px-5 pb-5 bg-surface-base">
-          {/* Table */}
+          {/* Athlete List */}
           {isLoading ? (
-            <div className="text-center py-12 text-[#979795] font-['Montserrat']">Loading programs...</div>
-          ) : filteredAndSortedPrograms.length === 0 ? (
-            <div className="text-center py-12 text-[#979795] font-['Montserrat']">
-              No {status} programs found
+            <div className="border border-[#292928] rounded-lg overflow-hidden w-full bg-surface-base">
+              {/* Loading Skeleton */}
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <div key={idx} className="border-b border-[#292928] last:border-b-0">
+                  <div className="flex items-center gap-4 px-5 py-3">
+                    <Skeleton className="w-8 h-8 rounded-full bg-[#171716]" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32 bg-[#171716]" />
+                      <Skeleton className="h-3 w-24 bg-[#171716]" />
+                    </div>
+                    <Skeleton className="h-4 w-4 rounded bg-[#171716]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredAndSortedAthletes.length === 0 ? (
+            <div className="border border-[#292928] rounded-lg bg-surface-base p-12">
+              <div className="text-center max-w-md mx-auto">
+                <div className="mb-4">
+                  {status === "needs-signoff" ? (
+                    <>
+                      <div className="w-16 h-16 mx-auto rounded-full bg-[#171716] flex items-center justify-center mb-4">
+                        <CheckCircle2 className="h-8 w-8 text-green-500" />
+                      </div>
+                      <h3 className="text-lg font-semibold font-['Montserrat'] text-[#f7f6f2] mb-2">
+                        No blocks pending sign-off
+                      </h3>
+                      <p className="text-sm font-['Montserrat'] text-[#979795] mb-6">
+                        All blocks are approved or in draft
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-16 h-16 mx-auto rounded-full bg-[#171716] flex items-center justify-center mb-4">
+                        <Search className="h-8 w-8 text-[#979795]" />
+                      </div>
+                      <h3 className="text-lg font-semibold font-['Montserrat'] text-[#f7f6f2] mb-2">
+                        No {status} athletes found
+                      </h3>
+                      <p className="text-sm font-['Montserrat'] text-[#979795] mb-6">
+                        {hasActiveFilters 
+                          ? "Try adjusting your filters to see more results."
+                          : "Get started by creating a block for an athlete."}
+                      </p>
+                    </>
+                  )}
+                </div>
+                {!hasActiveFilters && status !== "needs-signoff" && (
+                  <Button
+                    onClick={() => setLocation("/add-program?mode=create")}
+                    className="bg-[#e5e4e1] text-black hover:bg-[#d5d4d1] font-['Montserrat']"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Block
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
-            <div className="border border-[#292928] rounded-lg overflow-x-auto w-full bg-surface-base [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              <Table className="min-w-[1200px] w-full">
-                <TableHeader>
-                  <TableRow className="border-b border-[#292928] hover:bg-transparent">
-                    <SortableHeader field="athleteName">Athlete</SortableHeader>
-                    <SortableHeader field="startDate">Phase timeline</SortableHeader>
-                    <TableHead colSpan={3} className="text-xs font-['Montserrat'] text-[#979795]">Progress</TableHead>
-                    <TableHead className="text-xs font-['Montserrat'] text-[#979795]">Season (sub-season)</TableHead>
-                    <TableHead className="text-xs font-['Montserrat'] text-[#979795]">Current day</TableHead>
-                    <SortableHeader field="lastModification">Last modification</SortableHeader>
-                    <SortableHeader field="lastSubmission">Last submission</SortableHeader>
-                    <SortableHeader field="nextBlockDue">Next block due</SortableHeader>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAndSortedPrograms.map((program) => {
-                    const progress = calculateProgress(program);
-                    const statusIcon = getStatusIcon(program.status);
-                    const statusTooltip = getStatusTooltip(program.status);
-                    return (
-                      <TableRow
-                        key={program.id}
-                        className="cursor-pointer hover:bg-[#171716] border-b border-[#292928]"
-                        onClick={() => setLocation(`/program-page?id=${program.id}`)}
-                      >
-                        <TableCell className="font-medium py-2 whitespace-nowrap">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <div className="w-8 h-8 rounded-full bg-[#292928] flex-shrink-0"></div>
-                              <div className="font-semibold font-['Montserrat'] text-[#f7f6f2] truncate">{program.athleteName}</div>
-                            </div>
-                            {statusIcon && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="flex-shrink-0">
-                                    {statusIcon}
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{statusTooltip}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-2 whitespace-nowrap text-[#979795] font-['Montserrat']">
-                          {formatDateShort(program.startDate)} - {formatDateShort(program.endDate)}
-                        </TableCell>
-                        <TableCell colSpan={3} className="py-2 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 min-w-[60px]">
-                              <StackedProgressBar completed={progress.completed} total={progress.total} />
-                            </div>
-                            <span className="text-xs text-[#979795] font-['Montserrat'] whitespace-nowrap">
-                              {progress.completed}/{progress.total}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-2 whitespace-nowrap text-[#979795] font-['Montserrat']">
-                          {formatSeason(program)}
-                        </TableCell>
-                        <TableCell className="py-2 whitespace-nowrap text-[#979795] font-['Montserrat']">
-                          {formatCurrentDay(program)}
-                        </TableCell>
-                        <TableCell className="py-2 whitespace-nowrap text-[#979795] font-['Montserrat'] text-xs">
-                          {program.lastModification ? formatRelativeDate(program.lastModification) : "—"}
-                        </TableCell>
-                        <TableCell className="py-2 whitespace-nowrap text-[#979795] font-['Montserrat'] text-xs">
-                          {program.lastSubmission ? formatRelativeDate(program.lastSubmission) : "—"}
-                        </TableCell>
-                        <TableCell className="py-2 whitespace-nowrap text-[#979795] font-['Montserrat'] text-xs">
-                          {program.nextBlockDue ? formatRelativeDate(program.nextBlockDue) : "—"}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+            <div className="w-full">
+              {filteredAndSortedAthletes.map((athleteData) => {
+                // Calculate which blocks match the filters
+                const matchingBlockIds = new Set(
+                  athleteData.blocks
+                    .filter(block => blockMatchesFilters(block))
+                    .map(block => block.id)
+                );
+                
+                return (
+                  <AthleteRow
+                    key={athleteData.athlete.id}
+                    athleteData={athleteData}
+                    isExpanded={expandedAthletes.has(athleteData.athlete.id)}
+                    onToggleExpand={() => toggleAthleteExpanded(athleteData.athlete.id)}
+                    matchingBlockIds={matchingBlockIds}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
@@ -634,22 +760,21 @@ export default function Programs() {
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
-            {/* Status */}
+            {/* Athlete Status */}
             <div className="space-y-3">
-              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Status</Label>
+              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Athlete status</Label>
               <div className="flex flex-wrap gap-4">
                 {STATUS_OPTIONS.map((statusOption) => (
                   <div key={statusOption.value} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`status-${statusOption.value}`}
-                      checked={filters.statuses.includes(statusOption.value)}
-                      onCheckedChange={() => handleStatusToggle(statusOption.value)}
+                      id={`athlete-status-${statusOption.value}`}
+                      checked={filters.athleteStatuses.includes(statusOption.value)}
+                      onCheckedChange={() => handleAthleteStatusToggle(statusOption.value)}
                     />
                     <Label
-                      htmlFor={`status-${statusOption.value}`}
-                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer flex items-center gap-2"
+                      htmlFor={`athlete-status-${statusOption.value}`}
+                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
                     >
-                      {getStatusIcon(statusOption.value as "injured" | "rehabbing" | "lingering-issues")}
                       {statusOption.label}
                     </Label>
                   </div>
@@ -657,28 +782,25 @@ export default function Programs() {
               </div>
             </div>
 
-            {/* Phase Timeline */}
+            {/* Block Status */}
             <div className="space-y-3">
-              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Phase timeline</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label className="text-xs font-['Montserrat'] text-[#979795]">Start date</Label>
-                  <Input
-                    type="date"
-                    value={filters.phaseTimelineStart}
-                    onChange={(e) => setFilters(prev => ({ ...prev, phaseTimelineStart: e.target.value }))}
-                    className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-['Montserrat'] text-[#979795]">End date</Label>
-                  <Input
-                    type="date"
-                    value={filters.phaseTimelineEnd}
-                    onChange={(e) => setFilters(prev => ({ ...prev, phaseTimelineEnd: e.target.value }))}
-                    className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
-                  />
-                </div>
+              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Block status</Label>
+              <div className="flex flex-wrap gap-4">
+                {BLOCK_STATUS_OPTIONS.map((statusOption) => (
+                  <div key={statusOption.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`block-status-${statusOption.value}`}
+                      checked={filters.blockStatuses.includes(statusOption.value)}
+                      onCheckedChange={() => handleBlockStatusToggle(statusOption.value)}
+                    />
+                    <Label
+                      htmlFor={`block-status-${statusOption.value}`}
+                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
+                    >
+                      {statusOption.label}
+                    </Label>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -726,56 +848,39 @@ export default function Programs() {
               </div>
             </div>
 
-            {/* Current Day */}
+            {/* Urgency */}
             <div className="space-y-3">
-              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Current day</Label>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-2">
-                  <Label className="text-xs font-['Montserrat'] text-[#979795]">Block</Label>
-                  <Input
-                    type="number"
-                    placeholder="Block"
-                    value={filters.currentDayBlock}
-                    onChange={(e) => setFilters(prev => ({ ...prev, currentDayBlock: e.target.value }))}
-                    className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
-                    min="1"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-['Montserrat'] text-[#979795]">Week</Label>
-                  <Input
-                    type="number"
-                    placeholder="Week"
-                    value={filters.currentDayWeek}
-                    onChange={(e) => setFilters(prev => ({ ...prev, currentDayWeek: e.target.value }))}
-                    className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
-                    min="1"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-['Montserrat'] text-[#979795]">Day</Label>
-                  <Input
-                    type="number"
-                    placeholder="Day"
-                    value={filters.currentDayDay}
-                    onChange={(e) => setFilters(prev => ({ ...prev, currentDayDay: e.target.value }))}
-                    className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
-                    min="1"
-                  />
-                </div>
+              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Urgency</Label>
+              <div className="flex flex-wrap gap-4">
+                {URGENCY_OPTIONS.map((urgencyOption) => (
+                  <div key={urgencyOption.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`urgency-${urgencyOption.value}`}
+                      checked={filters.urgency.includes(urgencyOption.value)}
+                      onCheckedChange={() => handleUrgencyToggle(urgencyOption.value)}
+                    />
+                    <Label
+                      htmlFor={`urgency-${urgencyOption.value}`}
+                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
+                    >
+                      {urgencyOption.label}
+                    </Label>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Last Modification */}
+            {/* Last Activity */}
             <div className="space-y-3">
-              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Last modification</Label>
+              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Last activity</Label>
+              <p className="text-xs text-[#979795] font-['Montserrat']">Any coach modification or athlete submission</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label className="text-xs font-['Montserrat'] text-[#979795]">Start date</Label>
                   <Input
                     type="date"
-                    value={filters.lastModificationStart}
-                    onChange={(e) => setFilters(prev => ({ ...prev, lastModificationStart: e.target.value }))}
+                    value={filters.lastActivityStart}
+                    onChange={(e) => setFilters(prev => ({ ...prev, lastActivityStart: e.target.value }))}
                     className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
                   />
                 </div>
@@ -783,33 +888,8 @@ export default function Programs() {
                   <Label className="text-xs font-['Montserrat'] text-[#979795]">End date</Label>
                   <Input
                     type="date"
-                    value={filters.lastModificationEnd}
-                    onChange={(e) => setFilters(prev => ({ ...prev, lastModificationEnd: e.target.value }))}
-                    className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Last Submission */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Last submission</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label className="text-xs font-['Montserrat'] text-[#979795]">Start date</Label>
-                  <Input
-                    type="date"
-                    value={filters.lastSubmissionStart}
-                    onChange={(e) => setFilters(prev => ({ ...prev, lastSubmissionStart: e.target.value }))}
-                    className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-['Montserrat'] text-[#979795]">End date</Label>
-                  <Input
-                    type="date"
-                    value={filters.lastSubmissionEnd}
-                    onChange={(e) => setFilters(prev => ({ ...prev, lastSubmissionEnd: e.target.value }))}
+                    value={filters.lastActivityEnd}
+                    onChange={(e) => setFilters(prev => ({ ...prev, lastActivityEnd: e.target.value }))}
                     className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
                   />
                 </div>

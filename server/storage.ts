@@ -1,5 +1,6 @@
-import { type User, type InsertUser, type Program, type InsertProgram } from "@shared/schema";
+import { type User, type InsertUser, type Program, type InsertProgram, type Athlete, type Block, type Phase, type AthleteWithPhase } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { generateSeedAthletes } from "../db/seed";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -13,6 +14,9 @@ export interface IStorage {
   getProgram(id: string): Promise<Program | undefined>;
   createProgram(program: InsertProgram): Promise<Program>;
   deleteProgram(id: string): Promise<boolean>;
+  
+  // New athlete-centric methods
+  getAthletes(): Promise<AthleteWithPhase[]>;
 }
 
 function generateProgramId(): string {
@@ -23,10 +27,18 @@ function generateProgramId(): string {
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private programs: Map<string, Program>;
+  private athletes: Map<string, AthleteWithPhase>;
 
   constructor() {
     this.users = new Map();
     this.programs = new Map();
+    this.athletes = new Map();
+    
+    // Initialize with seed athlete data
+    const seedAthletes = generateSeedAthletes();
+    seedAthletes.forEach(athleteData => {
+      this.athletes.set(athleteData.athlete.id, athleteData);
+    });
     
     // Initialize with some programs
     // Active programs (endDate in the future)
@@ -420,6 +432,26 @@ export class MemStorage implements IStorage {
   
   async deleteProgram(id: string): Promise<boolean> {
     return this.programs.delete(id);
+  }
+
+  // Get athlete-centric data from seed data
+  async getAthletes(): Promise<AthleteWithPhase[]> {
+    // Return athletes from seed data
+    return Array.from(this.athletes.values());
+  }
+
+  private determineBlockStatus(program: Program): Block["status"] {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = new Date(program.endDate);
+    endDate.setHours(0, 0, 0, 0);
+
+    if (endDate < today) {
+      return "complete";
+    }
+    
+    // Default to active for existing programs
+    return "active";
   }
 }
 

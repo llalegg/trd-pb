@@ -91,7 +91,7 @@ import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Athlete, Program } from "@shared/schema";
+import type { Athlete, Program, AthleteWithPhase } from "@shared/schema";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 
@@ -456,7 +456,18 @@ const getSuggestedExerciseTemplate = (sectionId: string): ExerciseTemplate | nul
 };
 
 export default function AddProgram() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  
+  // Get URL params
+  const urlParams = useMemo(() => {
+    if (typeof window === 'undefined') return { mode: null, blockId: null };
+    const params = new URLSearchParams(window.location.search);
+    return {
+      mode: params.get('mode'),
+      blockId: params.get('blockId'),
+    };
+  }, [location]);
+  
   const [athleteComboboxOpen, setAthleteComboboxOpen] = useState(false);
   const [overrideConfirmation, setOverrideConfirmation] = useState<{
     show: boolean;
@@ -618,6 +629,43 @@ export default function AddProgram() {
   const { data: allPrograms = [] } = useQuery<Program[]>({
     queryKey: ["/api/programs"],
   });
+  
+  // Fetch athletes data for block editing
+  const { data: athletesData } = useQuery<AthleteWithPhase[]>({
+    queryKey: ["/api/athletes"],
+    enabled: urlParams.mode === "edit" && !!urlParams.blockId,
+  });
+  
+  // Load block data when editing
+  useEffect(() => {
+    if (urlParams.mode === "edit" && urlParams.blockId && athletesData) {
+      // Find the block in athletes data
+      for (const athleteData of athletesData) {
+        const block = athleteData.blocks.find(b => b.id === urlParams.blockId);
+        if (block) {
+          // Pre-populate form with block data
+          form.setValue("athleteId", athleteData.athlete.id);
+          form.setValue("startDate", new Date(block.startDate));
+          form.setValue("endDate", new Date(block.endDate));
+          // TODO: Load other block-specific data (blocks, settings, etc.)
+          break;
+        }
+      }
+    } else if (urlParams.mode === "create") {
+      // Ensure we start at step 1 with athlete selector
+      setCurrentStep(1);
+      // Reset form
+      form.reset({
+        athleteId: "",
+        buildType: "standard",
+        blockDuration: DEFAULT_BLOCK_DURATION,
+        programDuration: DEFAULT_PROGRAM_DURATION,
+        startDate: new Date(),
+        endDate: undefined,
+        routineTypes: ["movement", "throwing", "lifting", "strength-conditioning"],
+      });
+    }
+  }, [urlParams.mode, urlParams.blockId, athletesData, form]);
 
   const createProgramMutation = useMutation({
     mutationFn: async (data: { 

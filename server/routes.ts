@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import type { AthleteWithPhase } from "@shared/schema";
 
 const insertProgramSchema = z.object({
   athleteId: z.string(),
@@ -13,7 +14,17 @@ const insertProgramSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Get all programs
+  // Get all athletes with blocks (new athlete-centric endpoint)
+  app.get("/api/athletes", async (_req, res) => {
+    try {
+      const athletes = await storage.getAthletes();
+      res.json(athletes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch athletes" });
+    }
+  });
+
+  // Get all programs (backward compatibility)
   app.get("/api/programs", async (_req, res) => {
     try {
       const programs = await storage.getPrograms();
