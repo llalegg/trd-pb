@@ -13,6 +13,43 @@ const insertProgramSchema = z.object({
   routineTypes: z.array(z.string()),
 });
 
+const createBlockSchema = z.object({
+  phaseId: z.string(),
+  blockNumber: z.number(),
+  name: z.string(),
+  startDate: z.string(),
+  endDate: z.string(),
+  duration: z.number(),
+  season: z.enum(["Pre-Season", "In-Season", "Off-Season", "Redshirt"]),
+  subSeason: z.enum(["Early", "Mid", "Late", "General Off-Season (GOS)"]).optional(),
+  status: z.enum(["draft", "pending-signoff", "active", "complete"]),
+  currentDay: z.object({
+    week: z.number(),
+    day: z.number(),
+  }).optional(),
+  throwing: z.object({
+    xRole: z.string(),
+    phase: z.string(),
+    exclusions: z.string().optional(),
+  }).optional(),
+  movement: z.object({
+    intensity: z.string(),
+    volume: z.string(),
+  }).optional(),
+  lifting: z.object({
+    split: z.string(),
+    emphasis: z.string(),
+    variability: z.string(),
+    scheme: z.string(),
+  }).optional(),
+  conditioning: z.object({
+    coreEmphasis: z.string(),
+    adaptation: z.string(),
+    method: z.string(),
+  }).optional(),
+  lastModification: z.string().optional(),
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all athletes with blocks (new athlete-centric endpoint)
   app.get("/api/athletes", async (_req, res) => {
@@ -61,6 +98,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to delete program" });
+    }
+  });
+
+  // Blocks API endpoints
+  // GET /api/athletes/:athleteId/phases/:phaseId/blocks
+  app.get("/api/athletes/:athleteId/phases/:phaseId/blocks", async (req, res) => {
+    try {
+      const { athleteId, phaseId } = req.params;
+      const blocks = await storage.getBlocksByPhase(athleteId, phaseId);
+      res.json(blocks);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch blocks" });
+    }
+  });
+
+  // POST /api/athletes/:athleteId/phases/:phaseId/blocks
+  app.post("/api/athletes/:athleteId/phases/:phaseId/blocks", async (req, res) => {
+    try {
+      const { athleteId, phaseId } = req.params;
+      const validatedData = createBlockSchema.parse(req.body);
+      const block = await storage.createBlock({
+        ...validatedData,
+        athleteId,
+        phaseId,
+      });
+      res.status(201).json(block);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid request data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create block" });
+      }
+    }
+  });
+
+  // PUT /api/blocks/:blockId
+  app.put("/api/blocks/:blockId", async (req, res) => {
+    try {
+      const { blockId } = req.params;
+      const updates = req.body;
+      const updatedBlock = await storage.updateBlock(blockId, updates);
+      if (updatedBlock) {
+        res.json(updatedBlock);
+      } else {
+        res.status(404).json({ error: "Block not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update block" });
+    }
+  });
+
+  // DELETE /api/blocks/:blockId
+  app.delete("/api/blocks/:blockId", async (req, res) => {
+    try {
+      const { blockId } = req.params;
+      const deleted = await storage.deleteBlock(blockId);
+      if (deleted) {
+        res.status(204).send();
+      } else {
+        res.status(404).json({ error: "Block not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete block" });
+    }
+  });
+
+  // POST /api/blocks/:blockId/sign-off
+  app.post("/api/blocks/:blockId/sign-off", async (req, res) => {
+    try {
+      const { blockId } = req.params;
+      const signedOffBlock = await storage.signOffBlock(blockId);
+      if (signedOffBlock) {
+        res.json(signedOffBlock);
+      } else {
+        res.status(404).json({ error: "Block not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to sign off block" });
     }
   });
 

@@ -455,7 +455,7 @@ const getSuggestedExerciseTemplate = (sectionId: string): ExerciseTemplate | nul
   return templates[Math.floor(Math.random() * templates.length)];
 };
 
-export default function AddProgram() {
+export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 }: { athleteId?: string, headerOffset?: number }) {
   const [location, setLocation] = useLocation();
   
   // Get URL params
@@ -615,7 +615,7 @@ export default function AddProgram() {
   const form = useForm<ProgramFormValues>({
     resolver: zodResolver(programFormSchema),
     defaultValues: {
-      athleteId: "",
+      athleteId: athleteIdProp ?? "",
       buildType: "standard",
       blockDuration: DEFAULT_BLOCK_DURATION,
       programDuration: DEFAULT_PROGRAM_DURATION,
@@ -624,6 +624,17 @@ export default function AddProgram() {
       routineTypes: ["movement", "throwing", "lifting", "strength-conditioning"],
     },
   });
+
+  // If athleteId is provided via props, ensure form is synced
+  useEffect(() => {
+    if (athleteIdProp) {
+      const current = form.getValues("athleteId");
+      if (current !== athleteIdProp) {
+        form.setValue("athleteId", athleteIdProp);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [athleteIdProp]);
 
   // Fetch all programs to check for existing programming
   const { data: allPrograms = [] } = useQuery<Program[]>({
@@ -3053,21 +3064,10 @@ export default function AddProgram() {
   return (
     <div className="flex flex-col h-screen bg-surface-base overflow-hidden">
       {/* Fixed Header Component */}
-      <div className="fixed top-0 left-0 right-0 z-50 border-b bg-surface-base w-full">
+      <div className="fixed left-0 right-0 z-40 border-b bg-surface-base w-full" style={{ top: headerOffset }}>
         <div className="flex h-16 items-center px-5 w-full">
           {/* Left Section (30%) */}
-          <div className="flex items-center w-[30%]">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleBack}
-              className="h-8 px-2 hover:bg-muted/50"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </div>
+          <div className="flex items-center w-[30%]"></div>
 
           {/* Center Section (40%) */}
           <div className="flex flex-col items-center justify-center flex-1 w-[40%]">
@@ -3185,8 +3185,7 @@ export default function AddProgram() {
         </div>
       </div>
 
-      {/* Spacer for fixed header */}
-      <div className={cn("h-16", (currentStep === 2 || currentStep === 3) && "h-32")} />
+      {/* Spacer for fixed header removed */}
 
       {/* Discard Confirmation Modal */}
       <AlertDialog open={showDiscardModal} onOpenChange={setShowDiscardModal}>
@@ -3481,6 +3480,7 @@ export default function AddProgram() {
                 <div className="flex flex-col lg:flex-row">
                   {/* Column 1: Form + Blocks table */}
                   <div className="flex-1 flex flex-col space-y-6 bg-surface-base lg:border-r border-[#292928] px-6 py-6 min-w-0 lg:min-w-[400px] lg:flex-shrink-0">
+                {!athleteIdProp && (
                 <FormField
                   control={form.control}
                   name="athleteId"
@@ -3551,6 +3551,13 @@ export default function AddProgram() {
                     </FormItem>
                   )}
                 />
+                )}
+                {athleteIdProp && selectedAthlete && (
+                  <div className="flex items-center justify-between rounded-lg border border-[#292928] bg-[#171716] px-3 py-2">
+                    <div className="text-xs text-[#979795]">Athlete</div>
+                    <div className="text-xs text-[#f7f6f2]">{selectedAthlete.name}</div>
+                  </div>
+                )}
 
                 {/* Athlete Profile Card */}
                 {selectedAthlete && (

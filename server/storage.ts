@@ -17,6 +17,13 @@ export interface IStorage {
   
   // New athlete-centric methods
   getAthletes(): Promise<AthleteWithPhase[]>;
+  
+  // Blocks CRUD methods
+  getBlocksByPhase(athleteId: string, phaseId: string): Promise<Block[]>;
+  createBlock(block: Omit<Block, "id" | "createdAt" | "updatedAt">): Promise<Block>;
+  updateBlock(blockId: string, updates: Partial<Block>): Promise<Block | undefined>;
+  deleteBlock(blockId: string): Promise<boolean>;
+  signOffBlock(blockId: string): Promise<Block | undefined>;
 }
 
 function generateProgramId(): string {
@@ -28,16 +35,22 @@ export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private programs: Map<string, Program>;
   private athletes: Map<string, AthleteWithPhase>;
+  private blocks: Map<string, Block>;
 
   constructor() {
     this.users = new Map();
     this.programs = new Map();
     this.athletes = new Map();
+    this.blocks = new Map();
     
     // Initialize with seed athlete data
     const seedAthletes = generateSeedAthletes();
     seedAthletes.forEach(athleteData => {
       this.athletes.set(athleteData.athlete.id, athleteData);
+      // Initialize blocks from seed data
+      athleteData.blocks.forEach(block => {
+        this.blocks.set(block.id, block);
+      });
     });
     
     // Initialize with some programs
@@ -438,6 +451,58 @@ export class MemStorage implements IStorage {
   async getAthletes(): Promise<AthleteWithPhase[]> {
     // Return athletes from seed data
     return Array.from(this.athletes.values());
+  }
+
+  // Blocks CRUD methods
+  async getBlocksByPhase(athleteId: string, phaseId: string): Promise<Block[]> {
+    return Array.from(this.blocks.values()).filter(
+      (block) => block.athleteId === athleteId && block.phaseId === phaseId
+    );
+  }
+
+  async createBlock(blockData: Omit<Block, "id" | "createdAt" | "updatedAt">): Promise<Block> {
+    const id = randomUUID();
+    const now = new Date().toISOString();
+    const block: Block = {
+      ...blockData,
+      id,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.blocks.set(id, block);
+    return block;
+  }
+
+  async updateBlock(blockId: string, updates: Partial<Block>): Promise<Block | undefined> {
+    const block = this.blocks.get(blockId);
+    if (!block) {
+      return undefined;
+    }
+    const updatedBlock: Block = {
+      ...block,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.blocks.set(blockId, updatedBlock);
+    return updatedBlock;
+  }
+
+  async deleteBlock(blockId: string): Promise<boolean> {
+    return this.blocks.delete(blockId);
+  }
+
+  async signOffBlock(blockId: string): Promise<Block | undefined> {
+    const block = this.blocks.get(blockId);
+    if (!block) {
+      return undefined;
+    }
+    const updatedBlock: Block = {
+      ...block,
+      status: "active",
+      updatedAt: new Date().toISOString(),
+    };
+    this.blocks.set(blockId, updatedBlock);
+    return updatedBlock;
   }
 
   private determineBlockStatus(program: Program): Block["status"] {

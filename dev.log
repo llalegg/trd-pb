@@ -1,0 +1,51 @@
+
+> rest-express@1.0.3 dev
+> NODE_ENV=development tsx server/index.ts
+
+6:34:47 PM [express] serving on port 3000
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+6:35:16 PM [express] GET /api/athletes 304 in 4ms :: [{"athlete":{"id":"athlete-1","name":"Marcus Jo…
+6:35:21 PM [express] GET /api/programs 200 in 8ms :: [{"id":"1","programId":"P123456","athleteId":"1…
+6:41:44 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:41:45 PM [vite] ✨ new dependencies optimized: @radix-ui/react-tabs
+6:41:45 PM [vite] ✨ optimized dependencies changed. reloading
+6:41:50 PM [vite] hmr update /src/components/AthleteRow.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:42:10 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:42:10 PM [vite] hmr update /src/components/AthleteRow.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:42:10 PM [express] GET /api/programs 304 in 1ms :: [{"id":"1","programId":"P123456","athleteId":"1…
+6:42:14 PM [express] GET /api/athletes 304 in 1ms :: [{"athlete":{"id":"athlete-1","name":"Marcus Jo…
+6:43:09 PM [vite] hmr update /src/components/AthleteRow.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:43:12 PM [vite] hmr update /src/components/AthleteRow.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:44:44 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:44:48 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:47:45 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:47:50 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:49:04 PM [express] GET /api/athletes 304 in 2ms :: [{"athlete":{"id":"athlete-1","name":"Marcus Jo…
+6:50:21 PM [express] GET /api/programs 304 in 37ms :: [{"id":"1","programId":"P123456","athleteId":"…
+6:53:16 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:53:23 PM [vite] hmr update /src/pages/add-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:53:24 PM [vite] hmr update /src/pages/add-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:53:27 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:53:27 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:53:34 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:53:34 PM [vite] hmr update /src/pages/add-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:53:34 PM [vite] hmr update /src/components/athlete-program/TopBar.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:56:44 PM [vite] hmr update /src/components/athlete-program/TopBar.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:56:56 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:57:39 PM [vite] hmr update /src/components/athlete-program/ReviewMode.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:57:57 PM [vite] hmr update /src/pages/program-page.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:58:02 PM [express] GET /api/athletes 304 in 8ms :: [{"athlete":{"id":"athlete-1","name":"Marcus Jo…
+6:58:02 PM [express] GET /api/programs 304 in 1ms :: [{"id":"1","programId":"P123456","athleteId":"1…
+6:58:02 PM [vite] hmr update /src/components/athlete-program/ReviewMode.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:58:02 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:58:02 PM [vite] hmr update /src/components/athlete-program/TopBar.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+6:58:02 PM [vite] hmr update /src/pages/program-page.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+7:00:22 PM [vite] hmr update /src/components/athlete-program/TopBar.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+7:00:38 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+7:00:42 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+7:00:42 PM [vite] hmr update /src/components/athlete-program/TopBar.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+7:01:57 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+7:02:07 PM [vite] hmr update /src/pages/program-page.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+7:02:13 PM [vite] hmr update /src/pages/athlete-program.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT
+7:02:13 PM [vite] hmr update /src/pages/program-page.tsx, /src/index.css?v=XXblTt84jEyLjk2G4NGxT

@@ -1,4 +1,7 @@
 import { useState, useMemo } from "react";
+import TopBar from "@/components/athlete-program/TopBar";
+import AthleteInfoSidebar from "@/components/blocks/AthleteInfoSidebar";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ArrowLeft, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +54,7 @@ const generateBlocks = (program: Program) => {
 export default function ProgramPage() {
   const [location, setLocation] = useLocation();
   const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   
   // Get block ID from URL params safely
   const blockId = useMemo(() => {
@@ -135,48 +139,20 @@ export default function ProgramPage() {
 
   return (
     <div className="min-h-screen bg-surface-base">
-      {/* Compact Header */}
-      <div className="sticky top-0 z-50 border-b border-[#292928] bg-[#0d0d0c]">
-        <div className="flex h-14 items-center justify-between px-5">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLocation("/programs")}
-              className="text-[#f7f6f2] hover:bg-[#171716] font-['Montserrat']"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <div className="flex items-center gap-3">
-              <h1 className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">
-                {blockData.block.name}
-              </h1>
-              <span className="text-sm text-[#979795]">•</span>
-              <span className="text-sm text-[#979795] font-['Montserrat']">{blockData.athlete.name}</span>
-              <span className="text-sm text-[#979795]">•</span>
-              <span className="text-sm text-[#979795] font-['Montserrat']">
-                {format(new Date(blockData.block.startDate), "MM/dd/yyyy")} - {format(new Date(blockData.block.endDate), "MM/dd/yyyy")}
-              </span>
-              <span className="text-sm text-[#979795]">•</span>
-              <Badge variant="tertiary" className="text-xs capitalize font-['Montserrat']">
-                {blockData.block.season}
-                {blockData.block.subSeason && ` (${blockData.block.subSeason})`}
-              </Badge>
-            </div>
-          </div>
-          <Button
-            variant="secondary"
-            onClick={() => setLocation(`/add-program?mode=edit&blockId=${blockId}`)}
-            className="bg-[#171716] text-[#f7f6f2] hover:bg-[#1a1a19] border-[#292928] font-['Montserrat']"
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Block
-          </Button>
-        </div>
-      </div>
+      <TopBar
+        currentTab="review"
+        onTabChange={(tab) => {
+          // Navigate back to athlete page with selected tab when switching
+          const athleteId = blockData.athlete.id;
+          if (tab === "summary") setLocation(`/programs/${athleteId}`);
+          else setLocation(`/programs/${athleteId}?tab=${tab}`);
+        }}
+        onBack={() => setLocation(`/programs/${blockData.athlete.id}`)}
+        phaseTitle="Phase 1 (25-26)"
+        onOpenAthleteDetails={() => setDetailsOpen(true)}
+      />
 
-      <main className="px-5 py-6 flex flex-col h-[calc(100vh-3.5rem)] bg-[#0d0d0c]">
+      <main className="px-5 py-6 flex flex-col h-[calc(100vh-3.5rem)] bg-[#0d0d0c] pt-14">
         {blocks.length > 0 && (
           <div className="flex flex-col h-full space-y-4">
             {/* Block Selector */}
@@ -278,6 +254,15 @@ export default function ProgramPage() {
           </div>
         )}
       </main>
+      <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <SheetContent side="left" className="p-0 bg-[#0d0d0c] border-r border-[#292928] w-[320px]">
+          <AthleteInfoSidebar
+            athlete={blockData.athlete}
+            currentPhase={undefined}
+            blocks={blockData.allBlocks}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

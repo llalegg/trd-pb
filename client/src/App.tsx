@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AnimatePresence, motion } from "framer-motion";
 import Home from "@/pages/home";
 import Programs from "@/pages/programs";
-import AddProgram from "@/pages/add-program";
+import AddProgram from "@/pages/program-builder";
 import AthleteView from "@/pages/athlete-home";
 import SessionView from "@/pages/session-view";
 import ExecutionView from "@/pages/execution-view";
@@ -19,6 +19,8 @@ import MePage from "@/pages/me";
 import ProgramPage from "@/pages/program-page";
 import WeekPage from "@/pages/week-page";
 import CoachSessionView from "@/pages/coach-session-view";
+import TemplatesPage from "@/pages/templates";
+import AthleteProgramPage from "@/pages/athlete-program";
 
 // Web-view routes (coach views) - no animations
 const webViewRoutes = [
@@ -27,6 +29,7 @@ const webViewRoutes = [
   '/program-page',
   '/coach-session-view',
   '/add-program',
+  '/athletes',
 ];
 
 // Route hierarchy for determining transition direction (athlete mobile views only)
@@ -93,8 +96,10 @@ function AnimatedRouter() {
   const routes = (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/programs/:athleteId" component={AthleteProgramPage} />
       <Route path="/programs" component={Programs} />
       <Route path="/add-program" component={AddProgram} />
+      <Route path="/templates" component={TemplatesPage} />
       <Route path="/home" component={AthleteView} />
       <Route path="/messages" component={MessagesPage} />
       <Route path="/vault" component={VaultPage} />

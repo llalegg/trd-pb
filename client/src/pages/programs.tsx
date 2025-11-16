@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Search, Filter, CheckCircle2 } from "lucide-react";
+import { Search, Filter, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { type AthleteWithPhase, type Block } from "@shared/schema";
-import AthleteRow from "@/components/AthleteRow";
+import AthleteProgramCard from "@/components/AthleteRow";
 import { cn } from "@/lib/utils";
 
 type SortField = "athleteName" | "nextActionDate" | "lastActivity" | "phaseProgress";
@@ -78,11 +78,11 @@ export default function Programs() {
   });
   
   const toggleAthleteExpanded = (athleteId: string) => {
-    setExpandedAthletes(prev => {
-      const next = new Set(prev);
-      if (next.has(athleteId)) {
-        next.delete(athleteId);
-      } else {
+    setExpandedAthletes((prev) => {
+      const isOpen = prev.has(athleteId);
+      const next = new Set<string>();
+      if (!isOpen) {
+        // Only one expanded at a time: open the clicked one and collapse others
         next.add(athleteId);
       }
       return next;
@@ -117,12 +117,24 @@ export default function Programs() {
         });
         if (!hasActiveBlock) return false;
       } else if (status === "past") {
-        const hasPastBlock = blocks.some(block => {
+        // Past: Only athletes with NO active or planned (draft) blocks
+        // All blocks must be complete and ended in the past
+        const hasActiveOrPlanned = blocks.some(block => {
           const endDate = new Date(block.endDate);
           endDate.setHours(0, 0, 0, 0);
-          return block.status === "complete" || endDate < today;
+          return block.status === "active" || 
+                 block.status === "draft" || 
+                 (block.status === "pending-signoff" && endDate >= today);
         });
-        if (!hasPastBlock) return false;
+        if (hasActiveOrPlanned) return false;
+        
+        // Must have at least one complete block that ended in the past
+        const hasPastCompleteBlock = blocks.some(block => {
+          const endDate = new Date(block.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          return block.status === "complete" && endDate < today;
+        });
+        if (!hasPastCompleteBlock) return false;
       } else if (status === "needs-signoff") {
         const hasPendingSignoff = blocks.some(block => block.status === "pending-signoff");
         if (!hasPendingSignoff) return false;
@@ -379,7 +391,7 @@ export default function Programs() {
       // Check block status filter
       if (filters.blockStatuses.length > 0) {
         if (!filters.blockStatuses.includes(block.status)) return false;
-      }
+    }
 
       // Check season filter
       if (filters.seasons.length > 0) {
@@ -532,33 +544,24 @@ export default function Programs() {
     );
   }, [filters]);
 
-  // Auto-expand athletes that match filters or have pending sign-off blocks
+  // Auto-expand: open the first relevant card per tab; keep at most one expanded
   useEffect(() => {
-    const newExpanded = new Set(expandedAthletes);
-    
-    // Always auto-expand athletes with pending sign-off blocks when on "needs-signoff" tab
+    let firstId: string | undefined;
     if (status === "needs-signoff") {
-      filteredAndSortedAthletes.forEach(athleteData => {
-        const hasPendingSignoff = athleteData.blocks.some(block => block.status === "pending-signoff");
-        if (hasPendingSignoff) {
-          newExpanded.add(athleteData.athlete.id);
-        }
-      });
-    } else if (hasActiveFilters && filteredAndSortedAthletes.length > 0) {
-      filteredAndSortedAthletes.forEach(athleteData => {
-        // Check if athlete has blocks matching filters
-        const hasMatchingBlocks = athleteData.blocks.some(block => blockMatchesFilters(block));
-        if (hasMatchingBlocks) {
-          newExpanded.add(athleteData.athlete.id);
-        }
-      });
+      const hit = filteredAndSortedAthletes.find((a) => a.blocks.some((b) => b.status === "pending-signoff"));
+      firstId = hit?.athlete.id;
+    } else if (status === "past") {
+      firstId = filteredAndSortedAthletes[0]?.name ? filteredAndSortedAthletes[0]!.athlete.id : undefined;
+    } else if (hasActiveFilters) {
+      const hit = filteredAndSortedAthletes.find((a) => a.blocks.some((b) => blockMatchesFilters(b)));
+      firstId = hit?.athlete.id;
     }
-    
-    // Only update if there are new athletes to expand
-    if (newExpanded.size !== expandedAthletes.size) {
-      setExpandedAthletes(newExpanded);
+    if (firstId) {
+      setExpandedAthletes(new Set([firstId]));
+    } else {
+      setExpandedAthletes(new Set());
     }
-  }, [status, hasActiveFilters, filteredAndSortedAthletes, filters, blockMatchesFilters, expandedAthletes]);
+  }, [status, filteredAndSortedAthletes, hasActiveFilters, blockMatchesFilters]);
   
   // Count athletes needing sign-off
   const needsSignoffCount = useMemo(() => {
@@ -588,7 +591,7 @@ export default function Programs() {
 
   return (
     <div className="min-h-screen bg-surface-base">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-full">
         {/* Header - Figma Style */}
         <div className="flex items-center justify-between p-5">
           <div className="flex items-center gap-6">
@@ -605,12 +608,9 @@ export default function Programs() {
               <ToggleGroupItem value="current" aria-label="Current programs">
                 Current
               </ToggleGroupItem>
-              <ToggleGroupItem value="past" aria-label="Past programs">
-                Past
-              </ToggleGroupItem>
               <ToggleGroupItem value="needs-signoff" aria-label="Needs sign-off">
                 <div className="flex items-center gap-2">
-                  <span>Needs Sign-off</span>
+                  <span>Needs sign-off</span>
                   {needsSignoffCount > 0 && (
                     <span className="px-1.5 py-0.5 rounded-full bg-[#171716] text-[#979795] text-[10px] font-['Montserrat'] border border-[#292928]">
                       {needsSignoffCount}
@@ -620,6 +620,9 @@ export default function Programs() {
                     <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
                   )}
                 </div>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="past" aria-label="Past programs">
+                Past
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -640,25 +643,16 @@ export default function Programs() {
               variant="outline"
               size="sm"
               className={cn(
-                "h-8 px-3 rounded-full border-[#292928] bg-[#171716] text-[#f7f6f2] hover:bg-[#1a1a19] font-['Montserrat']",
+                "h-8 px-3 rounded-full border-[#292928] bg-surface-base text-[#979795] hover:bg-[#1a1a19] font-['Montserrat']",
                 hasActiveFilters && "border-primary"
               )}
               onClick={() => setFilterSheetOpen(true)}
             >
               <Filter className="h-4 w-4 mr-2" />
-              <span className="text-xs font-medium font-['Montserrat']">Filters</span>
+              <span className="text-xs font-['Montserrat']">Filters</span>
               {hasActiveFilters && (
                 <span className="ml-1.5 h-1.5 w-1.5 rounded-full bg-primary"></span>
               )}
-            </Button>
-            {/* Create Block Button */}
-            <Button
-              onClick={() => setLocation("/add-program?mode=create")}
-              size="sm"
-              className="h-8 px-3 rounded-full bg-[#e5e4e1] text-black hover:bg-[#d5d4d1] font-['Montserrat']"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              <span className="text-xs font-semibold font-['Montserrat']">Create Block</span>
             </Button>
           </div>
         </div>
@@ -702,51 +696,42 @@ export default function Programs() {
                     <>
                       <div className="w-16 h-16 mx-auto rounded-full bg-[#171716] flex items-center justify-center mb-4">
                         <Search className="h-8 w-8 text-[#979795]" />
-                      </div>
+                                    </div>
                       <h3 className="text-lg font-semibold font-['Montserrat'] text-[#f7f6f2] mb-2">
                         No {status} athletes found
                       </h3>
                       <p className="text-sm font-['Montserrat'] text-[#979795] mb-6">
                         {hasActiveFilters 
-                          ? "Try adjusting your filters to see more results."
-                          : "Get started by creating a block for an athlete."}
+                          ? "Try reaching your filters to see more results."
+                          : "Use filters or go to an athlete to create the first block."}
                       </p>
                     </>
                   )}
-                </div>
-                {!hasActiveFilters && status !== "needs-signoff" && (
-                  <Button
-                    onClick={() => setLocation("/add-program?mode=create")}
-                    className="bg-[#e5e4e1] text-black hover:bg-[#d5d4d1] font-['Montserrat']"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Block
-                  </Button>
-                )}
+                          </div>
+                          </div>
+              
               </div>
-            </div>
-          ) : (
-            <div className="w-full">
-              {filteredAndSortedAthletes.map((athleteData) => {
-                // Calculate which blocks match the filters
-                const matchingBlockIds = new Set(
-                  athleteData.blocks
-                    .filter(block => blockMatchesFilters(block))
-                    .map(block => block.id)
-                );
-                
-                return (
-                  <AthleteRow
-                    key={athleteData.athlete.id}
-                    athleteData={athleteData}
-                    isExpanded={expandedAthletes.has(athleteData.athlete.id)}
-                    onToggleExpand={() => toggleAthleteExpanded(athleteData.athlete.id)}
-                    matchingBlockIds={matchingBlockIds}
-                  />
-                );
-              })}
-            </div>
-          )}
+            ) : (
+              <div className="w-full">
+                {filteredAndSortedAthletes.map((athleteData) => {
+                  // Calculate which blocks match the filters
+                  const matchingBlockIds = new Set(
+                    athleteData.blocks
+                      .filter((block) => blockMatchesFilters(block))
+                      .map((block) => block.id)
+                  );
+                  return (
+                    <AthleteProgramCard
+                      key={athleteData.athlete.id}
+                      athleteData={athleteData}
+                      isExpanded={expandedAthletes.has(athleteData.athlete.id)}
+                      onToggleExpand={() => toggleAthleteExpanded(athleteData.athlete.id)}
+                      matchingBlockIds={matchingBlockIds}
+                    />
+                  );
+                })}
+              </div>
+            )}
         </div>
       </div>
 
