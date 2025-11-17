@@ -39,7 +39,7 @@ interface ExerciseWithRoutine {
 }
 
 export default function CoachSessionView() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [exerciseResults, setExerciseResults] = useState<{
     [routineType: string]: ExerciseResults;
   }>({});
@@ -296,55 +296,98 @@ export default function CoachSessionView() {
 
   return (
     <div className="min-h-screen bg-surface-base">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-[#0d0d0c] border-b border-[#292928] px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-[#f7f6f2] hover:bg-[#171716] h-8 px-2"
-                onClick={() => {
-                  if (programId) {
-                    setLocation(`/program-page?id=${programId}`);
-                  } else {
-                    setLocation("/programs");
-                  }
-                }}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h1 className="text-base font-semibold text-[#f7f6f2] font-['Montserrat']">
-                {formatHeaderDate(selectedDay)}
-              </h1>
-              {programData && (
-                <div className="flex items-center gap-2 ml-2">
-                  <div className="w-6 h-6 rounded-full bg-[#292928] flex items-center justify-center overflow-hidden">
-                    <User className="h-4 w-4 text-[#979795]" />
-                  </div>
-                  <span className="text-sm text-[#f7f6f2] font-['Montserrat']">{programData.athleteName}</span>
-                </div>
-              )}
-            </div>
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-[#0d0d0c] border-b border-[#292928] px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="border-[#292928] text-[#f7f6f2] hover:bg-[#171716] h-8 px-3 text-sm font-['Montserrat']"
+              className="text-[#f7f6f2] hover:bg-[#171716] h-8 px-2"
               onClick={() => {
-                // TODO: Handle edit action
+                if (programId) {
+                  setLocation(`/program-page?id=${programId}`);
+                } else {
+                  setLocation("/programs");
+                }
               }}
             >
-              <Edit className="h-3.5 w-3.5 mr-1.5" />
-              Edit
+              <ArrowLeft className="h-4 w-4" />
             </Button>
+            <h1 className="text-base font-semibold text-[#f7f6f2] font-['Montserrat']">
+              {formatHeaderDate(selectedDay)}
+            </h1>
+            {programData && (
+              <div className="flex items-center gap-2 ml-2">
+                <div className="w-6 h-6 rounded-full bg-[#292928] flex items-center justify-center overflow-hidden">
+                  <User className="h-4 w-4 text-[#979795]" />
+                </div>
+                <span className="text-sm text-[#f7f6f2] font-['Montserrat']">{programData.athleteName}</span>
+              </div>
+            )}
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-[#292928] text-[#f7f6f2] hover:bg-[#171716] h-8 px-3 text-sm font-['Montserrat']"
+            onClick={() => {
+              // TODO: Handle edit action
+            }}
+          >
+            <Edit className="h-3.5 w-3.5 mr-1.5" />
+            Edit
+          </Button>
         </div>
+      </div>
 
-        {/* 2-Column Layout */}
-        <div className="flex h-[calc(100vh-64px)]">
-          {/* Column 1: Exercise List */}
-          <div className="w-80 border-r border-[#292928] bg-[#0d0d0c] overflow-y-auto">
+      {/* 3-Column Layout with persistent left sidebar */}
+      <div className="flex h-[calc(100vh-64px)]">
+        {/* Column 0: Persistent Sidebar (Coach view) */}
+        <aside className="w-[200px] border-r border-[#292928] bg-[#0d0d0c] overflow-y-auto">
+          <nav className="pt-4">
+            {/* Programs (single item) */}
+            {(() => {
+              const isActive = location === "/programs";
+              return (
+                <button
+                  className={[
+                    "w-full h-10 flex items-center justify-between",
+                    "pl-4 pr-3", // 16 / 12
+                    isActive ? "bg-[#ffffff14] border-l-2 border-[#f7f6f2]" : "border-l-2 border-transparent",
+                    "font-['Montserrat'] text-sm",
+                    isActive ? "text-[#f7f6f2]" : "text-[#979795] hover:text-[#f7f6f2]",
+                  ].join(" ")}
+                  onClick={() => setLocation("/programs")}
+                >
+                  <span className="truncate">Programs</span>
+                  {/* Single item, no chevron */}
+                </button>
+              );
+            })()}
+
+            {/* Templates */}
+            {(() => {
+              const isActive = location === "/templates";
+              return (
+                <button
+                  className={[
+                    "w-full h-10 flex items-center justify-between",
+                    "pl-4 pr-3", // 16 / 12
+                    isActive ? "bg-[#ffffff14] border-l-2 border-[#f7f6f2]" : "border-l-2 border-transparent",
+                    "font-['Montserrat'] text-sm",
+                    isActive ? "text-[#f7f6f2]" : "text-[#979795] hover:text-[#f7f6f2]",
+                  ].join(" ")}
+                  onClick={() => setLocation("/templates")}
+                >
+                  <span className="truncate">Templates</span>
+                </button>
+              );
+            })()}
+          </nav>
+        </aside>
+
+        {/* Column 1: Exercise List */}
+        <div className="w-80 border-r border-[#292928] bg-[#0d0d0c] overflow-y-auto">
             <div className="p-4 border-b border-[#292928]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -449,8 +492,8 @@ export default function CoachSessionView() {
             </div>
           </div>
 
-          {/* Column 2: Exercise Details */}
-          <div className="flex-1 overflow-y-auto bg-[#0d0d0c]">
+        {/* Column 2: Exercise Details */}
+        <div className="flex-1 overflow-y-auto bg-[#0d0d0c]">
             <div className="p-6 space-y-4">
               {/* Exercise Header */}
               <div className="space-y-2">
@@ -676,7 +719,6 @@ export default function CoachSessionView() {
                 </div>
               </div>
             </div>
-          </div>
         </div>
       </div>
     </div>

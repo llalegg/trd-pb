@@ -547,7 +547,7 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
   // Determine card border color based on block status
   return (
     <div className={cn(
-      "bg-[#1a1a19] border border-[#292928] rounded-lg px-4 pt-4 pb-4 mb-1 transition-all duration-200 hover:border-[#3a3a38] hover:shadow-lg"
+      "bg-[#1a1a19] border border-[#292928] rounded-lg px-4 pt-4 pb-4 mb-2 transition-all duration-200 hover:border-[#3a3a38] hover:shadow-lg"
     )}>
       {/* Athlete Summary Row */}
       <Tooltip>
@@ -566,6 +566,22 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
           >
         {/* Left Section: Status Icon, Avatar, Name */}
         <div className="flex items-center gap-[12px] flex-shrink-0 pr-[12px]">
+          {/* Expand/Collapse Chevron moved to the left of name & avatar */}
+          <button
+            onClick={handleChevronClick}
+            aria-label={isExpanded ? `Collapse athlete ${athlete.name}` : `Expand athlete ${athlete.name}`}
+            className="p-1 hover:bg-[#1a1a19] rounded transition-colors"
+          >
+            {isExpanded ? (
+              <ChevronUp 
+                className="h-5 w-5 text-[#979795] transition-all duration-200 ease-in-out flex-shrink-0 group-hover:text-[#f7f6f2]"
+              />
+            ) : (
+              <ChevronRight 
+                className="h-5 w-5 text-[#979795] transition-all duration-200 ease-in-out flex-shrink-0 group-hover:text-[#f7f6f2]"
+              />
+            )}
+          </button>
           {statusIcon && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -620,38 +636,21 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
                   {getTotalProgramTimeline(blocks)}
                 </span>
               )}
-              {/* View Blocks button */}
-              <Button
-                variant="secondary"
-                size="sm"
-                aria-label={`Open program dashboard for ${athlete.name}`}
-                className="text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLocation(`/programs/${athlete.id}`);
-                }}
-              >
-                Program
-              </Button>
             </>
           )}
-          
-          {/* Expand/Collapse Chevron */}
-          <button
-            onClick={handleChevronClick}
-            aria-label={isExpanded ? `Collapse athlete ${athlete.name}` : `Expand athlete ${athlete.name}`}
-            className="p-1 hover:bg-[#1a1a19] rounded transition-colors"
+          {/* View Program button should be visible in both collapsed and expanded states */}
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-label={`Open program dashboard for ${athlete.name}`}
+            className="text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLocation(`/programs/${athlete.id}`);
+            }}
           >
-            {isExpanded ? (
-              <ChevronUp 
-                className="h-5 w-5 text-[#979795] transition-all duration-200 ease-in-out flex-shrink-0 group-hover:text-[#f7f6f2]"
-              />
-            ) : (
-              <ChevronRight 
-                className="h-5 w-5 text-[#979795] transition-all duration-200 ease-in-out flex-shrink-0 group-hover:text-[#f7f6f2]"
-              />
-            )}
-          </button>
+            Program
+          </Button>
         </div>
         
         {/* Mobile: Next Action and Timeline */}

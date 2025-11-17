@@ -1,8 +1,6 @@
-import { useState, useMemo } from "react";
+ import { useState, useMemo } from "react";
 import TopBar from "@/components/athlete-program/TopBar";
 import AthleteInfoSidebar from "@/components/blocks/AthleteInfoSidebar";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { ArrowLeft, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -55,6 +53,7 @@ export default function ProgramPage() {
   const [location, setLocation] = useLocation();
   const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsPanelWidth = 320;
   
   // Get block ID from URL params safely
   const blockId = useMemo(() => {
@@ -149,10 +148,32 @@ export default function ProgramPage() {
         }}
         onBack={() => setLocation(`/programs/${blockData.athlete.id}`)}
         phaseTitle="Phase 1 (25-26)"
-        onOpenAthleteDetails={() => setDetailsOpen(true)}
+        onOpenAthleteDetails={() => setDetailsOpen((prev) => !prev)}
+        leftOffset={detailsOpen ? detailsPanelWidth : 0}
+        athleteDetailsOpen={detailsOpen}
       />
 
-      <main className="px-5 py-6 flex flex-col h-[calc(100vh-3.5rem)] bg-[#0d0d0c] pt-14">
+      {detailsOpen && (
+        <div
+          className="fixed inset-y-0 left-0 z-40 bg-[#0d0d0c]"
+          style={{ width: detailsPanelWidth }}
+        >
+          <div className="pt-14 h-full">
+            <AthleteInfoSidebar
+              athlete={blockData.athlete}
+              currentPhase={undefined}
+              blocks={blockData.allBlocks}
+            />
+          </div>
+        </div>
+      )}
+
+      <main
+        className={cn(
+          "px-5 py-6 flex flex-col h-[calc(100vh-3.5rem)] bg-[#0d0d0c] pt-14 transition-[margin-left] duration-300"
+        )}
+        style={{ marginLeft: detailsOpen ? detailsPanelWidth : 0 }}
+      >
         {blocks.length > 0 && (
           <div className="flex flex-col h-full space-y-4">
             {/* Block Selector */}
@@ -254,15 +275,6 @@ export default function ProgramPage() {
           </div>
         )}
       </main>
-      <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <SheetContent side="left" className="p-0 bg-[#0d0d0c] border-r border-[#292928] w-[320px]">
-          <AthleteInfoSidebar
-            athlete={blockData.athlete}
-            currentPhase={undefined}
-            blocks={blockData.allBlocks}
-          />
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }

@@ -1,0 +1,226 @@
+import React, { useMemo, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Info } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { addDays, isWithinInterval, startOfWeek, format } from "date-fns";
+
+type Block = { name: string; startDate: Date; endDate: Date };
+type ActiveProgram = { programId: string; startDate: Date; endDate: Date };
+
+interface HorizontalCalendarProps {
+  startDate: Date | null;
+  endDate: Date | null;
+  blocks?: Block[];
+  activePrograms?: ActiveProgram[];
+  selectedAthletePhaseEndDate?: string | null;
+}
+
+export default function HorizontalCalendar({
+  startDate,
+  endDate,
+  blocks = [],
+  activePrograms = [],
+  selectedAthletePhaseEndDate,
+}: HorizontalCalendarProps) {
+  const calendarScrollRef = useRef<HTMLDivElement>(null);
+
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  useEffect(() => {
+    if (calendarScrollRef.current) {
+      calendarScrollRef.current.scrollLeft = 0;
+    }
+  }, []);
+
+  const rangeLabel = useMemo(() => {
+    if (!startDate || !endDate) return null;
+    return `${startDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })} - ${endDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
+  }, [startDate, endDate]);
+
+  return (
+    <div className="bg-[#0d0d0c] border-t-2 border-[#292928] w-full">
+      <div className="px-4 py-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-xs font-medium text-[#979795] font-['Montserrat']">
+            {rangeLabel || "Select start date to view calendar"}
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-[#979795] hover:text-[#f7f6f2] font-['Montserrat']"
+              >
+                <Info className="h-3 w-3 mr-1" />
+                Legend
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-3 z-[60]" align="end" side="top">
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold font-['Montserrat']">Legend</h4>
+                <div className="space-y-1 text-xs text-[#979795] font-['Montserrat']">
+                  <div>Blue bars: Blocks</div>
+                  <div>Blue tint: Program duration</div>
+                  <div>Striped: Existing programming</div>
+                  <div>Dashed orange: Phase boundary</div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="overflow-x-auto" ref={calendarScrollRef}>
+          <div className="flex gap-1 min-w-max">
+            {(() => {
+              if (!startDate) {
+                return (
+                  <div className="w-full text-center py-8 text-xs text-[#979795]">
+                    Please select a start date to view the calendar
+                  </div>
+                );
+              }
+
+              const start = new Date(startDate);
+              start.setHours(0, 0, 0, 0);
+              const end = endDate ? new Date(endDate) : addDays(start, 60);
+
+              const days: Date[] = [];
+              let currentDate = new Date(today);
+              while (currentDate <= end) {
+                days.push(new Date(currentDate));
+                currentDate = addDays(currentDate, 1);
+              }
+
+              const blockColors = [
+                "bg-blue-500",
+                "bg-blue-600",
+                "bg-blue-400",
+                "bg-blue-700",
+                "bg-blue-300",
+                "bg-blue-800",
+              ];
+              const getBlockColor = (index: number) => blockColors[index % blockColors.length];
+
+              const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+              const getWeekNumber = (day: Date) => {
+                if (!startDate) return null;
+                const weekStart = startOfWeek(day, { weekStartsOn: 1 });
+                const programStart = startOfWeek(startDate, { weekStartsOn: 1 });
+                const diffInMs = weekStart.getTime() - programStart.getTime();
+                const diffInWeeks = Math.floor(diffInMs / (7 * 24 * 60 * 60 * 1000));
+                return diffInWeeks >= 0 ? diffInWeeks + 1 : null;
+              };
+              let currentWeekNumber: number | null = null;
+
+              return days.map((day, dayIndex) => {
+                const dayOfWeek = day.getDay();
+                const dayName = format(day, "EEE");
+                const isWeekStart = dayOfWeek === 1;
+                const weekNumber = getWeekNumber(day);
+                const showWeekLabel = isWeekStart && weekNumber !== null && weekNumber !== currentWeekNumber;
+                if (showWeekLabel) currentWeekNumber = weekNumber;
+
+                const isInProgramDuration =
+                  startDate && endDate && isWithinInterval(day, { start: startDate, end: endDate });
+                const isProgramStart = startDate && isSameDay(day, startDate);
+
+                const existingProgram = activePrograms.find((p) =>
+                  isWithinInterval(day, { start: p.startDate, end: p.endDate })
+                );
+                const isPhaseBoundary =
+                  selectedAthletePhaseEndDate &&
+                  isSameDay(day, new Date(selectedAthletePhaseEndDate));
+
+                const dayBlocks = blocks.filter((b) =>
+                  isWithinInterval(day, { start: b.startDate, end: b.endDate })
+                );
+
+                return (
+                  <div
+                    key={day.toISOString()}
+                    className={cn(
+                      "w-[120px] min-h-[96px] rounded-md border p-1.5 flex flex-col relative shrink-0",
+                      "bg-background",
+                      isPhaseBoundary && "border-l-2 border-l-orange-500 border-dashed"
+                    )}
+                  >
+                    {showWeekLabel && (
+                      <div className="absolute -top-3 left-0 bg-muted/80 text-[10px] font-medium px-1.5 py-0.5 rounded z-20 whitespace-nowrap">
+                        Week {weekNumber}
+                      </div>
+                    )}
+
+                    {isInProgramDuration && (
+                      <div className="absolute inset-0 bg-blue-500/20 pointer-events-none rounded-md" />
+                    )}
+
+                    {existingProgram && (
+                      <div
+                        className="absolute inset-0 opacity-30 pointer-events-none rounded-md"
+                        style={{
+                          backgroundImage:
+                            "repeating-linear-gradient(45deg, #808080, #808080 10px, transparent 10px, transparent 20px)",
+                        }}
+                      />
+                    )}
+
+                    <div className="flex flex-col mb-1.5 relative z-10">
+                      <div className="text-[10px] text-muted-foreground font-medium">{dayName}</div>
+                      <div className="text-xs font-semibold text-foreground">{format(day, "d")}</div>
+                      <div className="text-[9px] text-muted-foreground">{format(day, "MMM")}</div>
+                    </div>
+
+                    {isProgramStart && (
+                      <div className="absolute top-1 right-1 z-10 bg-blue-500/80 text-white text-[9px] px-1.5 py-0.5 rounded">
+                        Start
+                      </div>
+                    )}
+
+                    <div className="flex-1 flex flex-col gap-1 relative z-10">
+                      {dayBlocks.slice(0, 3).map((b, idx) => {
+                        const isStart = isSameDay(day, b.startDate);
+                        const isEnd = isSameDay(day, b.endDate);
+                        const blockIndex = blocks.findIndex((blk) => blk.name === b.name);
+                        const blockColor = getBlockColor(blockIndex);
+                        return (
+                          <div
+                            key={`${b.name}-${idx}`}
+                            className={cn(
+                              "h-5 rounded-sm text-[10px] px-1 text-black flex items-center",
+                              blockColor
+                            )}
+                            title={`${b.name}: ${format(b.startDate, "MMM d")} - ${format(
+                              b.endDate,
+                              "MMM d"
+                            )}`}
+                          >
+                            {isStart && <span className="truncate mr-1">{b.name}</span>}
+                            {!isStart && !isEnd && <span className="opacity-70">•</span>}
+                            {isEnd && <span className="opacity-70 ml-auto">↘</span>}
+                          </div>
+                        );
+                      })}
+                      {dayBlocks.length > 3 && (
+                        <div className="h-5 rounded-sm text-[10px] px-1 bg-muted text-muted-foreground flex items-center justify-center">
+                          +{dayBlocks.length - 3} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+

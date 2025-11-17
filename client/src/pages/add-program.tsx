@@ -4469,34 +4469,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
                             },
                           ];
 
-                          return mockPrograms.map((program, index) => {
-                            const isPast = program.endDate < today;
-                            const isCurrent = program.startDate <= today && program.endDate >= today;
-                            
-                            return (
-                              <div
-                                key={index}
-                                className="rounded-lg p-3 text-xs bg-[#171716]"
-                              >
-                                <div className="flex items-center justify-between mb-1">
-                                  <Badge variant={isPast ? "tertiary" : "default"} className="text-xs">
-                                    {isPast ? "Past" : isCurrent ? "Current" : "Upcoming"}
-                                  </Badge>
-                                </div>
-                                <div className="text-[#979795] font-['Montserrat'] text-xs mb-2">
-                                  {format(program.startDate, "MMM d, yyyy")} - {format(program.endDate, "MMM d, yyyy")}
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  {program.routines.map((routineType) => {
-                                    const Icon = routineIcons[routineType];
-                                    return Icon ? (
-                                      <Icon key={routineType} className="h-3 w-3 text-[#979795]" />
-                                    ) : null;
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          });
+                          return null;
                         })()}
                       </div>
                     </div>
