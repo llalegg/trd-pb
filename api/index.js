@@ -2005,7 +2005,18 @@ var MemStorage = class {
     return "active";
   }
 };
-var storage = process.env.DATABASE_URL ? new DbStorage(process.env.DATABASE_URL) : new MemStorage();
+var storageInstance = null;
+function getStorage() {
+  if (!storageInstance) {
+    storageInstance = process.env.DATABASE_URL ? new DbStorage(process.env.DATABASE_URL) : new MemStorage();
+  }
+  return storageInstance;
+}
+var storage = new Proxy({}, {
+  get(_target, prop) {
+    return getStorage()[prop];
+  }
+});
 
 // server/routes.ts
 import { z } from "zod";

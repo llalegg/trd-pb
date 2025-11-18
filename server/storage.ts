@@ -521,7 +521,22 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use database storage if DATABASE_URL is available, otherwise use in-memory storage
-export const storage: IStorage = process.env.DATABASE_URL
-  ? new DbStorage(process.env.DATABASE_URL)
-  : new MemStorage();
+// Lazy storage initialization - initialize at runtime, not at module load time
+// This is critical for Vercel serverless functions where process.env is only available at runtime
+let storageInstance: IStorage | null = null;
+
+export function getStorage(): IStorage {
+  if (!storageInstance) {
+    storageInstance = process.env.DATABASE_URL
+      ? new DbStorage(process.env.DATABASE_URL)
+      : new MemStorage();
+  }
+  return storageInstance;
+}
+
+// Export storage for backward compatibility (will use lazy initialization)
+export const storage: IStorage = new Proxy({} as IStorage, {
+  get(_target, prop) {
+    return getStorage()[prop as keyof IStorage];
+  }
+});
