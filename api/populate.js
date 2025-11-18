@@ -1329,18 +1329,25 @@ function generateSeedAthletes() {
 // api/populate.ts
 var POPULATE_SECRET = process.env.POPULATE_SECRET;
 async function handler(req, res) {
+  console.log("Handler invoked - method:", req?.method, "url:", req?.url);
   try {
+    if (!req || !res) {
+      return { statusCode: 500, body: JSON.stringify({ error: "Invalid request/response objects" }) };
+    }
+    
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method not allowed. Use POST." });
     }
+    
     if (POPULATE_SECRET) {
-    const providedSecret = req.headers["x-populate-secret"] || req.body?.secret;
-    if (providedSecret !== POPULATE_SECRET) {
-      return res.status(401).json({ error: "Unauthorized. Provide x-populate-secret header." });
+      const providedSecret = req.headers["x-populate-secret"] || req.body?.secret;
+      if (providedSecret !== POPULATE_SECRET) {
+        return res.status(401).json({ error: "Unauthorized. Provide x-populate-secret header." });
+      }
+    } else {
+      console.warn("\u26A0\uFE0F  WARNING: POPULATE_SECRET not set. Endpoint is open to anyone. Set POPULATE_SECRET in Vercel env vars for security.");
     }
-  } else {
-    console.warn("\u26A0\uFE0F  WARNING: POPULATE_SECRET not set. Endpoint is open to anyone. Set POPULATE_SECRET in Vercel env vars for security.");
-  }
+    
     const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NO_SSL;
     if (!databaseUrl) {
       return res.status(500).json({
