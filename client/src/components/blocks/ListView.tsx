@@ -27,7 +27,6 @@ interface ListViewProps {
 export default function ListView({ athleteId, phaseId }: ListViewProps) {
   const [, setLocation] = useLocation();
   const [createOpen, setCreateOpen] = useState(false);
-  const [pendingSignoffBlock, setPendingSignoffBlock] = useState<Block | null>(null);
 
   // Hardcoded blocks data (to avoid API calls)
   const hardcodedBlocks = useMemo(() => {
@@ -285,59 +284,6 @@ export default function ListView({ athleteId, phaseId }: ListViewProps) {
         phaseId={phaseId}
         lastBlock={lastBlock}
       />
-      
-      {/* Sign-off Dialog */}
-      <AlertDialog open={!!pendingSignoffBlock} onOpenChange={(open) => !open && setPendingSignoffBlock(null)}>
-        <AlertDialogContent className="bg-surface-base border-[#292928]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-[#f7f6f2] font-['Montserrat']">
-              {pendingSignoffBlock ? `Sign off ${pendingSignoffBlock.name}?` : "Sign off block?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-[#979795] font-['Montserrat']">
-              The block will be activated and sent to the athlete.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              className="border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
-              onClick={() => {
-                if (pendingSignoffBlock) {
-                  setLocation(`/athletes/${athleteId}/blocks?view=week&block=${pendingSignoffBlock.id}`);
-                }
-                setPendingSignoffBlock(null);
-              }}
-            >
-              Review Exercises
-            </Button>
-            <AlertDialogCancel className="bg-[#171716] text-[#f7f6f2] border-[#292928] hover:bg-[#1a1a19] font-['Montserrat']">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-[#e5e4e1] text-black hover:bg-[#d5d4d1] font-['Montserrat']"
-              onClick={async () => {
-                if (!pendingSignoffBlock) return;
-                try {
-                  const response = await fetch(`/api/blocks/${pendingSignoffBlock.id}/sign-off`, {
-                    method: "POST",
-                  });
-                  setPendingSignoffBlock(null);
-                  if (response.ok) {
-                    window.location.reload();
-                  } else {
-                    throw new Error("Failed to sign off block");
-                  }
-                } catch (error) {
-                  console.error("Error signing off block:", error);
-                  alert("Failed to sign off block. Please try again.");
-                }
-              }}
-            >
-              Sign off
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Horizontal scroller */}
       <div ref={scrollRef} className="overflow-x-auto">
@@ -348,8 +294,7 @@ export default function ListView({ athleteId, phaseId }: ListViewProps) {
                 block={block}
                 onEdit={() => setLocation(`/programs/${athleteId}?tab=builder&mode=edit&blockId=${block.id}`)}
                 onView={() => setLocation(`/program-page?blockId=${block.id}`)}
-                onSignOff={block.status === "pending-signoff" ? () => setPendingSignoffBlock(block) : undefined}
-                onDelete={block.status === "draft" || block.status === "pending-signoff" ? async () => {
+                onDelete={block.status === "draft" ? async () => {
                   if (confirm("Are you sure you want to delete this block?")) {
                     try {
                       const response = await fetch(`/api/blocks/${block.id}`, {

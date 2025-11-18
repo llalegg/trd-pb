@@ -90,7 +90,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import type { Athlete, Program, AthleteWithPhase } from "@shared/schema";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
@@ -481,6 +480,8 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
   const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(0);
   const [selectedDayWeekIndex, setSelectedDayWeekIndex] = useState(0);
+  // Mock block selection dropdown state
+  const [selectedBlock, setSelectedBlock] = useState("block-1");
   const [daysOff, setDaysOff] = useState<Set<number>>(new Set([0])); // Sunday (0) hidden by default
   const [programId] = useState(() => generateProgramId());
   
@@ -578,7 +579,6 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
   const [legendExpanded, setLegendExpanded] = useState(false);
   const [athleteSidebarOpen, setAthleteSidebarOpen] = useState(true);
   
-  const { toast } = useToast();
 
   const createExerciseInstance = (
     template: ExerciseTemplate,
@@ -701,18 +701,10 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/programs"] });
-      toast({
-        title: "Success",
-        description: "Program created successfully",
-      });
       setLocation("/programs");
     },
     onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to create program",
-        variant: "destructive",
-      });
+      // Error handling - no toast notification
     },
   });
 
@@ -722,11 +714,6 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
 
     // Block submission if athlete is not cleared
     if (athlete.status === "not cleared") {
-      toast({
-        title: "Error",
-        description: "Cannot create program for athlete with 'Not cleared' status",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -914,51 +901,34 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
   const weeksCount =
     startDate && endDate ? differenceInWeeks(endDate, startDate) : 0;
 
-  // Calculate blocks based on start date, end date, and block duration
-  // Block duration is fixed at 4 weeks (DEFAULT_BLOCK_DURATION)
+  // Static 4 blocks - no dependency on dates
   const blocks = useMemo(() => {
-    if (!startDate || !endDate) {
-      return [];
-    }
-
-    const totalWeeks = differenceInWeeks(endDate, startDate);
-    if (totalWeeks <= 0) {
-      return [];
-    }
-
-    const generatedBlocks: Array<{ name: string; startDate: Date; endDate: Date }> = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    // Start from the selected start date
-    let currentStart = new Date(startDate);
-    
-    // Ensure we don't start after the end date
-    if (currentStart > endDate) {
-      return [];
-    }
-    
-    let blockNumber = 1;
-
-    while (currentStart < endDate) {
-      // Calculate the end date for this block (4 weeks from start - fixed duration)
-      const potentialEnd = addDays(addWeeks(currentStart, DEFAULT_BLOCK_DURATION), -1);
-      
-      // If the potential end is after the program end date, cap it at program end date
-      // This handles the last block which may have less than 4 weeks
-      const blockEnd = potentialEnd > endDate ? endDate : potentialEnd;
-
-      generatedBlocks.push({
-        name: `Block ${blockNumber}`,
-        startDate: currentStart,
-        endDate: blockEnd,
-      });
-
-      // Next block starts the day after this one ends
-      currentStart = addDays(blockEnd, 1);
-      blockNumber++;
-    }
-
-    return generatedBlocks;
-  }, [startDate, endDate]);
+    return [
+      {
+        name: "Block 1",
+        startDate: today,
+        endDate: addDays(addWeeks(today, 4), -1),
+      },
+      {
+        name: "Block 2",
+        startDate: addWeeks(today, 4),
+        endDate: addDays(addWeeks(today, 8), -1),
+      },
+      {
+        name: "Block 3",
+        startDate: addWeeks(today, 8),
+        endDate: addDays(addWeeks(today, 12), -1),
+      },
+      {
+        name: "Block 4",
+        startDate: addWeeks(today, 12),
+        endDate: addDays(addWeeks(today, 16), -1),
+      },
+    ];
+  }, []);
 
   // Function to recalculate blocks when duration changes
   const recalculateBlocks = (changedBlockIndex: number, newDuration: number) => {
@@ -1115,11 +1085,10 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
     }
   }, [startDate]);
 
-  // Check if step 1 is complete (all required fields filled)
-  // Note: blockDuration is fixed at 4 weeks, so we don't need to check it
+  // Step completion check removed - no dependencies between steps
   const isStep1Complete = useMemo(() => {
-    return !!(selectedAthleteId && startDate && endDate && routineTypes.length > 0 && blocks.length > 0);
-  }, [selectedAthleteId, startDate, endDate, routineTypes, blocks.length]);
+    return true; // Always allow navigation
+  }, []);
 
   // Detect issues for Issue Resolution Modal
   const issues = useMemo(() => {
@@ -1242,54 +1211,21 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
     };
   }, [selectedAthlete, startDate, endDate, blocks, blockStartDates, blockEndDates, routineTypes]);
 
-  // Helper function to handle step navigation
+  // Helper function to handle step navigation - no dependencies, free navigation
   const handleStepNavigation = (targetStep: number) => {
-    // Can navigate to current step or any completed step
-    if (targetStep === currentStep || completedSteps.has(targetStep)) {
-      setCurrentStep(targetStep);
-    }
+    // Allow free navigation between all steps
+    setCurrentStep(targetStep);
   };
 
-  // Helper function to handle Next button click
+  // Helper function to handle Next button click - no validation, free navigation
   const handleNext = (): void => {
-    // For Step 2 -> Step 3, be very permissive - only block on absolutely critical issues
-    let shouldBlock = false;
-    
-    if (!selectedAthleteId) {
-      shouldBlock = true;
-    } else if (currentStep === 2) {
-      // For Step 2, only block on absolutely critical issues:
-      // - Athlete status issues
-      // - Date overlaps that would break the program
-      const criticalIssues = (issues?.blocking || []).filter(issue => 
-        issue.category === 'Athlete Status' ||
-        issue.category === 'Block Overlap' ||
-        issue.category === 'Program Duration'
-      );
-      shouldBlock = criticalIssues.length > 0;
-    } else {
-      // For Step 1, check all blocking issues
-      shouldBlock = (issues?.blocking || []).length > 0;
-    }
-    
-    if (shouldBlock) {
-      setIssueModalOpen(true);
-      return;
-    }
-
     // If on Step 3, submit the form
     if (currentStep === 3) {
       form.handleSubmit(handleSubmit)();
       return;
     }
 
-    // Mark current step as complete
-    setCompletedSteps(prev => new Set(prev).add(currentStep));
-    
-    // Auto-save before advancing
-    handleSaveAsDraft();
-    
-    // Advance to next step
+    // Advance to next step without validation
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     }
@@ -1300,10 +1236,6 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
     // In a real implementation, this would save to backend
     // For now, just update the timestamp
     setLastSaved(new Date());
-    toast({
-      title: "Saved",
-      description: "Program saved as draft",
-    });
   };
 
   // Helper function to get next button text
@@ -1314,7 +1246,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
       case 2:
         return "Next";
       case 3:
-        return "Save Program";
+        return "Next";
       default:
         return "Next";
     }
@@ -3077,7 +3009,20 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
       <div className="fixed left-0 right-0 z-40 border-b bg-surface-base w-full" style={{ top: headerOffset }}>
         <div className="flex h-16 items-center px-5 w-full">
           {/* Left Section (30%) */}
-          <div className="flex items-center w-[30%]"></div>
+          <div className="flex items-center w-[30%]">
+            {/* Block Selection Dropdown */}
+            <Select value={selectedBlock} onValueChange={setSelectedBlock}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select block" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="block-1">Block 1</SelectItem>
+                <SelectItem value="block-2">Block 2</SelectItem>
+                <SelectItem value="block-3">Block 3</SelectItem>
+                <SelectItem value="block-4">Block 4</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Center Section (40%) */}
           <div className="flex flex-col items-center justify-center flex-1 w-[40%]">
@@ -3085,24 +3030,19 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
             <div className="flex items-center gap-2">
               {[1, 2, 3].map((step) => {
                 const isActive = currentStep === step;
-                const isCompleted = completedSteps.has(step);
-                const canNavigate = isActive || isCompleted;
-                const stepNames = ["Scope", "Blocks", "Review"];
+                const stepNames = ["Scope", "Template", "Review"];
                 
                 return (
                   <div key={step} className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => canNavigate && handleStepNavigation(step)}
-                      disabled={!canNavigate}
+                      onClick={() => handleStepNavigation(step)}
                       className={cn(
                         "flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors",
                         isActive && "bg-muted text-foreground",
-                        isCompleted && !isActive && "text-foreground hover:bg-muted/50 cursor-pointer",
-                        !isActive && !isCompleted && "text-muted-foreground cursor-not-allowed opacity-50"
+                        !isActive && "text-foreground hover:bg-muted/50 cursor-pointer"
                       )}
                     >
-                      {isCompleted && !isActive && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
                       <span>{step}: {stepNames[step - 1]}</span>
                     </button>
                     {step < 3 && <span className="text-muted-foreground">→</span>}
@@ -3114,27 +3054,17 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
 
           {/* Right Section (30%) */}
           <div className="flex items-center justify-end gap-2 w-[30%]">
-            {/* Cancel Button */}
+            {/* Save Button */}
             <Button
               type="button"
-              variant="ghost"
-              onClick={() => setShowDiscardModal(true)}
-              className="text-xs"
-            >
-              Cancel
-            </Button>
-
-            {/* Save as Draft Button */}
-            <Button
-              type="button"
-              variant="secondary"
+              variant="default"
               onClick={handleSaveAsDraft}
               className="text-xs"
             >
-              Save as Draft
+              Save
             </Button>
 
-            {/* Next Button */}
+            {/* Error and Warning Badges - Show on all steps */}
             <div className="flex items-center gap-2">
               {/* Errors Badge */}
               {(issues?.blocking || []).length > 0 && (
@@ -3181,15 +3111,6 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
                   </Tooltip>
                 </TooltipProvider>
               )}
-              
-            <Button
-              type="button"
-              onClick={handleNext}
-              className="text-xs relative"
-              disabled={false}
-            >
-              {getNextButtonText()}
-            </Button>
             </div>
           </div>
         </div>
@@ -3344,11 +3265,57 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
         >
         <Form {...form}>
           <form id="program-form" onSubmit={form.handleSubmit(handleSubmit)} className={currentStep === 1 ? "flex flex-col" : "space-y-8"}>
-            {/* Step 1: General Settings */}
+            {/* Step 1: Scope */}
             {currentStep === 1 && (
               <div className="flex flex-col">
-                {/* Top: Two Column Layout */}
-                <div className="flex flex-col lg:flex-row">
+                {/* Step 1 is empty */}
+              </div>
+            )}
+
+            {/* Step 2: Template */}
+            {currentStep === 2 && (
+              <>
+                <div className="w-full bg-surface-base overflow-x-auto">
+                  {/* Block Headers Row */}
+                  <div className="flex min-w-max border-b bg-surface-base">
+                    {/* Empty space for category labels */}
+                    <div className="flex flex-col items-center shrink-0 sticky left-0 z-30 bg-surface-base">
+                      <div className="h-14 w-10 border-r" />
+                    </div>
+
+                    {/* Empty space for row headers */}
+                    <div className="flex flex-col shrink-0 w-32 sticky left-10 z-30 bg-surface-base">
+                      <div className="h-14 border-r" />
+                    </div>
+
+                    {/* Column Headers (4 Static Blocks) */}
+                    {blocks.map((block, columnIndex) => {
+                      return (
+                        <div key={`header-${columnIndex}`} className="flex flex-col shrink-0 w-[236px] border-l mx-1">
+                          <div className="px-3 py-2 h-14 flex flex-col justify-center">
+                            <div className="flex items-center gap-2 text-xs font-medium">
+                              <span className="text-foreground">{block.name}</span>
+                            </div>
+                            <div className="flex items-center justify-between mt-0.5">
+                              <p className="text-xs text-foreground">
+                                {format(block.startDate, "MM/dd/yy")} - {format(block.endDate, "MM/dd/yy")}
+                              </p>
+                              <div className="text-xs text-muted-foreground">
+                                {differenceInWeeks(block.endDate, block.startDate)}w
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Step 2: Blocks - Old content removed */}
+            {false && (
+              <>
                   {/* Column 1: Form + Blocks table */}
                   <div className="flex-1 flex flex-col space-y-6 bg-surface-base lg:border-r border-[#292928] px-6 py-6 min-w-0 lg:min-w-[400px] lg:flex-shrink-0">
                 {!athleteIdProp && (
@@ -4694,396 +4661,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
                     </Collapsible>
               )}
               </div>
-              </div>
-
-                {/* Calendar Section - Scrollable with Content */}
-                <div 
-                  className="bg-[#0d0d0c] border-t-2 border-[#292928] w-full"
-                  style={{ height: '200px', overflowY: 'auto' }}
-                >
-                  <div className="px-4 py-4">
-                    {/* Calendar Title with Legend Button */}
-                    <div className="mb-3 flex items-center justify-between">
-                      <div className="text-xs font-medium">
-                        {startDate ? (
-                          (() => {
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            const start = new Date(startDate);
-                            start.setHours(0, 0, 0, 0);
-                            const endDate = addDays(start, 60);
-                            return `${format(today < start ? today : start, "MMM d, yyyy")} - ${format(endDate, "MMM d, yyyy")}`;
-                          })()
-                        ) : "Select start date to view calendar"}
-                      </div>
-                      {(blocks.length > 0 || selectedAthleteId || activePrograms.length > 0) && (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                              size="sm"
-                              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      >
-                              <Info className="h-3 w-3 mr-1" />
-                              Legend
-                      </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-80 p-3 z-[60]" align="end" side="top">
-                            <div className="space-y-3">
-                              <h4 className="text-xs font-semibold mb-2">Legend</h4>
-                              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                                {/* Column 1: Program Blocks */}
-                                <div className="space-y-2">
-                                  {blocks.length > 0 && (
-                                    <div className="space-y-1.5">
-                                      <p className="text-xs font-medium text-muted-foreground mb-1">Program Blocks:</p>
-                                      <div className="space-y-1">
-                                        {blocks.map((block, index) => {
-                                          const blockColors = [
-                                            "bg-blue-500",
-                                            "bg-blue-600",
-                                            "bg-blue-400",
-                                            "bg-blue-700",
-                                            "bg-blue-300",
-                                            "bg-blue-800",
-                                          ];
-                                          const blockColor = blockColors[index % blockColors.length];
-                                          return (
-                                            <div key={index} className="flex items-center gap-2">
-                                              <span className={cn("h-3 w-3 rounded-sm inline-block", blockColor)} />
-                                              <span className="text-xs text-muted-foreground">{block.name}</span>
-                    </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Program Duration */}
-                                  {startDate && endDate && (
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-3 w-3 rounded-sm bg-blue-500/20 border border-blue-500" />
-                                      <span className="text-xs text-muted-foreground">Program Duration</span>
-                    </div>
-                                  )}
-                                  
-                                  {/* Existing Programming */}
-                                  {activePrograms.length > 0 && (
-                                    <div className="flex items-center gap-2">
-                                      <div 
-                                        className="h-3 w-3 rounded-sm"
-                                        style={{
-                                          backgroundImage: 'repeating-linear-gradient(45deg, #808080, #808080 10px, transparent 10px, transparent 20px)'
-                                        }}
-                                      />
-                                      <span className="text-xs text-muted-foreground">Existing Programming</span>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Phase Boundary */}
-                                  {selectedAthlete?.phaseEndDate && (
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-3 w-3 rounded-sm bg-orange-500/20 border border-orange-500 border-dashed" />
-                                      <span className="text-xs text-muted-foreground">Phase Boundary</span>
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {/* Column 2: Key Dates */}
-                                <div className="space-y-2">
-                                  {selectedAthleteId && (
-                                    <div className="space-y-1.5">
-                                      <p className="text-xs font-medium text-muted-foreground mb-1">Key Dates:</p>
-                                      <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                          <div className="h-3 w-3 rounded-full bg-blue-400" />
-                                          <span className="text-xs text-muted-foreground">Game</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <div className="h-3 w-3 rounded-full bg-amber-400" />
-                                          <span className="text-xs text-muted-foreground">Assessment</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <div className="h-3 w-3 rounded-full bg-green-400" />
-                                          <span className="text-xs text-muted-foreground">Training</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      )}
-                    </div>
-
-                    {/* Horizontal scrollable calendar */}
-                    <div className="overflow-x-auto" ref={calendarScrollRef}>
-                      <div className="flex gap-1 min-w-max">
-                      {(() => {
-                          if (!startDate) {
-                            return (
-                              <div className="w-full text-center py-8 text-xs text-muted-foreground">
-                                Please select a start date to view the calendar
-                              </div>
-                            );
-                          }
-
-                          // Generate days from today to startDate + 60 days
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          const start = new Date(startDate);
-                          start.setHours(0, 0, 0, 0);
-                          const endDate = addDays(start, 60);
-                          
-                          // Always start from today
-                          const calendarStart = today;
-                          
-                          const days: Date[] = [];
-                          let currentDate = new Date(calendarStart);
-                          while (currentDate <= endDate) {
-                            days.push(new Date(currentDate));
-                            currentDate = addDays(currentDate, 1);
-                          }
-
-                        // Generate different shades of blue for each block
-                        const blockColors = [
-                          "bg-blue-500",
-                          "bg-blue-600",
-                          "bg-blue-400",
-                          "bg-blue-700",
-                          "bg-blue-300",
-                          "bg-blue-800",
-                        ];
-                        
-                        const getBlockColor = (blockIndex: number) => {
-                          return blockColors[blockIndex % blockColors.length];
-                        };
-
-                        const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-                        
-                        // Calculate week numbers for each day
-                        const getWeekNumber = (day: Date) => {
-                          if (!startDate) return null;
-                          const weekStart = startOfWeek(day, { weekStartsOn: 1 });
-                          const programStart = startOfWeek(startDate, { weekStartsOn: 1 });
-                          const diffInMs = weekStart.getTime() - programStart.getTime();
-                          const diffInWeeks = Math.floor(diffInMs / (7 * 24 * 60 * 60 * 1000));
-                          return diffInWeeks >= 0 ? diffInWeeks + 1 : null;
-                        };
-                        
-                        // Track which week we're in to show week label only once per week
-                        let currentWeekNumber: number | null = null;
-                        
-                        // Get key dates for the calendar
-                        const getKeyDates = () => {
-                          const currentYear = new Date().getFullYear();
-                          const eventTypes = ["Game", "Assessment", "Training"] as const;
-                          const eventLabels: Record<string, string[]> = {
-                            Game: ["Game Day", "Championship Game", "Regular Season Game", "Playoff Game"],
-                            Assessment: ["Performance Assessment", "Fitness Test", "Medical Assessment"],
-                            Training: ["Training Camp", "Intensive Training", "Recovery Session"],
-                          };
-
-                          const generateRandomDate = (month: number, year: number) => {
-                            const daysInMonth = new Date(year, month + 1, 0).getDate();
-                            const day = Math.floor(Math.random() * daysInMonth) + 1;
-                            return new Date(year, month, day);
-                          };
-
-                          const mockEvents: Array<{ date: Date; type: string; label: string }> = [];
-                          
-                          // November events (month 10)
-                          for (let i = 0; i < 4; i++) {
-                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-                            const labels = eventLabels[type];
-                            mockEvents.push({
-                              date: generateRandomDate(10, currentYear),
-                              type,
-                              label: labels[Math.floor(Math.random() * labels.length)],
-                            });
-                          }
-
-                          // December events (month 11)
-                          for (let i = 0; i < 5; i++) {
-                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-                            const labels = eventLabels[type];
-                            mockEvents.push({
-                              date: generateRandomDate(11, currentYear),
-                              type,
-                              label: labels[Math.floor(Math.random() * labels.length)],
-                            });
-                          }
-
-                          // January events (month 0)
-                          for (let i = 0; i < 4; i++) {
-                            const type = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-                            const labels = eventLabels[type];
-                            mockEvents.push({
-                              date: generateRandomDate(0, currentYear),
-                              type,
-                              label: labels[Math.floor(Math.random() * labels.length)],
-                            });
-                          }
-
-                          // Remove duplicates
-                          return Array.from(
-                            new Map(mockEvents.map(event => [event.date.getTime(), event])).values()
-                          );
-                        };
-
-                        // Only get key dates if athlete is selected
-                        const keyDates = selectedAthleteId ? getKeyDates() : [];
-                        
-                        return days.map((day, dayIndex) => {
-                          const dayOfWeek = day.getDay();
-                          const dayName = format(day, "EEE"); // Mon, Tue, etc.
-                          
-                          // Check if this is the start of a new week (Monday)
-                          const isWeekStart = dayOfWeek === 1;
-                          const weekNumber = getWeekNumber(day);
-                          const showWeekLabel = isWeekStart && weekNumber !== null && weekNumber !== currentWeekNumber;
-                          if (showWeekLabel) {
-                            currentWeekNumber = weekNumber;
-                          }
-                          
-                          // Check if day is in program duration (for overlay)
-                          const isInProgramDuration = startDate && endDate && 
-                            isWithinInterval(day, { start: startDate, end: endDate });
-                          const isProgramStart = startDate && isSameDay(day, startDate);
-                          
-                          // Check for existing active programming
-                          const existingProgram = activePrograms.find(p => {
-                            const progStart = new Date(p.startDate);
-                            const progEnd = new Date(p.endDate);
-                            return isWithinInterval(day, { start: progStart, end: progEnd });
-                          });
-                          
-                          // Check for phase boundaries (if phase end date exists)
-                          const isPhaseBoundary = selectedAthlete?.phaseEndDate && 
-                            isSameDay(day, new Date(selectedAthlete.phaseEndDate));
-                          
-                          // For each day, find blocks that include this day
-                          const dayBlocks = blocks.filter((b) => isWithinInterval(day, { start: b.startDate, end: b.endDate }));
-                          
-                          // Check if this day has a key date (only if athlete is selected)
-                          const dayKeyDate = selectedAthleteId ? keyDates.find(kd => {
-                            const kdDate = new Date(kd.date);
-                            kdDate.setHours(0, 0, 0, 0);
-                            const dayDate = new Date(day);
-                            dayDate.setHours(0, 0, 0, 0);
-                            return kdDate.getTime() === dayDate.getTime();
-                          }) : null;
-
-                          return (
-                            <div
-                              key={day.toISOString()}
-                              className={cn(
-                                "w-[120px] min-h-[96px] rounded-md border p-1.5 flex flex-col relative shrink-0",
-                                "bg-background",
-                                isPhaseBoundary && "border-l-2 border-l-orange-500 border-dashed"
-                              )}
-                            >
-                              {/* Week Number Label */}
-                              {showWeekLabel && (
-                                <div className="absolute -top-3 left-0 bg-muted/80 text-[10px] font-medium px-1.5 py-0.5 rounded z-20 whitespace-nowrap">
-                                  Week {weekNumber}
-                                </div>
-                              )}
-                              
-                              {/* Program Duration Overlay */}
-                              {isInProgramDuration && (
-                                <div className="absolute inset-0 bg-blue-500/20 pointer-events-none rounded-md" />
-                              )}
-                              
-                              {/* Existing Programming Background */}
-                              {existingProgram && (
-                                <div 
-                                  className="absolute inset-0 opacity-30 pointer-events-none rounded-md"
-                                  style={{
-                                    backgroundImage: 'repeating-linear-gradient(45deg, #808080, #808080 10px, transparent 10px, transparent 20px)'
-                                  }}
-                                />
-                              )}
-                              
-                              {/* Day Header */}
-                              <div className="flex flex-col mb-1.5 relative z-10">
-                                <div className="text-[10px] text-muted-foreground font-medium">
-                                  {dayName}
-                                </div>
-                                <div className="text-xs font-semibold text-foreground">
-                                {format(day, "d")}
-                                </div>
-                                <div className="text-[9px] text-muted-foreground">
-                                  {format(day, "MMM")}
-                                </div>
-                              </div>
-                              
-                              {/* Program Duration Label */}
-                              {isProgramStart && startDate && (
-                                <div className="absolute top-1 right-1 z-10 bg-blue-500/80 text-white text-[9px] px-1.5 py-0.5 rounded">
-                                  Start
-                                </div>
-                              )}
-                              
-                              {/* Day Content */}
-                              <div className="flex-1 flex flex-col gap-1 relative z-10">
-                                {dayBlocks.slice(0, dayKeyDate ? 2 : 3).map((b, idx) => {
-                                  const isStart = isSameDay(day, b.startDate);
-                                  const isEnd = isSameDay(day, b.endDate);
-                                  const blockIndex = blocks.findIndex(block => block.name === b.name);
-                                  const blockColor = getBlockColor(blockIndex);
-                                  return (
-                                    <div
-                                      key={`${b.name}-${idx}`}
-                                      className={cn(
-                                        "h-5 rounded-sm text-[10px] px-1 text-black flex items-center",
-                                        blockColor
-                                      )}
-                                      title={`${b.name}: ${format(b.startDate, 'MMM d')} - ${format(b.endDate, 'MMM d')}`}
-                                    >
-                                      {isStart && <span className="truncate mr-1">{b.name}</span>}
-                                      {!isStart && !isEnd && <span className="opacity-70">•</span>}
-                                      {isEnd && <span className="opacity-70 ml-auto">↘</span>}
-                                    </div>
-                                  );
-                                })}
-                                {dayBlocks.length > (dayKeyDate ? 2 : 3) && (
-                                  <div className="h-5 rounded-sm text-[10px] px-1 bg-muted text-muted-foreground flex items-center justify-center">
-                                    +{dayBlocks.length - (dayKeyDate ? 2 : 3)} more
-                                  </div>
-                                )}
-                                {dayKeyDate && (
-                                  <div className={cn(
-                                    "h-5 rounded-sm text-[10px] px-1 border flex items-center gap-1",
-                                    dayKeyDate.type === "Game" && "bg-blue-500/20 text-blue-400 border-blue-500/30",
-                                    dayKeyDate.type === "Assessment" && "bg-amber-500/20 text-amber-400 border-amber-500/30",
-                                    dayKeyDate.type === "Training" && "bg-green-500/20 text-green-400 border-green-500/30"
-                                  )}>
-                                    <span className="truncate">{dayKeyDate.label}</span>
-                                  </div>
-                                )}
-                                {existingProgram && dayBlocks.length === 0 && (
-                                  <div className="h-5 rounded-sm text-[10px] px-1 bg-gray-500/30 text-gray-400 flex items-center gap-1">
-                                    <span className="truncate">{existingProgram.programId}</span>
-                                  </div>
-                                )}
-                                {isPhaseBoundary && (
-                                  <div className="h-5 rounded-sm text-[10px] px-1 bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center gap-1">
-                                    <span className="truncate">Phase Boundary</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        });
-                      })()}
-                                        </div>
-                                  </div>
-                </div>
-              </div>
+              </>
             )}
 
             {/* Step 2: Blocks */}
@@ -5872,22 +5450,214 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
             {/* Step 3: Review Program */}
             {currentStep === 3 && (
               <>
-                {/* Content Area - Fixed height container starting below sub-header */}
-                <div className="w-full flex flex-col absolute top-32 left-0 right-0 bottom-0" style={{ top: '8rem' }}>
-                  {/* Empty State - Show when no weeks available */}
-                  {getWeeksInBlock.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="text-center space-y-2">
-                        <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
-                        <p className="text-sm font-medium text-muted-foreground">No weeks available</p>
-                        <p className="text-xs text-muted-foreground">Please ensure blocks are configured with valid dates.</p>
+                <div className="w-full bg-surface-base overflow-x-auto pt-8">
+                  {/* Day Headers */}
+                  <div className="sticky top-8 z-30 bg-surface-base border-b">
+                    <div className="flex min-w-max">
+                      {/* Empty space for section labels */}
+                      <div className="w-[150px] shrink-0 border-r bg-surface-base h-12 flex items-center justify-center">
+                        <span className="text-xs font-medium text-muted-foreground">Sections</span>
                       </div>
+                      
+                      {/* Day columns */}
+                      {(() => {
+                        const today = new Date();
+                        const weekMonday = startOfWeek(today, { weekStartsOn: 1 });
+                        return ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((dayName, dayIdx) => {
+                          const dayDate = addDays(weekMonday, dayIdx);
+                          const isRest = dayIdx === 3; // Thursday is rest
+                          return (
+                            <div
+                              key={dayIdx}
+                              className={cn(
+                                "w-[240px] min-w-[240px] shrink-0 text-center border-r h-12 px-3 flex flex-col justify-center bg-muted/15"
+                              )}
+                            >
+                              <div className="text-xs font-semibold">{dayName}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                {format(dayDate, "MMM d")}
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
-                  ) : (
-                    <>
-                  {/* Block View */}
-                  <div className="flex-1 overflow-auto w-full bg-surface-base">
-                    <div className="w-full">
+                  </div>
+
+                  {/* Section Rows */}
+                  <div className="min-w-max space-y-0.5 relative bg-surface-base">
+                    {/* Mock data for Review table */}
+                    {(() => {
+                      const reviewSections = [
+                        { id: "movement", label: "Movement", description: "Movement prep, mobility, and patterning" },
+                        { id: "preparatory", label: "R1 - Preparatory", description: "Warm-up exercises" },
+                        { id: "mobility", label: "R2 - Mobility", description: "Mobility and flexibility" },
+                        { id: "activation", label: "R3 - Activation", description: "Movement preparation" },
+                        { id: "core-lift", label: "R4 - Core Lift", description: "Primary strength exercises" },
+                        { id: "accessory", label: "R5 - Accessory", description: "Supporting exercises" },
+                        { id: "conditioning", label: "R6 - Conditioning/Recovery", description: "Conditioning and recovery" },
+                        { id: "throwing", label: "Throwing", description: "Throwing phases, intensity, and daily prescriptions" },
+                      ];
+
+                      // Mock exercise data
+                      const mockExercises: Record<string, Record<number, Array<{name: string; sets: number; reps: string; restTime?: string; repScheme?: string; progression?: string}>>> = {
+                        movement: {
+                          0: [{ name: "Hip Mobility Circuit", sets: 1, reps: "10 min", restTime: "0:00" }], // Monday
+                          1: [{ name: "Hip Mobility Circuit", sets: 1, reps: "10 min", restTime: "0:00" }], // Tuesday
+                          2: [{ name: "Hip Mobility Circuit", sets: 1, reps: "10 min", restTime: "0:00" }], // Wednesday
+                          3: [], // Thursday - rest
+                          4: [{ name: "Hip Mobility Circuit", sets: 1, reps: "10 min", restTime: "0:00" }], // Friday
+                        },
+                        preparatory: {
+                          0: [{ name: "Jump Rope Primer", sets: 3, reps: "2 min", restTime: "1:00" }], // Monday
+                          1: [{ name: "Dynamic Warm-Up Series", sets: 1, reps: "15 min", restTime: "0:00" }], // Tuesday
+                          2: [{ name: "Jump Rope Primer", sets: 3, reps: "2 min", restTime: "1:00" }], // Wednesday
+                          3: [], // Thursday - rest
+                          4: [{ name: "Jump Rope Primer", sets: 3, reps: "2 min", restTime: "1:00" }], // Friday
+                        },
+                        mobility: {
+                          0: [{ name: "World's Greatest Stretch", sets: 3, reps: "10", restTime: "0:30" }], // Monday
+                          1: [{ name: "Thoracic Spine Opens", sets: 2, reps: "8", restTime: "0:45" }], // Tuesday
+                          2: [{ name: "World's Greatest Stretch", sets: 3, reps: "10", restTime: "0:30" }], // Wednesday
+                          3: [], // Thursday - rest
+                          4: [{ name: "World's Greatest Stretch", sets: 3, reps: "10", restTime: "0:30" }], // Friday
+                        },
+                        activation: {
+                          0: [{ name: "Glute Bridge + March", sets: 3, reps: "12", restTime: "0:45" }], // Monday
+                          1: [{ name: "Mini-Band Lateral Walk", sets: 2, reps: "15", restTime: "0:30" }], // Tuesday
+                          2: [{ name: "Glute Bridge + March", sets: 3, reps: "12", restTime: "0:45" }], // Wednesday
+                          3: [], // Thursday - rest
+                          4: [{ name: "Glute Bridge + March", sets: 3, reps: "12", restTime: "0:45" }], // Friday
+                        },
+                        "core-lift": {
+                          0: [{ name: "Back Squat", sets: 4, reps: "5", restTime: "3:00", repScheme: "5x5", progression: "Linear" }], // Monday
+                          1: [{ name: "Barbell Bench Press", sets: 4, reps: "5", restTime: "3:00", repScheme: "5x5", progression: "Linear" }], // Tuesday
+                          2: [{ name: "Back Squat", sets: 4, reps: "5", restTime: "3:00", repScheme: "5x5", progression: "Linear" }], // Wednesday
+                          3: [], // Thursday - rest
+                          4: [{ name: "Back Squat", sets: 4, reps: "5", restTime: "3:00", repScheme: "5x5", progression: "Linear" }], // Friday
+                        },
+                        accessory: {
+                          0: [{ name: "Dumbbell Rows", sets: 3, reps: "10", restTime: "1:30" }], // Monday
+                          1: [{ name: "Tricep Extensions", sets: 3, reps: "12", restTime: "1:00" }], // Tuesday
+                          2: [{ name: "Face Pulls", sets: 3, reps: "15", restTime: "1:00" }], // Wednesday
+                          3: [], // Thursday - rest
+                          4: [{ name: "Bicep Curls", sets: 3, reps: "12", restTime: "1:00" }], // Friday
+                        },
+                        conditioning: {
+                          0: [{ name: "Bike Intervals", sets: 4, reps: "5 min", restTime: "2:00" }], // Monday
+                          1: [{ name: "Foam Rolling", sets: 1, reps: "15 min", restTime: "0:00" }], // Tuesday
+                          2: [{ name: "Sled Push", sets: 4, reps: "40m", restTime: "2:00" }], // Wednesday
+                          3: [], // Thursday - rest
+                          4: [{ name: "Recovery Walk", sets: 1, reps: "20 min", restTime: "0:00" }], // Friday
+                        },
+                        throwing: {
+                          0: [{ name: "Long Toss", sets: 1, reps: "120 ft", restTime: "0:00" }], // Monday
+                          1: [{ name: "Bullpen Session", sets: 1, reps: "30 pitches", restTime: "0:00" }], // Tuesday
+                          2: [{ name: "Flat Ground", sets: 1, reps: "40 pitches", restTime: "0:00" }], // Wednesday
+                          3: [], // Thursday - rest
+                          4: [{ name: "Long Toss", sets: 1, reps: "120 ft", restTime: "0:00" }], // Friday
+                        },
+                      };
+
+                      return reviewSections.map((section) => (
+                        <div key={section.id} className="flex min-w-max border-b bg-background">
+                          {/* Section Label Column */}
+                          <div className="w-[150px] shrink-0 border-r bg-surface-base sticky left-0 z-20">
+                            <div className="px-3 py-4 min-h-[100px] flex flex-col justify-center gap-1.5">
+                              <div className="text-xs font-semibold">{section.label}</div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {section.description}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Day Columns */}
+                          {[0, 1, 2, 3, 4].map((dayIdx) => {
+                            const isRest = dayIdx === 3; // Thursday
+                            const exercises = mockExercises[section.id]?.[dayIdx] || [];
+
+                            return (
+                              <div
+                                key={dayIdx}
+                                className={cn(
+                                  "w-[240px] min-w-[240px] shrink-0 border-r min-h-[100px] p-2",
+                                  isRest ? "bg-transparent" : "bg-surface-base"
+                                )}
+                              >
+                                {isRest ? (
+                                  <div className="h-full flex items-center justify-center">
+                                    <Bed className="h-6 w-6 text-muted-foreground" />
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {exercises.length === 0 ? (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-full w-full text-muted-foreground hover:text-foreground border-dashed"
+                                      >
+                                        <Plus className="h-4 w-4" />
+                                      </Button>
+                                    ) : (
+                                      <>
+                                        {exercises.map((exercise, idx) => (
+                                          <ExerciseCard
+                                            key={idx}
+                                            exercise={exercise}
+                                            showRepSchemes={true}
+                                            className="cursor-pointer"
+                                            onEdit={() => {
+                                              console.log("Edit exercise:", exercise.name);
+                                            }}
+                                            onShuffle={() => {
+                                              console.log("Shuffle exercise:", exercise.name);
+                                            }}
+                                            onRemove={() => {
+                                              console.log("Remove exercise:", exercise.name);
+                                            }}
+                                          />
+                                        ))}
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          className="w-full border-dashed text-xs font-medium mt-1"
+                                        >
+                                          <Plus className="h-3.5 w-3.5 mr-1.5" />
+                                          Add exercise
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+
+                {/* Old Step 3 content removed - keeping structure for reference */}
+                {false && (
+                  <>
+                    <div className="w-full flex flex-col absolute top-32 left-0 right-0 bottom-0" style={{ top: '8rem' }}>
+                      {/* Empty State - Show when no weeks available */}
+                      {getWeeksInBlock.length === 0 ? (
+                        <div className="flex-1 flex items-center justify-center">
+                          <div className="text-center space-y-2">
+                            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
+                            <p className="text-sm font-medium text-muted-foreground">No weeks available</p>
+                            <p className="text-xs text-muted-foreground">Please ensure blocks are configured with valid dates.</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                      {/* Block View */}
+                      <div className="flex-1 overflow-auto w-full bg-surface-base">
+                        <div className="w-full">
                       {/* Day Headers */}
                       <div className="sticky top-0 z-30 bg-surface-base border-b">
                         <div className="flex min-w-max">
@@ -6084,10 +5854,11 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
                         </div>
                       </div>
                     </div>
-                  </div>
+                        </>
+                      )}
+                    </div>
                   </>
                   )}
-              </div>
               </>
             )}
 

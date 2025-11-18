@@ -16,7 +16,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
 import { type AthleteWithPhase, type Block, type Phase } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -119,7 +118,7 @@ const getBlockStatusBadge = (status: Block["status"]) => {
     active: { label: "Active", className: "bg-green-500/20 text-green-400 border-green-500/30" },
     complete: { label: "Complete", className: "bg-[#979795]/5 text-[#979795] border-transparent", icon: <CheckCircle2 className="h great-3 w-3" /> },
     draft: { label: "Draft", className: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
-    "pending-signoff": { label: "Pending Sign-off", className: "bg-amber-500/10 text-amber-500 border border-amber-500/50", icon: null },
+    planned: { label: "Planned", className: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
   };
   const v = variants[status as Exclude<Block["status"], undefined>];
   return (
@@ -206,17 +205,9 @@ const getHoverTooltipContent = (blocks: Block[], nextActionText?: string | null,
 };
 
 const getBlockStatusDots = (blocks: Block[]): Block["status"][] => {
-  // Sort blocks by priority: active, pending-signoff (only show these two types)
-  const priority: Record<Block["status"], number> = {
-    "active": 1,
-    "pending-signoff": 2,
-    "complete": 99, // Don't show complete dots
-    "draft": 99, // Don't show draft dots
-  };
-  
+  // Only show active blocks
   return [...blocks]
-    .filter(block => block.status === "active" || block.status === "pending-signoff")
-    .sort((a, b) => (priority[a.status] || 99) - (priority[b.status] || 99))
+    .filter(block => block.status === "active")
     .map(block => block.status);
 };
 
@@ -226,7 +217,7 @@ const getBlockStatusDotsTooltip = (blocks: Block[]): string => {
   
   if (counts.active > 0) parts.push(`${counts.active} active`);
   if (counts.complete > 0) parts.push(`${counts.complete} complete`);
-  if (counts.pending > 0) parts.push(`${counts.pending} pending`);
+  if (counts.planned > 0) parts.push(`${counts.planned} planned`);
   if (counts.draft > 0) parts.push(`${counts.draft} draft`);
   
   return parts.join(", ") || "No blocks";
@@ -238,10 +229,10 @@ const getStatusDotColor = (status: Block["status"]): { bg: string; shadow: strin
       return { bg: "bg-green-500", shadow: "shadow-sm shadow-green-500/50" };
     case "complete":
       return { bg: "bg-[#979795]", shadow: "" };
-    case "pending-signoff":
-      return { bg: "bg-amber-500", shadow: "shadow-sm shadow-amber-500/50" };
     case "draft":
       return { bg: "bg-[#979795]", shadow: "" };
+    case "planned":
+      return { bg: "bg-blue-500", shadow: "shadow-sm shadow-blue-500/50" };
     default:
       return { bg: "bg-[#979795]", shadow: "" };
   }
@@ -325,13 +316,13 @@ const calculateWeeksBetween = (startDate: string, endDate: string): number => {
   return Math.ceil(diffDays / 7);
 };
 
-const getBlockCounts = (blocks: Block[]): { total: number; complete: number; active: number; draft: number; pending: number } => {
+const getBlockCounts = (blocks: Block[]): { total: number; complete: number; active: number; draft: number; planned: number } => {
   return {
     total: blocks.length,
     complete: blocks.filter(b => b.status === "complete").length,
     active: blocks.filter(b => b.status === "active").length,
     draft: blocks.filter(b => b.status === "draft").length,
-    pending: blocks.filter(b => b.status === "pending-signoff").length,
+    planned: blocks.filter(b => b.status === "planned").length,
   };
 };
 
@@ -363,11 +354,11 @@ const formatPhaseSummary = (blocks: Block[], currentPhase?: Phase): React.ReactN
     </span>
   );
   
-  // Show pending count if > 0
-  if (counts.pending > 0) {
+  // Show planned count if > 0
+  if (counts.planned > 0) {
     statusParts.push(
-      <span key="pending" className="text-[#979795]">
-        {counts.pending} pending
+      <span key="planned" className="text-[#979795]">
+        {counts.planned} planned
       </span>
     );
   }
@@ -407,9 +398,9 @@ const formatPhaseSummary = (blocks: Block[], currentPhase?: Phase): React.ReactN
           {counts.active} active
         </Badge>
       )}
-      {counts.pending > 0 && (
-        <Badge variant="outline" className="text-xs font-['Montserrat'] bg-amber-500/20 text-amber-400 border-amber-500/30">
-          {counts.pending} pending
+      {counts.planned > 0 && (
+        <Badge variant="outline" className="text-xs font-['Montserrat'] bg-blue-500/20 text-blue-400 border-blue-500/30">
+          {counts.planned} planned
         </Badge>
       )}
       {counts.draft > 0 && (
@@ -423,14 +414,12 @@ const formatPhaseSummary = (blocks: Block[], currentPhase?: Phase): React.ReactN
 
 export default function AthleteProgramCard({ athleteData, isExpanded, onToggleExpand, matchingBlockIds = new Set() }: AthleteRowProps) {
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
   const { athlete, blocks, currentPhase } = athleteData;
   const statusIcon = getStatusIcon(athlete.status);
   const statusTooltip = getStatusTooltip(athlete.status);
   const nextActionData = getNextAction(blocks);
   const nextAction = nextActionData.text;
   const nextActionUrgency = nextActionData.urgency;
-  const needsSignoff = blocks.some((block) => block.status === "pending-signoff");
   const currentBlockStatusData = getCurrentBlockStatus(blocks);
   const nextColor = getNextActionColor(nextActionUrgency);
 
@@ -460,8 +449,6 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
   // Group blocks by phase (for now, assume all blocks are in currentPhase or group by blockNumber sequence)
   // Sort blocks by blockNumber descending (recent to oldest)
   const sortedBlocks = [...blocks].sort((a, b) => b.blockNumber - a.blockNumber);
-  const [signOffDialogOpen, setSignOffDialogOpen] = useState(false);
-  const [pendingSignOffBlockId, setPendingSignOffBlockId] = useState<string | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const blocksContainerRef = useRef<HTMLDivElement>(null);
   const previousExpandedRef = useRef(isExpanded);
@@ -509,39 +496,6 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
   const handleEditBlock = (e: React.MouseEvent, blockId: string) => {
     e.stopPropagation();
     setLocation(`/programs/${athlete.id}?tab=builder&mode=edit&blockId=${blockId}`);
-  };
-  
-  const handleSignOff = (e: React.MouseEvent, blockId: string) => {
-    e.stopPropagation();
-    setPendingSignOffBlockId(blockId);
-    setSignOffDialogOpen(true);
-  };
-  
-  const confirmSignOff = async () => {
-    if (!pendingSignOffBlockId) return;
-    
-    try {
-      // TODO: API call to update block status
-      // await apiRequest(`/api/blocks/${pendingSignOffBlockId}/signoff`, { method: 'POST' });
-      
-      // For now, just show success toast
-      toast({
-        title: "Block signed off",
-        description: "The block has been approved and is now active.",
-      });
-      
-      setSignOffDialogOpen(false);
-      setPendingSignOffBlockId(null);
-      
-      // TODO: Refresh athlete data or update local state
-      // This would typically trigger a refetch of the athletes query
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to sign off block. Please try again.",
-        variant: "destructive",
-      });
-    }
   };
   
   // Determine card border color based on block status
@@ -623,7 +577,7 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
         <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
           {!isExpanded && (
             <>
-              {nextAction && !needsSignoff && (
+              {nextAction && (
                 <span className={cn(
                   "text-xs font-['Montserrat'] flex-shrink-0 hidden sm:inline",
                   nextColor
@@ -656,7 +610,7 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
         {/* Mobile: Next Action and Timeline */}
         {!isExpanded && (
           <>
-            {nextAction && !needsSignoff && (
+            {nextAction && (
               <div className={cn(
                 "text-xs font-['Montserrat'] flex-shrink-0 sm:hidden",
                 nextColor
@@ -722,10 +676,7 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
                   <div
                     key={block.id}
                     className={cn(
-                      "flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 py-3 hover:bg-[#1f1f1e] transition-colors duration-200 rounded-md px-4 min-h-[44px] border border-[#2a2a29]",
-                      block.status === "pending-signoff" 
-                        ? "bg-amber-500/5"
-                        : "bg-[#1c1c1b]"
+                      "flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 py-3 hover:bg-[#1f1f1e] transition-colors duration-200 rounded-md px-4 min-h-[44px] border border-[#2a2a29] bg-[#1c1c1b]"
                     )}
                   >
                   {/* Block Number and Name */}
@@ -769,18 +720,7 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
                         </div>
                       </div>
                     )}
-                    {/* Primary Actions - Sign off or Send to Athlete */}
-                    {block.status === "pending-signoff" && (
-                      <Button
-                        size="sm"
-                        aria-label={`Sign off ${block.name}`}
-                        className="h-9 px-3 text-xs font-semibold font-['Montserrat'] bg-primary text-black hover:bg-primary/90 transition-all duration-200 hover:scale-105 shadow-sm"
-                        onClick={(e) => handleSignOff(e, block.id)}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        <span>Sign off</span>
-                      </Button>
-                    )}
+                    {/* Primary Actions - Send to Athlete */}
                     {block.status === "draft" && (
                       <Button
                         size="sm"
@@ -789,10 +729,6 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
                         onClick={(e) => {
                           e.stopPropagation();
                           // TODO: Implement send to athlete functionality
-                          toast({
-                            title: "Send to athlete",
-                            description: `Sending ${block.name} to athlete...`,
-                          });
                         }}
                       >
                         <FileCheck className="h-4 w-4 mr-1" />
@@ -829,37 +765,6 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
           </>
         )}
       </div>
-      
-      {/* Sign-off Confirmation Dialog */}
-      <AlertDialog open={signOffDialogOpen} onOpenChange={setSignOffDialogOpen}>
-        <AlertDialogContent className="bg-surface-base border-[#292928]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-[#f7f6f2] font-['Montserrat']">
-              Sign off block
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-[#979795] font-['Montserrat']">
-              Are you sure you want to approve and activate this block? Once signed off, the block will become active and visible to the athlete.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel 
-              onClick={() => {
-                setSignOffDialogOpen(false);
-                setPendingSignOffBlockId(null);
-              }}
-              className="bg-[#171716] text-[#f7f6f2] border-[#292928] hover:bg-[#1a1a19] font-['Montserrat']"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmSignOff}
-              className="bg-[#e5e4e1] text-black hover:bg-[#d5d4d1] font-['Montserrat']"
-            >
-              Sign off
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

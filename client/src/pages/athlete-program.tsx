@@ -5,12 +5,10 @@ import ReviewMode from "@/components/athlete-program/ReviewMode";
 import AthleteInfoSidebar from "@/components/blocks/AthleteInfoSidebar";
 import { useQuery } from "@tanstack/react-query";
 import type { AthleteWithPhase } from "@shared/schema";
-// Build tab disabled temporarily
-// import AddProgram from "@/pages/program-builder";
+import AddProgram from "@/pages/program-builder";
 import HorizontalCalendar from "@/components/coach/HorizontalCalendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import {
 	Activity,
 	AlertTriangle,
@@ -36,7 +34,7 @@ export default function AthleteProgramPage() {
 		// Support legacy "dashboard" by mapping to "summary"
 		if (urlTab === "dashboard") setCurrentTab("summary");
 		else if (urlTab === "review") setCurrentTab(urlTab);
-		else if (urlTab === "builder") setCurrentTab("summary"); // Redirect builder to summary
+		else if (urlTab === "builder") setCurrentTab("builder");
 		else setCurrentTab("summary");
 	}, [location]);
 
@@ -55,12 +53,8 @@ export default function AthleteProgramPage() {
 	};
 
 	const handleTabChange = (tab: string) => {
-		// Block builder tab - disabled temporarily
-		if (tab === "builder") {
-			return;
-		}
 		// Update local state immediately for responsive UI
-		if (tab === "summary" || tab === "review") {
+		if (tab === "summary" || tab === "review" || tab === "builder") {
 			setCurrentTab(tab);
 		}
 		if (tab === "summary") {
@@ -82,7 +76,6 @@ export default function AthleteProgramPage() {
 		athleteName?: string | null;
 		onNavigateTab: (tab: AllowedTabs) => void;
 	}) {
-		const { toast } = useToast();
 		const today = new Date();
 		today.setHours(0, 0, 0, 0);
 		const endDate = new Date(today);
@@ -164,44 +157,31 @@ export default function AthleteProgramPage() {
 
 		const alerts = [
 			{
-				title: "Blocks needing sign-off",
-				detail: "Block 2 ready for review",
-				severity: "warning" as const,
-				actionLabel: "Review block",
-				action: () => onNavigateTab("review"),
-			},
-			{
 				title: "Missing workout data",
 				detail: "2 sets awaiting results",
 				severity: "info" as const,
 				actionLabel: "Enter results",
-				action: () =>
-					toast({
-						title: "Enter results",
-						description: "This opens the performance intake modal in the next release.",
-					}),
+				action: () => {
+					// TODO: Implement performance intake modal
+				},
 			},
 			{
 				title: "Injury / rehab alert",
 				detail: "Left shoulder flagged during warm-up",
 				severity: "critical" as const,
 				actionLabel: "Log update",
-				action: () =>
-					toast({
-						title: "Rehab tracker coming soon",
-						description: "You'll be able to log medical updates here shortly.",
-					}),
+				action: () => {
+					// TODO: Implement rehab tracker
+				},
 			},
 			{
 				title: "Upcoming assessment",
 				detail: `Movement screen on ${formatDate(new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000))}`,
 				severity: "info" as const,
 				actionLabel: "View plan",
-				action: () =>
-					toast({
-						title: "Assessment flow",
-						description: "Assessment scheduling will surface here.",
-					}),
+				action: () => {
+					// TODO: Implement assessment scheduling
+				},
 			},
 		];
 
@@ -381,11 +361,10 @@ export default function AthleteProgramPage() {
 		);
 	}
 
-	// Build tab disabled temporarily
-	// function BuilderView({ athleteId }: { athleteId: string }) {
-	// 	// Pass header offset to push internal builder header below top bar
-	// 	return <AddProgram athleteId={athleteId} headerOffset={56} />;
-	// }
+	function BuilderView({ athleteId }: { athleteId: string }) {
+		// Pass header offset to push internal builder header below top bar
+		return <AddProgram athleteId={athleteId} headerOffset={56} />;
+	}
 
 	// Athlete details drawer state
 	const [detailsOpen, setDetailsOpen] = React.useState(false);
@@ -433,8 +412,7 @@ const detailsPanelWidth = 320;
 					<DashboardView athleteId={athleteId!} athleteName={athleteData?.athlete.name} onNavigateTab={handleTabChange} />
 				)}
 				{currentTab === "review" && <ReviewMode athleteId={athleteId!} />}
-				{/* Build tab disabled temporarily */}
-				{/* {currentTab === "builder" && <BuilderView athleteId={athleteId!} />} */}
+				{currentTab === "builder" && <BuilderView athleteId={athleteId!} />}
 			</div>
 		</div>
 	);

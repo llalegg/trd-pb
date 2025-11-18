@@ -22,7 +22,7 @@ type SortDirection = "asc" | "desc";
 
 interface FilterState {
   athleteStatuses: string[]; // injured/rehabbing/lingering-issues
-  blockStatuses: string[]; // active/complete/draft/pending-signoff
+  blockStatuses: string[]; // active/complete/draft/planned
   seasons: string[];
   subSeasons: string[];
   urgency: string[]; // due-this-week, overdue, no-active-block
@@ -41,7 +41,7 @@ const BLOCK_STATUS_OPTIONS = [
   { value: "active", label: "Active" },
   { value: "complete", label: "Complete" },
   { value: "draft", label: "Draft" },
-  { value: "pending-signoff", label: "Pending Sign-off" },
+  { value: "planned", label: "Planned" },
 ];
 const SEASON_OPTIONS = ["Pre-Season", "In-Season", "Off-Season"];
 const SUB_SEASON_OPTIONS = ["Early", "Mid", "Late"];
@@ -53,7 +53,7 @@ const URGENCY_OPTIONS = [
 
 export default function Programs() {
   const [, setLocation] = useLocation();
-  const [status, setStatus] = useState<"current" | "past" | "needs-signoff">("current");
+  const [status, setStatus] = useState<"current" | "past">("current");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("nextActionDate");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -335,7 +335,7 @@ export default function Programs() {
         if (!athlete.status || !filters.athleteStatuses.includes(athlete.status)) return false;
       }
 
-      // Filter by status (current/past/needs-signoff) - check if ANY block matches
+      // Filter by status (current/past) - check if ANY block matches
       if (status === "current") {
         const hasActiveBlock = blocks.some(block => {
           const endDate = new Date(block.endDate);
@@ -358,7 +358,7 @@ export default function Programs() {
           endDate.setHours(0, 0, 0, 0);
           return block.status === "active" || 
                  block.status === "draft" || 
-                 (block.status === "pending-signoff" && endDate >= today);
+                 block.status === "planned";
         });
         if (hasActiveOrPlanned) return false;
         
@@ -369,9 +369,6 @@ export default function Programs() {
           return block.status === "complete" && endDate < today;
         });
         if (!hasPastCompleteBlock) return false;
-      } else if (status === "needs-signoff") {
-        const hasPendingSignoff = blocks.some(block => block.status === "pending-signoff");
-        if (!hasPendingSignoff) return false;
       }
 
       // Filter by block status - check if ANY block matches
@@ -484,44 +481,6 @@ export default function Programs() {
 
     // Sort athletes
     filtered.sort((a, b) => {
-      // Special sorting for "needs-signoff" tab - sort by urgency first
-      if (status === "needs-signoff") {
-        const getPendingSignoffUrgency = (blocks: Block[]): number => {
-          const pendingBlocks = blocks.filter(b => b.status === "pending-signoff");
-          if (pendingBlocks.length === 0) return Number.MAX_SAFE_INTEGER;
-          
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          
-          // Get earliest nextBlockDue date from pending blocks
-          const dueDates = pendingBlocks
-            .filter(b => b.nextBlockDue)
-            .map(b => {
-              const dueDate = new Date(b.nextBlockDue!);
-              dueDate.setHours(0, 0, 0, 0);
-              return dueDate.getTime();
-            });
-          
-          if (dueDates.length === 0) return 0; // No due date = urgent
-          
-          const earliestDue = Math.min(...dueDates);
-          const daysDiff = Math.ceil((earliestDue - today.getTime()) / (1000 * 60 * 60 * 24));
-          
-          // Negative = overdue (most urgent), then by days until due
-          return daysDiff;
-        };
-        
-        const aUrgency = getPendingSignoffUrgency(a.blocks);
-        const bUrgency = getPendingSignoffUrgency(b.blocks);
-        
-        if (aUrgency !== bUrgency) {
-          return aUrgency - bUrgency; // Most urgent first
-        }
-        
-        // If same urgency, sort by athlete name
-        return a.athlete.name.localeCompare(b.athlete.name);
-      }
-      
       let aValue: string | number;
       let bValue: string | number;
 
@@ -531,17 +490,11 @@ export default function Programs() {
           bValue = b.athlete.name;
           break;
         case "nextActionDate": {
-          // Get earliest block needing attention (pending-signoff takes priority, then nextBlockDue)
+          // Get earliest block needing attention (nextBlockDue dates)
           const getNextActionDate = (blocks: Block[]): number => {
             const actionDates: number[] = [];
             
-            // First priority: blocks pending sign-off (use today as action date)
-            const pendingSignoff = blocks.some(b => b.status === "pending-signoff");
-            if (pendingSignoff) {
-              actionDates.push(new Date().getTime());
-            }
-            
-            // Second priority: nextBlockDue dates
+            // Get nextBlockDue dates
             blocks.forEach(block => {
               if (block.nextBlockDue) {
                 actionDates.push(new Date(block.nextBlockDue).getTime());
@@ -781,10 +734,7 @@ export default function Programs() {
   // Auto-expand: open the first relevant card per tab; keep at most one expanded
   useEffect(() => {
     let firstId: string | undefined;
-    if (status === "needs-signoff") {
-      const hit = filteredAndSortedAthletes.find((a) => a.blocks.some((b) => b.status === "pending-signoff"));
-      firstId = hit?.athlete.id;
-    } else if (status === "past") {
+    if (status === "past") {
       firstId = filteredAndSortedAthletes[0]?.name ? filteredAndSortedAthletes[0]!.athlete.id : undefined;
     } else if (hasActiveFilters) {
       const hit = filteredAndSortedAthletes.find((a) => a.blocks.some((b) => blockMatchesFilters(b)));
@@ -796,32 +746,6 @@ export default function Programs() {
       setExpandedAthletes(new Set());
     }
   }, [status, filteredAndSortedAthletes, hasActiveFilters, blockMatchesFilters]);
-  
-  // Count athletes needing sign-off
-  const needsSignoffCount = useMemo(() => {
-    if (status !== "needs-signoff") return 0;
-    return athletesData.filter(athleteData => 
-      athleteData.blocks.some(block => block.status === "pending-signoff")
-    ).length;
-  }, [athletesData, status]);
-  
-  // Check if any blocks are overdue
-  const hasOverdueSignoff = useMemo(() => {
-    if (status !== "needs-signoff") return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    return athletesData.some(athleteData => 
-      athleteData.blocks.some(block => {
-        if (block.status !== "pending-signoff" || !block.nextBlockDue) return false;
-        const dueDate = new Date(block.nextBlockDue);
-        dueDate.setHours(0, 0, 0, 0);
-        return dueDate < today;
-      })
-    );
-  }, [athletesData, status]);
-
-
 
   return (
     <div className="min-h-screen bg-surface-base">
@@ -836,24 +760,11 @@ export default function Programs() {
             <ToggleGroup
               type="single"
               value={status}
-              onValueChange={(value) => value && setStatus(value as "current" | "past" | "needs-signoff")}
+              onValueChange={(value) => value && setStatus(value as "current" | "past")}
               variant="segmented"
             >
               <ToggleGroupItem value="current" aria-label="Current programs">
                 Current
-              </ToggleGroupItem>
-              <ToggleGroupItem value="needs-signoff" aria-label="Needs sign-off">
-                <div className="flex items-center gap-2">
-                  <span>Needs sign-off</span>
-                  {needsSignoffCount > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-[#171716] text-[#979795] text-[10px] font-['Montserrat'] border border-[#292928]">
-                      {needsSignoffCount}
-                    </span>
-                  )}
-                  {hasOverdueSignoff && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
-                  )}
-                </div>
               </ToggleGroupItem>
               <ToggleGroupItem value="past" aria-label="Past programs">
                 Past
@@ -914,35 +825,19 @@ export default function Programs() {
             <div className="border border-[#292928] rounded-lg bg-surface-base p-12">
               <div className="text-center max-w-md mx-auto">
                 <div className="mb-4">
-                  {status === "needs-signoff" ? (
-                    <>
-                      <div className="w-16 h-16 mx-auto rounded-full bg-[#171716] flex items-center justify-center mb-4">
-                        <CheckCircle2 className="h-8 w-8 text-green-500" />
-                      </div>
-                      <h3 className="text-lg font-semibold font-['Montserrat'] text-[#f7f6f2] mb-2">
-                        No blocks pending sign-off
-                      </h3>
-                      <p className="text-sm font-['Montserrat'] text-[#979795] mb-6">
-                        All blocks are approved or in draft
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-16 h-16 mx-auto rounded-full bg-[#171716] flex items-center justify-center mb-4">
-                        <Search className="h-8 w-8 text-[#979795]" />
-                                    </div>
-                      <h3 className="text-lg font-semibold font-['Montserrat'] text-[#f7f6f2] mb-2">
-                        No {status} athletes found
-                      </h3>
-                      <p className="text-sm font-['Montserrat'] text-[#979795] mb-6">
-                        {hasActiveFilters 
-                          ? "Try reaching your filters to see more results."
-                          : "Use filters or go to an athlete to create the first block."}
-                      </p>
-                    </>
-                  )}
-                          </div>
-                          </div>
+                  <div className="w-16 h-16 mx-auto rounded-full bg-[#171716] flex items-center justify-center mb-4">
+                    <Search className="h-8 w-8 text-[#979795]" />
+                  </div>
+                  <h3 className="text-lg font-semibold font-['Montserrat'] text-[#f7f6f2] mb-2">
+                    No {status} athletes found
+                  </h3>
+                  <p className="text-sm font-['Montserrat'] text-[#979795] mb-6">
+                    {hasActiveFilters 
+                      ? "Try reaching your filters to see more results."
+                      : "Use filters or go to an athlete to create the first block."}
+                  </p>
+                </div>
+              </div>
               
               </div>
             ) : (

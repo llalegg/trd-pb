@@ -10,7 +10,6 @@ interface BlockCardProps {
   block: Block;
   onEdit: () => void;
   onView: () => void;
-  onSignOff?: () => void;
   onDelete?: () => void;
   onCopy?: () => void;
   onViewPerformance?: () => void;
@@ -44,12 +43,12 @@ const getStatusConfig = (status: Block["status"]) => {
         badgeClass: "bg-green-500/20 text-green-400 border-green-500/30",
         borderClass: "border-2 border-green-500",
       };
-    case "pending-signoff":
+    case "planned":
       return {
-        label: "Pending Sign-off",
-        icon: <AlertTriangle className="h-4 w-4" />,
-        badgeClass: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-        borderClass: "border-2 border-amber-500",
+        label: "Planned",
+        icon: null,
+        badgeClass: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+        borderClass: "border-2 border-blue-500",
       };
     case "complete":
       return {
@@ -118,7 +117,6 @@ export default function BlockCard({
   block,
   onEdit,
   onView,
-  onSignOff,
   onDelete,
   onCopy,
   onViewPerformance,
@@ -192,13 +190,6 @@ export default function BlockCard({
         </div>
       )}
 
-      {/* Status-specific messages */}
-      {block.status === "pending-signoff" && (
-        <div className="text-sm text-[#979795] font-['Montserrat'] mb-4">
-          Ready to send to athlete
-        </div>
-      )}
-
       {/* Action Buttons */}
       <div className="flex items-center gap-2 flex-wrap">
         {/* Active Block Actions */}
@@ -230,42 +221,6 @@ export default function BlockCard({
                 className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
               >
                 View Performance
-              </Button>
-            )}
-          </>
-        )}
-
-        {/* Pending Sign-off Actions */}
-        {block.status === "pending-signoff" && (
-          <>
-            {onSignOff && (
-              <Button
-                size="sm"
-                onClick={onSignOff}
-                className="h-9 px-3 text-xs font-semibold font-['Montserrat'] bg-[#e5e4e1] text-black hover:bg-[#d5d4d1]"
-              >
-                <FileCheck className="h-4 w-4 mr-1" />
-                Sign off & Send
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onEdit}
-              className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
-            >
-              <Edit className="h-4 w-4 mr-1" />
-              Edit Block
-            </Button>
-            {onDelete && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onDelete}
-                className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete Draft
               </Button>
             )}
           </>

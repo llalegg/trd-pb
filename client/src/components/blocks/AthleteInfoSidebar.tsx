@@ -41,7 +41,7 @@ export default function AthleteInfoSidebar({ athlete, currentPhase, blocks, clas
   const totalBlocks = blocks.length;
   const complete = blocks.filter(b => b.status === "complete").length;
   const active = blocks.filter(b => b.status === "active").length;
-  const pending = blocks.filter(b => b.status === "pending-signoff").length;
+  const planned = blocks.filter(b => b.status === "planned").length;
   const draft = blocks.filter(b => b.status === "draft").length;
 
   return (
@@ -91,8 +91,8 @@ export default function AthleteInfoSidebar({ athlete, currentPhase, blocks, clas
             <span className="text-[#f7f6f2]">{active}</span>
           </div>
           <div className="flex items-center justify-between text-xs text-[#979795] font-['Montserrat']">
-            <span>Pending</span>
-            <span className="text-[#f7f6f2]">{pending}</span>
+            <span>Planned</span>
+            <span className="text-[#f7f6f2]">{planned}</span>
           </div>
           <div className="flex items-center justify-between text-xs text-[#979795] font-['Montserrat']">
             <span>Draft</span>

@@ -41,7 +41,6 @@ import {
   ComposedChart,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 import { format, addDays, parseISO, differenceInCalendarDays } from "date-fns";
 import { getExercisesForDay, type Routine } from "@/lib/sessionData";
 import { Progress } from "@/components/ui/progress";
@@ -59,15 +58,15 @@ interface ReviewModeProps {
   athleteId?: string;
 }
 
-function StatusBadge({ status }: { status: "active" | "complete" | "pending-signoff" | "draft" }) {
+function StatusBadge({ status }: { status: "active" | "complete" | "planned" | "draft" }) {
   const label =
     status === "active" ? "Active" :
     status === "complete" ? "Complete" :
-    status === "pending-signoff" ? "Pending" : "Draft";
+    status === "planned" ? "Planned" : "Draft";
   const color =
     status === "active" ? "bg-green-500/20 text-green-400" :
     status === "complete" ? "bg-[#979795]/5 text-[#979795]" :
-    status === "pending-signoff" ? "bg-amber-500/20 text-amber-400" :
+    status === "planned" ? "bg-blue-500/20 text-blue-400" :
     "bg-[#171716] text-[#979795]";
   return <span className={cn("text-xs px-2 py-0.5 rounded-full", color)}>{label}</span>;
 }
@@ -127,7 +126,6 @@ function getHeatColor(value: number) {
 
 export default function ReviewMode({ athleteId }: ReviewModeProps) {
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
   const { data: athletesData = [] } = useQuery<AthleteWithPhase[]>({
     queryKey: ["/api/athletes"],
   });
@@ -136,7 +134,6 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
     [athletesData, athleteId]
   );
   const blocks = athlete?.blocks ?? [];
-  const [signedOffBlocks, setSignedOffBlocks] = useState<Record<string, boolean>>({});
   const createEmptyEntryForm = () => ({
     setsCompleted: "",
     repsCompleted: "",
@@ -223,13 +220,6 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
           date: end,
           label: `${block.name} wraps`,
           type: "block",
-          blockName: block.name,
-        },
-        {
-          id: `${block.id}-signoff`,
-          date: addDays(end, 2),
-          label: `Sign-off due (${block.name})`,
-          type: "deadline",
           blockName: block.name,
         }
       );
@@ -330,19 +320,7 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
   };
 
   const handleEntrySubmit = () => {
-    toast({
-      title: "Workout results saved",
-      description: `${entryContext?.source ?? "Manual entry"} recorded for ${entryContext?.dateLabel ?? "the selected session"}.`,
-    });
     closeEntryModal();
-  };
-
-  const handleSignOff = (blockId: string) => {
-    setSignedOffBlocks(prev => ({ ...prev, [blockId]: true }));
-    toast({
-      title: "Block signed off",
-      description: "Sign-off recorded for staff review.",
-    });
   };
   
   return (
@@ -409,14 +387,6 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
                       }
                     >
                       Enter results
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={signedOffBlocks[block.id]}
-                      onClick={() => handleSignOff(block.id)}
-                    >
-                      {signedOffBlocks[block.id] ? "Signed off" : "Sign off"}
                     </Button>
                   </div>
                 </CardContent>

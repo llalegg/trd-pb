@@ -378,7 +378,7 @@ export function generateSeedAthletes(): AthleteWithPhase[] {
     duration: 5,
     season: "In-Season",
     subSeason: "Mid",
-    status: "pending-signoff",
+    status: "draft",
     currentDay: { week: 3, day: 2 },
     throwing: {
       xRole: "Starter",
@@ -658,7 +658,7 @@ export function generateSeedAthletes(): AthleteWithPhase[] {
     blocks: [block12_1, block12_2],
   });
 
-  // Athlete 4: Casey Davis - Phase 1 with 3 blocks (has pending-signoff)
+  // Athlete 4: Casey Davis - Phase 1 with 3 blocks
   const phase4Id = "phase-athlete-4";
   const phase4StartDate = daysAgo(90);
   const phase4EndDate = daysFromNow(30);
@@ -738,7 +738,7 @@ export function generateSeedAthletes(): AthleteWithPhase[] {
     duration: 4,
     season: "Pre-Season",
     subSeason: "Late",
-    status: "pending-signoff",
+    status: "draft",
     currentDay: { week: 1, day: 1 },
     throwing: {
       xRole: "Starter",

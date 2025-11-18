@@ -228,19 +228,6 @@ export class DbStorage implements IStorage {
     return result.length > 0;
   }
 
-  async signOffBlock(blockId: string): Promise<Block | undefined> {
-    const result = await this.db
-      .update(blocks)
-      .set({
-        status: "active",
-        updatedAt: new Date(),
-      })
-      .where(eq(blocks.id, blockId))
-      .returning();
-
-    return result[0] ? this.mapDbBlockToBlock(result[0]) : undefined;
-  }
-
   // Helper methods to map database types to TypeScript interfaces
   private mapDbProgramToProgram(dbProgram: typeof programs.$inferSelect): Program {
     return {

@@ -66,13 +66,13 @@ const getStatusBadge = (status?: "injured" | "rehabbing" | "lingering-issues" | 
   );
 };
 
-const getBlockCounts = (blocks: Block[] = []): { total: number; complete: number; active: number; draft: number; pending: number } => {
+const getBlockCounts = (blocks: Block[] = []): { total: number; complete: number; active: number; draft: number; planned: number } => {
   return {
     total: blocks.length,
     complete: blocks.filter(b => b.status === "complete").length,
     active: blocks.filter(b => b.status === "active").length,
     draft: blocks.filter(b => b.status === "draft").length,
-    pending: blocks.filter(b => b.status === "pending-signoff").length,
+    planned: blocks.filter(b => b.status === "planned").length,
   };
 };
 
@@ -99,8 +99,8 @@ const formatBlockSummary = (blocks: Block[] = []): string => {
   if (counts.active > 0) {
     parts.push(`${counts.active} active`);
   }
-  if (counts.pending > 0) {
-    parts.push(`${counts.pending} pending`);
+  if (counts.planned > 0) {
+    parts.push(`${counts.planned} planned`);
   }
   if (counts.draft > 0) {
     parts.push(`${counts.draft} draft`);

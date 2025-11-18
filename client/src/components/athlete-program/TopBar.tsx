@@ -91,9 +91,7 @@ export default function TopBar({
 							</TabsTrigger>
 							<TabsTrigger
 								value="builder"
-								disabled
-								className="rounded-none h-14 px-3 text-muted-foreground/50 cursor-not-allowed opacity-50"
-								onClick={(e) => e.preventDefault()}
+								className="rounded-none h-14 px-3 data-[state=active]:text-[#f7f6f2] data-[state=active]:border-b-2 data-[state=active]:border-primary"
 							>
 								Build
 							</TabsTrigger>

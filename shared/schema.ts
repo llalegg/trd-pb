@@ -17,7 +17,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-export type BlockStatus = "draft" | "pending-signoff" | "active" | "complete";
+export type BlockStatus = "draft" | "active" | "planned" | "complete";
 
 // Athletes table
 export const athletes = pgTable("athletes", {
@@ -50,7 +50,7 @@ export const blocks = pgTable("blocks", {
   duration: integer("duration").notNull(),
   season: varchar("season", { length: 20 }).notNull(), // "Pre-Season" | "In-Season" | "Off-Season" | "Redshirt"
   subSeason: varchar("sub_season", { length: 50 }), // "Early" | "Mid" | "Late" | "General Off-Season (GOS)"
-  status: varchar("status", { length: 20 }).notNull(), // "draft" | "pending-signoff" | "active" | "complete"
+  status: varchar("status", { length: 20 }).notNull(), // "draft" | "active" | "planned" | "complete"
   currentDay: jsonb("current_day"), // { week: number, day: number }
   throwing: jsonb("throwing"), // { xRole: string, phase: string, exclusions?: string }
   movement: jsonb("movement"), // { intensity: string, volume: string }

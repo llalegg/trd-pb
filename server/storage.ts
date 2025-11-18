@@ -24,7 +24,6 @@ export interface IStorage {
   createBlock(block: Omit<Block, "id" | "createdAt" | "updatedAt">): Promise<Block>;
   updateBlock(blockId: string, updates: Partial<Block>): Promise<Block | undefined>;
   deleteBlock(blockId: string): Promise<boolean>;
-  signOffBlock(blockId: string): Promise<Block | undefined>;
 }
 
 function generateProgramId(): string {
@@ -515,20 +514,6 @@ export class MemStorage implements IStorage {
     return this.blocks.delete(blockId);
   }
 
-  async signOffBlock(blockId: string): Promise<Block | undefined> {
-    const block = this.blocks.get(blockId);
-    if (!block) {
-      return undefined;
-    }
-    const updatedBlock: Block = {
-      ...block,
-      status: "active",
-      updatedAt: new Date().toISOString(),
-    };
-    this.blocks.set(blockId, updatedBlock);
-    return updatedBlock;
-  }
-
   private determineBlockStatus(program: Program): Block["status"] {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -609,9 +594,6 @@ class StorageProxy implements IStorage {
   }
   deleteBlock(blockId: string): Promise<boolean> {
     return getStorage().deleteBlock(blockId);
-  }
-  signOffBlock(blockId: string): Promise<Block | undefined> {
-    return getStorage().signOffBlock(blockId);
   }
 }
 

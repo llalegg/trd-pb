@@ -22,7 +22,7 @@ const createBlockSchema = z.object({
   duration: z.number(),
   season: z.enum(["Pre-Season", "In-Season", "Off-Season", "Redshirt"]),
   subSeason: z.enum(["Early", "Mid", "Late", "General Off-Season (GOS)"]).optional(),
-  status: z.enum(["draft", "pending-signoff", "active", "complete"]),
+  status: z.enum(["draft", "active", "planned", "complete"]),
   currentDay: z.object({
     week: z.number(),
     day: z.number(),
@@ -205,21 +205,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to delete block" });
-    }
-  });
-
-  // POST /api/blocks/:blockId/sign-off
-  app.post("/api/blocks/:blockId/sign-off", async (req, res) => {
-    try {
-      const { blockId } = req.params;
-      const signedOffBlock = await storage.signOffBlock(blockId);
-      if (signedOffBlock) {
-        res.json(signedOffBlock);
-      } else {
-        res.status(404).json({ error: "Block not found" });
-      }
-    } catch (error) {
-      res.status(500).json({ error: "Failed to sign off block" });
     }
   });
 
