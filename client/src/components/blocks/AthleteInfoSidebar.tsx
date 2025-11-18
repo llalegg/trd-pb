@@ -37,12 +37,29 @@ function formatDateRange(start?: string, end?: string) {
 }
 
 export default function AthleteInfoSidebar({ athlete, currentPhase, blocks, className }: AthleteInfoSidebarProps) {
-  const statusIcon = getStatusIcon(athlete.status);
-  const totalBlocks = blocks.length;
-  const complete = blocks.filter(b => b.status === "complete").length;
-  const active = blocks.filter(b => b.status === "active").length;
-  const planned = blocks.filter(b => b.status === "planned").length;
-  const draft = blocks.filter(b => b.status === "draft").length;
+  // Mock data for athlete details - in production, these would come from the athlete object
+  const athleteDetails = {
+    name: athlete.name || "Oliver Martinez",
+    position: (athlete as any).position || (athlete as any).xRole || "Pitcher",
+    age: (athlete as any).age || "19",
+    height: (athlete as any).height || "5'7\"",
+    weight: (athlete as any).weight || "140 lbs",
+    level: (athlete as any).level || "College",
+    team: (athlete as any).team || "State University",
+    league: (athlete as any).league || "NCAA Division I",
+    role: (athlete as any).xRole || (athlete as any).role || "Relief Pitcher",
+    status: (athlete as any).status || athlete.status || "Cleared",
+    location: (athlete as any).location || "Austin, TX",
+  };
+
+  const getStatusBadgeColor = (status?: string) => {
+    if (!status) return "bg-green-500/20 text-green-400 border-green-500/30";
+    const statusLower = status.toLowerCase();
+    if (statusLower === "cleared") return "bg-green-500/20 text-green-400 border-green-500/30";
+    if (statusLower === "injured") return "bg-red-500/20 text-red-400 border-red-500/30";
+    if (statusLower === "rehabbing") return "bg-amber-500/20 text-amber-400 border-amber-500/30";
+    return "bg-green-500/20 text-green-400 border-green-500/30";
+  };
 
   return (
     <aside
@@ -51,52 +68,76 @@ export default function AthleteInfoSidebar({ athlete, currentPhase, blocks, clas
         className
       )}
     >
-      <div className="p-4 space-y-4">
-        {/* Athlete summary */}
+      <div className="px-4 pb-4 space-y-6">
+        {/* Athlete Header */}
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            {statusIcon}
-            <h2 className="text-sm font-semibold text-[#f7f6f2] font-['Montserrat']">
-              {athlete.name}
-            </h2>
-          </div>
-          <div className="text-xs text-[#979795] font-['Montserrat']">
-            {(athlete as any).position || (athlete as any).xRole ? <span>{(athlete as any).position || (athlete as any).xRole}</span> : null}
-            {(athlete as any).location ? <span className="ml-1">• {(athlete as any).location}</span> : null}
+          <h2 className="text-base font-semibold text-[#f7f6f2] font-['Montserrat'] mb-1">
+            {athleteDetails.name}
+          </h2>
+          <div className="text-sm text-[#979795] font-['Montserrat']">
+            {athleteDetails.position}
           </div>
         </div>
 
-        {/* Phase info */}
-        <div className="border border-[#292928] rounded-lg p-3 bg-[#0f0f0e]">
-          <div className="text-xs text-[#979795] font-['Montserrat'] mb-2">
-            Phase {currentPhase?.phaseNumber ?? "—"}
+        {/* Basic Information Section */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-semibold text-[#f7f6f2] font-['Montserrat'] uppercase tracking-wide">
+            Basic Information
+          </h3>
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#979795] font-['Montserrat']">Age</span>
+              <span className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">{athleteDetails.age}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#979795] font-['Montserrat']">Height</span>
+              <span className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">{athleteDetails.height}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#979795] font-['Montserrat']">Weight</span>
+              <span className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">{athleteDetails.weight}</span>
+            </div>
           </div>
-          <Badge variant="outline" className="bg-[#171716] text-[#979795] border-[#292928] font-['Montserrat']">
-            {formatDateRange(currentPhase?.startDate, currentPhase?.endDate)}
-          </Badge>
         </div>
 
-        {/* Blocks summary */}
-        <div className="border border-[#292928] rounded-lg p-3 bg-[#0f0f0e] space-y-2">
-          <div className="flex items-center justify-between text-xs text-[#979795] font-['Montserrat']">
-            <span>Total</span>
-            <span className="text-[#f7f6f2]">{totalBlocks}</span>
-          </div>
-          <div className="flex items-center justify-between text-xs text-[#979795] font-['Montserrat']">
-            <span>Complete</span>
-            <span className="text-[#f7f6f2]">{complete}</span>
-          </div>
-          <div className="flex items-center justify-between text-xs text-[#979795] font-['Montserrat']">
-            <span>Active</span>
-            <span className="text-[#f7f6f2]">{active}</span>
-          </div>
-          <div className="flex items-center justify-between text-xs text-[#979795] font-['Montserrat']">
-            <span>Planned</span>
-            <span className="text-[#f7f6f2]">{planned}</span>
-          </div>
-          <div className="flex items-center justify-between text-xs text-[#979795] font-['Montserrat']">
-            <span>Draft</span>
-            <span className="text-[#f7f6f2]">{draft}</span>
+        {/* Playing Information Section */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-semibold text-[#f7f6f2] font-['Montserrat'] uppercase tracking-wide">
+            Playing Information
+          </h3>
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#979795] font-['Montserrat']">Level</span>
+              <span className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">{athleteDetails.level}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#979795] font-['Montserrat']">Team</span>
+              <span className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">{athleteDetails.team}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#979795] font-['Montserrat']">League</span>
+              <span className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">{athleteDetails.league}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#979795] font-['Montserrat']">Role</span>
+              <span className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">{athleteDetails.role}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#979795] font-['Montserrat']">Status</span>
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-xs font-['Montserrat'] border px-2 py-0.5",
+                  getStatusBadgeColor(athleteDetails.status)
+                )}
+              >
+                {athleteDetails.status}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#979795] font-['Montserrat']">Location</span>
+              <span className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">{athleteDetails.location}</span>
+            </div>
           </div>
         </div>
       </div>

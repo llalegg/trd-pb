@@ -324,7 +324,7 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
   };
   
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div className="w-full px-4 space-y-8">
 
       <section className="pt-4">
       <div className="flex items-center justify-between mb-4">

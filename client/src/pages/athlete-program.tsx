@@ -361,9 +361,9 @@ export default function AthleteProgramPage() {
 		);
 	}
 
-	function BuilderView({ athleteId }: { athleteId: string }) {
+	function BuilderView({ athleteId, sidebarOpen, sidebarWidth }: { athleteId: string; sidebarOpen: boolean; sidebarWidth: number }) {
 		// Pass header offset to push internal builder header below top bar
-		return <AddProgram athleteId={athleteId} headerOffset={56} />;
+		return <AddProgram athleteId={athleteId} headerOffset={56} sidebarOpen={sidebarOpen} sidebarWidth={sidebarWidth} />;
 	}
 
 	// Athlete details drawer state
@@ -393,7 +393,7 @@ const detailsPanelWidth = 320;
 					className="fixed inset-y-0 left-0 z-40 bg-[#0d0d0c]"
 					style={{ width: detailsPanelWidth }}
 				>
-					<div className="pt-14 h-full">
+					<div className="h-full">
 						{athleteData ? (
 							<AthleteInfoSidebar
 								athlete={athleteData.athlete}
@@ -412,7 +412,7 @@ const detailsPanelWidth = 320;
 					<DashboardView athleteId={athleteId!} athleteName={athleteData?.athlete.name} onNavigateTab={handleTabChange} />
 				)}
 				{currentTab === "review" && <ReviewMode athleteId={athleteId!} />}
-				{currentTab === "builder" && <BuilderView athleteId={athleteId!} />}
+				{currentTab === "builder" && <BuilderView athleteId={athleteId!} sidebarOpen={detailsOpen} sidebarWidth={detailsPanelWidth} />}
 			</div>
 		</div>
 	);

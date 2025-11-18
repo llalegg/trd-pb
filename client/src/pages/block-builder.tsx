@@ -454,7 +454,7 @@ const getSuggestedExerciseTemplate = (sectionId: string): ExerciseTemplate | nul
   return templates[Math.floor(Math.random() * templates.length)];
 };
 
-export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 }: { athleteId?: string, headerOffset?: number }) {
+export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0, sidebarOpen = false, sidebarWidth = 0 }: { athleteId?: string, headerOffset?: number, sidebarOpen?: boolean, sidebarWidth?: number }) {
   const [location, setLocation] = useLocation();
   
   // Get URL params
@@ -3006,7 +3006,14 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
   return (
     <div className="flex flex-col h-screen bg-surface-base overflow-hidden">
       {/* Fixed Header Component */}
-      <div className="fixed left-0 right-0 z-40 border-b bg-surface-base w-full" style={{ top: headerOffset }}>
+      <div 
+        className="fixed z-40 border-b bg-surface-base transition-[left] duration-300" 
+        style={{ 
+          top: headerOffset,
+          left: sidebarOpen ? sidebarWidth : 0,
+          right: 0
+        }}
+      >
         <div className="flex h-16 items-center px-5 w-full">
           {/* Left Section (30%) */}
           <div className="flex items-center w-[30%]">
@@ -3261,7 +3268,10 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
         {/* Main Content */}
         <div
             className="flex-1 min-h-0 transition-all duration-300 overflow-y-auto"
-            style={{ height: 'calc(100vh - 4rem)' }}
+            style={{ 
+              height: 'calc(100vh - 4rem)',
+              marginLeft: sidebarOpen ? sidebarWidth : 0
+            }}
         >
         <Form {...form}>
           <form id="program-form" onSubmit={form.handleSubmit(handleSubmit)} className={currentStep === 1 ? "flex flex-col" : "space-y-8"}>
