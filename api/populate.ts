@@ -5,7 +5,8 @@ import { generateSeedAthletes } from "../db/seed";
 import type { Request, Response } from "express";
 
 // Simple security - require a secret token (set in Vercel env vars)
-const POPULATE_SECRET = process.env.POPULATE_SECRET || "change-me-in-production";
+// If not set, allow any request (less secure but convenient for initial setup)
+const POPULATE_SECRET = process.env.POPULATE_SECRET;
 
 export default async function handler(req: Request, res: Response) {
   // Only allow POST requests
@@ -13,10 +14,14 @@ export default async function handler(req: Request, res: Response) {
     return res.status(405).json({ error: "Method not allowed. Use POST." });
   }
 
-  // Check for secret token
-  const providedSecret = req.headers["x-populate-secret"] || req.body?.secret;
-  if (providedSecret !== POPULATE_SECRET) {
-    return res.status(401).json({ error: "Unauthorized. Provide x-populate-secret header." });
+  // Check for secret token only if POPULATE_SECRET is set
+  if (POPULATE_SECRET) {
+    const providedSecret = req.headers["x-populate-secret"] || req.body?.secret;
+    if (providedSecret !== POPULATE_SECRET) {
+      return res.status(401).json({ error: "Unauthorized. Provide x-populate-secret header." });
+    }
+  } else {
+    console.warn("⚠️  WARNING: POPULATE_SECRET not set. Endpoint is open to anyone. Set POPULATE_SECRET in Vercel env vars for security.");
   }
 
   if (!process.env.DATABASE_URL) {
