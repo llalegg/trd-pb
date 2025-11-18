@@ -1329,9 +1329,10 @@ function generateSeedAthletes() {
 // api/populate.ts
 var POPULATE_SECRET = process.env.POPULATE_SECRET;
 async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed. Use POST." });
-  }
+  try {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed. Use POST." });
+    }
   if (POPULATE_SECRET) {
     const providedSecret = req.headers["x-populate-secret"] || req.body?.secret;
     if (providedSecret !== POPULATE_SECRET) {
@@ -1804,6 +1805,16 @@ async function handler(req, res) {
     return res.status(500).json({
       error: "Failed to populate database",
       details: errorMessage
+    });
+  } catch (outerError) {
+    // Catch any errors that happen outside the inner try-catch
+    console.error("Handler error:", outerError);
+    const errorMessage = outerError instanceof Error ? outerError.message : "Unknown error";
+    const errorStack = outerError instanceof Error ? outerError.stack : undefined;
+    return res.status(500).json({
+      error: "Handler error",
+      details: errorMessage,
+      stack: errorStack
     });
   }
 }
