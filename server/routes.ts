@@ -51,6 +51,31 @@ const createBlockSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Test endpoint to verify API is working
+  app.get("/api/test-athletes", async (_req, res) => {
+    res.json([{
+      athlete: {
+        id: "test-1",
+        name: "Test Athlete",
+        status: null,
+      },
+      blocks: [{
+        id: "test-block-1",
+        athleteId: "test-1",
+        phaseId: "test-phase-1",
+        blockNumber: 1,
+        name: "Test Block",
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        duration: 1,
+        season: "Pre-Season" as const,
+        status: "active" as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }],
+    }]);
+  });
+
   // Get all athletes with blocks (new athlete-centric endpoint)
   app.get("/api/athletes", async (_req, res) => {
     try {
