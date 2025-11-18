@@ -45,7 +45,9 @@ export class MemStorage implements IStorage {
     this.blocks = new Map();
     
     // Initialize with seed athlete data
+    console.log("[MemStorage] Initializing with seed data...");
     const seedAthletes = generateSeedAthletes();
+    console.log(`[MemStorage] Generated ${seedAthletes.length} athletes from seed`);
     seedAthletes.forEach(athleteData => {
       this.athletes.set(athleteData.athlete.id, athleteData);
       // Initialize blocks from seed data
@@ -53,6 +55,7 @@ export class MemStorage implements IStorage {
         this.blocks.set(block.id, block);
       });
     });
+    console.log(`[MemStorage] Initialized ${this.athletes.size} athletes and ${this.blocks.size} blocks`);
     
     // Initialize with some programs
     // Active programs (endDate in the future)
