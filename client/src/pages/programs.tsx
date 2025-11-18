@@ -73,9 +73,22 @@ export default function Programs() {
   });
 
   // Fetch athletes - uses default queryFn from queryClient
-  const { data: athletesData = [], isLoading } = useQuery<AthleteWithPhase[]>({
+  const { data: athletesData = [], isLoading, error } = useQuery<AthleteWithPhase[]>({
     queryKey: ["/api/athletes"],
   });
+
+  // Log for debugging
+  useEffect(() => {
+    if (error) {
+      console.error("[Programs] Error fetching athletes:", error);
+    }
+    if (athletesData) {
+      console.log(`[Programs] Received ${athletesData.length} athletes from API`);
+      if (athletesData.length > 0) {
+        console.log(`[Programs] First athlete:`, athletesData[0]);
+      }
+    }
+  }, [athletesData, error]);
   
   const toggleAthleteExpanded = (athleteId: string) => {
     setExpandedAthletes((prev) => {
