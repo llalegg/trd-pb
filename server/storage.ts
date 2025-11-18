@@ -451,7 +451,12 @@ export class MemStorage implements IStorage {
   // Get athlete-centric data from seed data
   async getAthletes(): Promise<AthleteWithPhase[]> {
     // Return athletes from seed data
-    return Array.from(this.athletes.values());
+    const athletes = Array.from(this.athletes.values());
+    console.log(`[MemStorage] getAthletes() - Returning ${athletes.length} athletes`);
+    if (athletes.length > 0) {
+      console.log(`[MemStorage] First athlete ID: ${athletes[0].athlete.id}, Name: ${athletes[0].athlete.name}, Blocks: ${athletes[0].blocks.length}`);
+    }
+    return athletes;
   }
 
   // Blocks CRUD methods

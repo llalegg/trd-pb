@@ -55,6 +55,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/athletes", async (_req, res) => {
     try {
       const athletes = await storage.getAthletes();
+      console.log(`[API] /api/athletes - Returning ${athletes.length} athletes`);
+      if (athletes.length > 0) {
+        console.log(`[API] First athlete:`, JSON.stringify(athletes[0], null, 2));
+      }
       res.json(athletes);
     } catch (error) {
       console.error("Error fetching athletes:", error);
