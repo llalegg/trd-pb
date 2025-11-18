@@ -1,6 +1,7 @@
 import { type User, type InsertUser, type Program, type InsertProgram, type Athlete, type Block, type Phase, type AthleteWithPhase } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { generateSeedAthletes } from "../db/seed";
+import { DbStorage } from "./dbStorage";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -520,4 +521,7 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Use database storage if DATABASE_URL is available, otherwise use in-memory storage
+export const storage: IStorage = process.env.DATABASE_URL
+  ? new DbStorage(process.env.DATABASE_URL)
+  : new MemStorage();

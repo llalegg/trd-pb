@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, date } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, date, integer, jsonb, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -18,6 +18,69 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 export type BlockStatus = "draft" | "pending-signoff" | "active" | "complete";
+
+// Athletes table
+export const athletes = pgTable("athletes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  photo: text("photo"),
+  status: varchar("status", { length: 50 }), // "injured" | "rehabbing" | "lingering-issues" | null
+  currentPhaseId: varchar("current_phase_id"),
+});
+
+// Phases table
+export const phases = pgTable("phases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  athleteId: varchar("athlete_id").notNull().references(() => athletes.id, { onDelete: "cascade" }),
+  phaseNumber: integer("phase_number").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  status: varchar("status", { length: 20 }).notNull(), // "active" | "complete" | "future"
+});
+
+// Blocks table
+export const blocks = pgTable("blocks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  athleteId: varchar("athlete_id").notNull().references(() => athletes.id, { onDelete: "cascade" }),
+  phaseId: varchar("phase_id").notNull().references(() => phases.id, { onDelete: "cascade" }),
+  blockNumber: integer("block_number").notNull(),
+  name: text("name").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  duration: integer("duration").notNull(),
+  season: varchar("season", { length: 20 }).notNull(), // "Pre-Season" | "In-Season" | "Off-Season" | "Redshirt"
+  subSeason: varchar("sub_season", { length: 50 }), // "Early" | "Mid" | "Late" | "General Off-Season (GOS)"
+  status: varchar("status", { length: 20 }).notNull(), // "draft" | "pending-signoff" | "active" | "complete"
+  currentDay: jsonb("current_day"), // { week: number, day: number }
+  throwing: jsonb("throwing"), // { xRole: string, phase: string, exclusions?: string }
+  movement: jsonb("movement"), // { intensity: string, volume: string }
+  lifting: jsonb("lifting"), // { split: string, emphasis: string, variability: string, scheme: string }
+  conditioning: jsonb("conditioning"), // { coreEmphasis: string, adaptation: string, method: string }
+  lastModification: timestamp("last_modification"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Programs table (legacy, for backward compatibility)
+export const programs = pgTable("programs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  programId: varchar("program_id").notNull().unique(),
+  athleteId: varchar("athlete_id").notNull().references(() => athletes.id, { onDelete: "cascade" }),
+  athleteName: text("athlete_name").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  routineTypes: jsonb("routine_types").notNull(), // string[]
+  blockDuration: integer("block_duration").notNull(),
+  status: varchar("status", { length: 50 }), // "injured" | "rehabbing" | "lingering-issues" | null
+  season: varchar("season", { length: 50 }),
+  subSeason: varchar("sub_season", { length: 50 }),
+  lastModification: timestamp("last_modification"),
+  lastSubmission: timestamp("last_submission"),
+  currentDay: jsonb("current_day"), // { block: number, week: number, day: number }
+  nextBlockDue: timestamp("next_block_due"),
+  daysComplete: integer("days_complete"),
+  daysAvailable: integer("days_available"),
+});
 
 export interface Block {
   id: string;
