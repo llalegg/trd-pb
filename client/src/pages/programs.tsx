@@ -126,9 +126,16 @@ export default function Programs() {
         const hasActiveBlock = blocks.some(block => {
           const endDate = new Date(block.endDate);
           endDate.setHours(0, 0, 0, 0);
-          return block.status === "active" && endDate >= today;
+          const isActive = block.status === "active" && endDate >= today;
+          if (!isActive && block.status === "active") {
+            console.log(`[Programs] Block ${block.name} filtered out: status=${block.status}, endDate=${block.endDate}, endDateObj=${endDate.toISOString()}, today=${today.toISOString()}, comparison=${endDate >= today}`);
+          }
+          return isActive;
         });
-        if (!hasActiveBlock) return false;
+        if (!hasActiveBlock) {
+          console.log(`[Programs] Athlete ${athlete.name} filtered out: no active blocks matching current filter`);
+          return false;
+        }
       } else if (status === "past") {
         // Past: Only athletes with NO active or planned (draft) blocks
         // All blocks must be complete and ended in the past
