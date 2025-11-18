@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
-import { ArrowLeft, User, Shield, ExternalLink, Plus, Trash2, Check, Pencil, Edit } from "lucide-react";
+import { ArrowLeft, User, Shield, ExternalLink, Plus, Trash2, Check, Pencil } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -326,66 +326,11 @@ export default function CoachSessionView() {
               </div>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-[#292928] text-[#f7f6f2] hover:bg-[#171716] h-8 px-3 text-sm font-['Montserrat']"
-            onClick={() => {
-              // TODO: Handle edit action
-            }}
-          >
-            <Edit className="h-3.5 w-3.5 mr-1.5" />
-            Edit
-          </Button>
         </div>
       </div>
 
-      {/* 3-Column Layout with persistent left sidebar */}
+      {/* 2-Column Layout */}
       <div className="flex h-[calc(100vh-64px)]">
-        {/* Column 0: Persistent Sidebar (Coach view) */}
-        <aside className="w-[200px] border-r border-[#292928] bg-[#0d0d0c] overflow-y-auto">
-          <nav className="pt-4">
-            {/* Programs (single item) */}
-            {(() => {
-              const isActive = location === "/programs";
-              return (
-                <button
-                  className={[
-                    "w-full h-10 flex items-center justify-between",
-                    "pl-4 pr-3", // 16 / 12
-                    isActive ? "bg-[#ffffff14] border-l-2 border-[#f7f6f2]" : "border-l-2 border-transparent",
-                    "font-['Montserrat'] text-sm",
-                    isActive ? "text-[#f7f6f2]" : "text-[#979795] hover:text-[#f7f6f2]",
-                  ].join(" ")}
-                  onClick={() => setLocation("/programs")}
-                >
-                  <span className="truncate">Programs</span>
-                  {/* Single item, no chevron */}
-                </button>
-              );
-            })()}
-
-            {/* Templates */}
-            {(() => {
-              const isActive = location === "/templates";
-              return (
-                <button
-                  className={[
-                    "w-full h-10 flex items-center justify-between",
-                    "pl-4 pr-3", // 16 / 12
-                    isActive ? "bg-[#ffffff14] border-l-2 border-[#f7f6f2]" : "border-l-2 border-transparent",
-                    "font-['Montserrat'] text-sm",
-                    isActive ? "text-[#f7f6f2]" : "text-[#979795] hover:text-[#f7f6f2]",
-                  ].join(" ")}
-                  onClick={() => setLocation("/templates")}
-                >
-                  <span className="truncate">Templates</span>
-                </button>
-              );
-            })()}
-          </nav>
-        </aside>
-
         {/* Column 1: Exercise List */}
         <div className="w-80 border-r border-[#292928] bg-[#0d0d0c] overflow-y-auto">
             <div className="p-4 border-b border-[#292928]">
@@ -502,13 +447,13 @@ export default function CoachSessionView() {
                     <h2 className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat']">
                       {selectedExercise.exercise.name}
                     </h2>
-                    {enteredBy && (
+                    {enteredBy && enteredBy === "athlete" && (
                       <Badge 
-                        variant={enteredBy === "coach" ? "default" : "secondary"}
-                        icon={enteredBy === "coach" ? <Shield className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                        variant="secondary"
+                        icon={<User className="h-3 w-3" />}
                         className="text-xs"
                       >
-                        {enteredBy === "coach" ? "Coach" : "Athlete"}
+                        Athlete
                       </Badge>
                     )}
                   </div>
