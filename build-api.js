@@ -12,34 +12,44 @@ const external = [
   ...Object.keys(pkg.optionalDependencies || {}),
 ];
 
-// Resolve absolute paths
-const entryPoint = resolve(process.cwd(), 'api/index.ts');
-const outfile = resolve(process.cwd(), 'api/index.js');
+function buildApiFile(entryFile, outputFile) {
+  const entryPoint = resolve(process.cwd(), entryFile);
+  const outfile = resolve(process.cwd(), outputFile);
 
-// Check if entry point exists
-if (!existsSync(entryPoint)) {
-  console.error(`Error: Entry point not found: ${entryPoint}`);
-  console.error(`Current working directory: ${process.cwd()}`);
-  process.exit(1);
+  // Check if entry point exists
+  if (!existsSync(entryPoint)) {
+    console.log(`⚠️  Entry point not found: ${entryPoint}, skipping...`);
+    return Promise.resolve();
+  }
+
+  return build({
+    entryPoints: [entryPoint],
+    bundle: true,
+    platform: 'node',
+    format: 'esm',
+    outfile: outfile,
+    external: external.filter(pkg => !pkg.startsWith('.') && !pkg.startsWith('/')),
+    banner: {
+      js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
+    },
+    absWorkingDir: process.cwd(),
+    logLevel: 'info',
+  }).catch((error) => {
+    console.error(`Build failed for ${entryFile}:`, error);
+    console.error('Entry point:', entryPoint);
+    console.error('Outfile:', outfile);
+    process.exit(1);
+  });
 }
 
-build({
-  entryPoints: [entryPoint],
-  bundle: true,
-  platform: 'node',
-  format: 'esm',
-  outfile: outfile,
-  external: external.filter(pkg => !pkg.startsWith('.') && !pkg.startsWith('/')),
-  banner: {
-    js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
-  },
-  absWorkingDir: process.cwd(),
-  logLevel: 'info',
+// Build both API endpoints
+Promise.all([
+  buildApiFile('api/index.ts', 'api/index.js'),
+  buildApiFile('api/populate.ts', 'api/populate.js'),
+]).then(() => {
+  console.log('✅ All API endpoints bundled successfully');
 }).catch((error) => {
   console.error('Build failed:', error);
-  console.error('Entry point:', entryPoint);
-  console.error('Outfile:', outfile);
-  console.error('CWD:', process.cwd());
   process.exit(1);
 });
 
