@@ -1341,14 +1341,13 @@ async function handler(req, res) {
   } else {
     console.warn("\u26A0\uFE0F  WARNING: POPULATE_SECRET not set. Endpoint is open to anyone. Set POPULATE_SECRET in Vercel env vars for security.");
   }
-  const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NO_SSL;
-  if (!databaseUrl) {
-    return res.status(500).json({
-      error: "Database URL not configured",
-      details: "Please set DATABASE_URL or POSTGRES_URL in Vercel environment variables"
-    });
-  }
-  try {
+    const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NO_SSL;
+    if (!databaseUrl) {
+      return res.status(500).json({
+        error: "Database URL not configured",
+        details: "Please set DATABASE_URL or POSTGRES_URL in Vercel environment variables"
+      });
+    }
     console.log("Starting database population...");
     console.log("Using database URL:", databaseUrl.replace(/:[^:@]+@/, ":****@"));
     const sql2 = neon(databaseUrl);
