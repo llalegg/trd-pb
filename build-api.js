@@ -33,8 +33,13 @@ build({
   banner: {
     js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
   },
+  absWorkingDir: process.cwd(),
+  logLevel: 'info',
 }).catch((error) => {
   console.error('Build failed:', error);
+  console.error('Entry point:', entryPoint);
+  console.error('Outfile:', outfile);
+  console.error('CWD:', process.cwd());
   process.exit(1);
 });
 
