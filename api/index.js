@@ -2008,15 +2008,62 @@ var MemStorage = class {
 var storageInstance = null;
 function getStorage() {
   if (!storageInstance) {
-    storageInstance = process.env.DATABASE_URL ? new DbStorage(process.env.DATABASE_URL) : new MemStorage();
+    const databaseUrl = process.env.DATABASE_URL;
+    if (databaseUrl) {
+      try {
+        storageInstance = new DbStorage(databaseUrl);
+      } catch (error) {
+        console.error("Failed to initialize DbStorage, falling back to MemStorage:", error);
+        storageInstance = new MemStorage();
+      }
+    } else {
+      storageInstance = new MemStorage();
+    }
   }
   return storageInstance;
 }
-var storage = new Proxy({}, {
-  get(_target, prop) {
-    return getStorage()[prop];
+var StorageProxy = class {
+  getUser(id) {
+    return getStorage().getUser(id);
   }
-});
+  getUserByUsername(username) {
+    return getStorage().getUserByUsername(username);
+  }
+  createUser(user) {
+    return getStorage().createUser(user);
+  }
+  getPrograms() {
+    return getStorage().getPrograms();
+  }
+  getProgram(id) {
+    return getStorage().getProgram(id);
+  }
+  createProgram(program) {
+    return getStorage().createProgram(program);
+  }
+  deleteProgram(id) {
+    return getStorage().deleteProgram(id);
+  }
+  getAthletes() {
+    return getStorage().getAthletes();
+  }
+  getBlocksByPhase(athleteId, phaseId) {
+    return getStorage().getBlocksByPhase(athleteId, phaseId);
+  }
+  createBlock(block) {
+    return getStorage().createBlock(block);
+  }
+  updateBlock(blockId, updates) {
+    return getStorage().updateBlock(blockId, updates);
+  }
+  deleteBlock(blockId) {
+    return getStorage().deleteBlock(blockId);
+  }
+  signOffBlock(blockId) {
+    return getStorage().signOffBlock(blockId);
+  }
+};
+var storage = new StorageProxy();
 
 // server/routes.ts
 import { z } from "zod";
@@ -2070,7 +2117,9 @@ async function registerRoutes(app2) {
       const athletes2 = await storage.getAthletes();
       res.json(athletes2);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch athletes" });
+      console.error("Error fetching athletes:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: "Failed to fetch athletes", details: errorMessage });
     }
   });
   app2.get("/api/programs", async (_req, res) => {

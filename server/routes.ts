@@ -57,7 +57,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const athletes = await storage.getAthletes();
       res.json(athletes);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch athletes" });
+      console.error("Error fetching athletes:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: "Failed to fetch athletes", details: errorMessage });
     }
   });
 

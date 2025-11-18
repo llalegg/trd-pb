@@ -527,16 +527,63 @@ let storageInstance: IStorage | null = null;
 
 export function getStorage(): IStorage {
   if (!storageInstance) {
-    storageInstance = process.env.DATABASE_URL
-      ? new DbStorage(process.env.DATABASE_URL)
-      : new MemStorage();
+    const databaseUrl = process.env.DATABASE_URL;
+    if (databaseUrl) {
+      try {
+        storageInstance = new DbStorage(databaseUrl);
+      } catch (error) {
+        console.error("Failed to initialize DbStorage, falling back to MemStorage:", error);
+        storageInstance = new MemStorage();
+      }
+    } else {
+      storageInstance = new MemStorage();
+    }
   }
   return storageInstance;
 }
 
 // Export storage for backward compatibility (will use lazy initialization)
-export const storage: IStorage = new Proxy({} as IStorage, {
-  get(_target, prop) {
-    return getStorage()[prop as keyof IStorage];
+// Use a class wrapper to ensure proper method binding
+class StorageProxy implements IStorage {
+  getUser(id: string): Promise<User | undefined> {
+    return getStorage().getUser(id);
   }
-});
+  getUserByUsername(username: string): Promise<User | undefined> {
+    return getStorage().getUserByUsername(username);
+  }
+  createUser(user: InsertUser): Promise<User> {
+    return getStorage().createUser(user);
+  }
+  getPrograms(): Promise<Program[]> {
+    return getStorage().getPrograms();
+  }
+  getProgram(id: string): Promise<Program | undefined> {
+    return getStorage().getProgram(id);
+  }
+  createProgram(program: InsertProgram): Promise<Program> {
+    return getStorage().createProgram(program);
+  }
+  deleteProgram(id: string): Promise<boolean> {
+    return getStorage().deleteProgram(id);
+  }
+  getAthletes(): Promise<AthleteWithPhase[]> {
+    return getStorage().getAthletes();
+  }
+  getBlocksByPhase(athleteId: string, phaseId: string): Promise<Block[]> {
+    return getStorage().getBlocksByPhase(athleteId, phaseId);
+  }
+  createBlock(block: Omit<Block, "id" | "createdAt" | "updatedAt">): Promise<Block> {
+    return getStorage().createBlock(block);
+  }
+  updateBlock(blockId: string, updates: Partial<Block>): Promise<Block | undefined> {
+    return getStorage().updateBlock(blockId, updates);
+  }
+  deleteBlock(blockId: string): Promise<boolean> {
+    return getStorage().deleteBlock(blockId);
+  }
+  signOffBlock(blockId: string): Promise<Block | undefined> {
+    return getStorage().signOffBlock(blockId);
+  }
+}
+
+export const storage: IStorage = new StorageProxy();
