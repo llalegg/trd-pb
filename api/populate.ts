@@ -24,14 +24,21 @@ export default async function handler(req: Request, res: Response) {
     console.warn("⚠️  WARNING: POPULATE_SECRET not set. Endpoint is open to anyone. Set POPULATE_SECRET in Vercel env vars for security.");
   }
 
-  if (!process.env.DATABASE_URL) {
-    return res.status(500).json({ error: "DATABASE_URL not configured" });
+  // Check for DATABASE_URL or POSTGRES_URL (Vercel/Neon uses POSTGRES_URL)
+  const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NO_SSL;
+  
+  if (!databaseUrl) {
+    return res.status(500).json({ 
+      error: "Database URL not configured",
+      details: "Please set DATABASE_URL or POSTGRES_URL in Vercel environment variables"
+    });
   }
 
   try {
     console.log("Starting database population...");
+    console.log("Using database URL:", databaseUrl.replace(/:[^:@]+@/, ':****@'));
     
-    const sql = neon(process.env.DATABASE_URL);
+    const sql = neon(databaseUrl);
     const db = drizzle(sql);
 
     // Helper functions for date manipulation

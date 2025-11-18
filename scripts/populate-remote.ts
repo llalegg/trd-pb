@@ -39,7 +39,14 @@ async function getConfig() {
     }
   }
 
+  const hasArgs = args.length > 0;
+  
   if (!vercelUrl) {
+    if (hasArgs) {
+      console.error("❌ Vercel URL is required. Use --url=https://your-app.vercel.app");
+      rl.close();
+      process.exit(1);
+    }
     vercelUrl = await question("Enter your Vercel app URL (e.g., https://your-app.vercel.app): ");
     if (!vercelUrl) {
       console.error("❌ Vercel URL is required");
@@ -48,13 +55,10 @@ async function getConfig() {
     }
   }
 
-  if (!populateSecret) {
-    populateSecret = await question("Enter POPULATE_SECRET (set in Vercel env vars): ");
-    if (!populateSecret) {
-      console.error("❌ POPULATE_SECRET is required");
-      rl.close();
-      process.exit(1);
-    }
+  // POPULATE_SECRET is optional - if not set in Vercel, the endpoint will be open
+  if (!populateSecret && !hasArgs) {
+    const answer = await question("POPULATE_SECRET not set. Press Enter to continue without secret (or type secret if you have one): ");
+    populateSecret = answer.trim() || undefined;
   }
 
   rl.close();
@@ -67,17 +71,39 @@ async function populateRemote() {
 
   console.log("\n🚀 Calling remote populate endpoint...");
   console.log(`📍 URL: ${url}`);
-  console.log(`🔐 Using secret: ${populateSecret.substring(0, 4)}...\n`);
+  if (populateSecret) {
+    console.log(`🔐 Using secret: ${populateSecret.substring(0, 4)}...\n`);
+  } else {
+    console.log(`⚠️  No secret provided - endpoint must be open\n`);
+  }
+  
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  
+  if (populateSecret) {
+    headers["x-populate-secret"] = populateSecret;
+  }
+  
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "x-populate-secret": populateSecret,
-        "Content-Type": "application/json",
-      },
+      headers,
     });
 
-    const data = await response.json();
+    const contentType = response.headers.get("content-type");
+    let data;
+    
+    if (contentType && contentType.includes("application/json")) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      console.error("❌ Received non-JSON response:");
+      console.error("Status:", response.status, response.statusText);
+      console.error("Content-Type:", contentType);
+      console.error("Response:", text.substring(0, 500));
+      process.exit(1);
+    }
 
     if (!response.ok) {
       console.error("❌ Error:", data.error || "Unknown error");
