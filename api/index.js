@@ -2328,6 +2328,23 @@ async function initializeApp() {
 }
 async function handler(req, res) {
   await initializeApp();
+  console.log("Request received:", {
+    method: req.method,
+    url: req.url,
+    originalUrl: req.originalUrl,
+    path: req.path,
+    headers: {
+      "x-vercel-original-path": req.headers["x-vercel-original-path"],
+      "x-forwarded-path": req.headers["x-forwarded-path"]
+    }
+  });
+  if (req.url === "/api" || req.path === "/api") {
+    const originalPath = req.headers["x-vercel-original-path"] || req.headers["x-forwarded-path"] || req.url;
+    if (originalPath && originalPath !== "/api") {
+      req.url = originalPath;
+      req.originalUrl = originalPath;
+    }
+  }
   app(req, res);
 }
 export {
