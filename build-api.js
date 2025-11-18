@@ -12,7 +12,7 @@ const external = [
 ];
 
 build({
-  entryPoints: ['src/api/index.ts'],
+  entryPoints: ['api/index.ts'],
   bundle: true,
   platform: 'node',
   format: 'esm',
