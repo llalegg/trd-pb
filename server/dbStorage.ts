@@ -1,4 +1,4 @@
-import { drizzle } from "drizzle-orm/neon-serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -31,7 +31,7 @@ export class DbStorage implements IStorage {
 
   constructor(databaseUrl: string) {
     const sql = neon(databaseUrl);
-    this.db = drizzle({ client: sql });
+    this.db = drizzle(sql);
   }
 
   // User methods
@@ -123,9 +123,9 @@ export class DbStorage implements IStorage {
         .filter((p) => p.athleteId === athlete.id)
         .map(this.mapDbPhaseToPhase);
 
-      const currentPhase =
-        athlete.currentPhaseId &&
-        athletePhases.find((p) => p.id === athlete.currentPhaseId);
+      const currentPhase = athlete.currentPhaseId
+        ? athletePhases.find((p) => p.id === athlete.currentPhaseId)
+        : undefined;
 
       const athleteBlocks = dbBlocks
         .filter((b) => b.athleteId === athlete.id)
@@ -137,7 +137,7 @@ export class DbStorage implements IStorage {
 
       return {
         athlete: this.mapDbAthleteToAthlete(athlete, athletePhases),
-        currentPhase,
+        currentPhase: currentPhase ?? undefined,
         blocks: phaseBlocks,
       };
     });
