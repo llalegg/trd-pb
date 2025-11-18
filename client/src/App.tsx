@@ -7,7 +7,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AnimatePresence, motion } from "framer-motion";
 import Home from "@/pages/home";
 import Programs from "@/pages/programs";
-import AddProgram from "@/pages/program-builder";
 import AthleteView from "@/pages/athlete-home";
 import SessionView from "@/pages/session-view";
 import ExecutionView from "@/pages/execution-view";
@@ -29,7 +28,6 @@ const webViewRoutes = [
   '/programs/', // ensure nested athlete route recognized
   '/program-page',
   '/coach-session-view',
-  '/add-program',
   '/athletes',
   '/templates',
 ];
@@ -51,53 +49,10 @@ function AnimatedRouter() {
   const [prevLocation, setPrevLocation] = React.useState(location);
   const [direction, setDirection] = React.useState<'forward' | 'back'>('forward');
   
-  // Coach layout with persistent left sidebar
+  // Coach layout wrapper (sidebar removed)
   const CoachLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [, setLocation] = useLocation();
     return (
-      <div className="min-h-screen bg-surface-base">
-        {/* Fixed Sidebar */}
-        <aside className="fixed inset-y-0 left-0 w-[200px] border-r border-[#292928] bg-[#0d0d0c] overflow-y-auto z-50">
-          <nav className="pt-4">
-              {(() => {
-                const isActive = location === "/programs" || location.startsWith("/programs");
-                return (
-                  <button
-                    className={[
-                      "w-full h-10 flex items-center justify-between",
-                      "pl-4 pr-3",
-                      isActive ? "bg-[#ffffff14] border-l-2 border-[#f7f6f2]" : "border-l-2 border-transparent",
-                      "font-['Montserrat'] text-sm",
-                      isActive ? "text-[#f7f6f2]" : "text-[#979795] hover:text-[#f7f6f2]",
-                    ].join(" ")}
-                    onClick={() => setLocation("/programs")}
-                  >
-                    <span className="truncate">Programs</span>
-                  </button>
-                );
-              })()}
-              {(() => {
-                const isActive = location === "/templates";
-                return (
-                  <button
-                    className={[
-                      "w-full h-10 flex items-center justify-between",
-                      "pl-4 pr-3",
-                      isActive ? "bg-[#ffffff14] border-l-2 border-[#f7f6f2]" : "border-l-2 border-transparent",
-                      "font-['Montserrat'] text-sm",
-                      isActive ? "text-[#f7f6f2]" : "text-[#979795] hover:text-[#f7f6f2]",
-                    ].join(" ")}
-                    onClick={() => setLocation("/templates")}
-                  >
-                    <span className="truncate">Templates</span>
-                  </button>
-                );
-              })()}
-          </nav>
-        </aside>
-        {/* Page content with left offset */}
-        <main className="min-h-screen overflow-auto pl-[200px]">{children}</main>
-      </div>
+      <div className="min-h-screen bg-surface-base">{children}</div>
     );
   };
   
@@ -157,7 +112,6 @@ function AnimatedRouter() {
       <Route path="/" component={withCoachLayout(Home)} />
       <Route path="/programs/:athleteId" component={withCoachLayout(AthleteProgramPage)} />
       <Route path="/programs" component={withCoachLayout(Programs)} />
-      <Route path="/add-program" component={withCoachLayout(AddProgram)} />
       <Route path="/templates" component={withCoachLayout(TemplatesPage)} />
       <Route path="/home" component={AthleteView} />
       <Route path="/messages" component={MessagesPage} />

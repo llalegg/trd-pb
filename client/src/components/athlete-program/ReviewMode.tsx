@@ -4,13 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { AthleteWithPhase, Block } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
@@ -30,10 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/components/ui/toggle-group";
 import {
   ChartContainer,
   ChartTooltip,
@@ -62,6 +52,7 @@ import {
   Activity,
   Target,
   AlertTriangle,
+  Edit3,
 } from "lucide-react";
 
 interface ReviewModeProps {
@@ -145,7 +136,6 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
     [athletesData, athleteId]
   );
   const blocks = athlete?.blocks ?? [];
-  const [logFilter, setLogFilter] = useState<"all" | RoutineCategory>("all");
   const [signedOffBlocks, setSignedOffBlocks] = useState<Record<string, boolean>>({});
   const createEmptyEntryForm = () => ({
     setsCompleted: "",
@@ -318,11 +308,6 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
     return logs.slice(0, 10);
   }, []);
 
-  const filteredLogs = useMemo(() => {
-    if (logFilter === "all") return recentWorkoutLogs;
-    return recentWorkoutLogs.filter(log => log.routineCategory === logFilter);
-  }, [logFilter, recentWorkoutLogs]);
-
   const benchmarkItems = useMemo(
     () => [
       { label: "Week-over-week volume", value: "+6%", detail: "vs last week", icon: TrendingUp },
@@ -361,50 +346,32 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
   };
   
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-[#979795] uppercase tracking-wide">Review tab</p>
-          <h2 className="text-2xl font-semibold text-[#f7f6f2] mt-2">Performance oversight</h2>
-        </div>
-        {athlete?.athlete?.name ? (
-          <div className="text-right">
-            <p className="text-sm text-[#979795]">Active athlete</p>
-            <p className="text-lg font-medium text-[#f7f6f2]">{athlete.athlete.name}</p>
-          </div>
-        ) : null}
-      </div>
+    <div className="max-w-7xl mx-auto space-y-8">
 
-      <section>
+      <section className="pt-4">
       <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-base font-semibold text-[#f7f6f2]">Block timeline</h3>
-            <p className="text-sm text-[#979795] mt-2">
-              Monitor every block with status, readiness, and quick actions
-            </p>
-          </div>
+          <h3 className="text-base font-semibold text-[#f7f6f2]">Block timeline</h3>
           <span className="text-xs text-[#979795]">{blocks.length} blocks scheduled</span>
       </div>
-      <div className="overflow-x-auto">
-        <div className="flex gap-4">
-            {timelineBlocks.length === 0 ? (
-              <div className="w-full rounded-lg border border-dashed border-[#2a2a28] bg-[#10100f] p-8 text-center text-sm text-[#979795]">
-                No blocks scheduled yet. Add a block to unlock timeline analytics.
-              </div>
-            ) : (
-              timelineBlocks.map(({ block, blockNumber, completion, summary }) => (
-              <Card
-                key={block.id}
-                className="min-w-[320px] border border-[#292928] bg-[#10100f] hover:bg-[#171716] transition-colors"
-              >
+      <div className="flex flex-wrap gap-4">
+          {timelineBlocks.length === 0 ? (
+            <div className="w-full rounded-lg border border-dashed border-[#2a2a28] bg-[#10100f] p-8 text-center text-sm text-[#979795]">
+              No blocks scheduled yet. Add a block to unlock timeline analytics.
+            </div>
+          ) : (
+            timelineBlocks.map(({ block, blockNumber, completion, summary }) => (
+            <Card
+              key={block.id}
+              className="flex-1 min-w-[320px] hover:bg-[#171716] transition-colors"
+            >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-xs text-[#979795]">Block {blockNumber}</p>
                       <CardTitle className="text-base mt-1 text-[#f7f6f2]">{block.name}</CardTitle>
-                      <CardDescription className="text-xs text-[#c3c2bf] mt-2">
+                      <p className="sr-only">
                         {format(parseISO(block.startDate), "MMM d")} — {format(parseISO(block.endDate), "MMM d")}
-                      </CardDescription>
+                      </p>
                     </div>
                     <div className="space-y-1 text-right">
                       <StatusBadge status={block.status as any} />
@@ -457,22 +424,16 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
               ))
             )}
           </div>
-        </div>
       </section>
 
       <section className="space-y-6">
-        <div>
-          <h3 className="text-base font-semibold text-[#f7f6f2]">Analytics</h3>
-          <p className="text-sm text-[#979795] mt-2">
-            Progress trends, benchmarks, and visualized performance signals
-          </p>
-        </div>
+        <h3 className="text-base font-semibold text-[#f7f6f2]">Analytics</h3>
         <div className="grid gap-6 xl:grid-cols-3">
-          <Card className="xl:col-span-2 border border-[#292928] bg-[#10100f]">
+          <Card className="xl:col-span-2">
             <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="text-base text-[#f7f6f2]">Progress trends</CardTitle>
-                <CardDescription className="text-sm text-[#979795]">Completion vs compliance per block</CardDescription>
+              <CardTitle className="text-base text-[#f7f6f2]">Progress trends</CardTitle>
+              <p className="sr-only">Completion vs compliance per block</p>
               </div>
               <div className="flex gap-6 text-sm text-[#c3c2bf]">
                 <div>
@@ -493,9 +454,9 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 sm:px-6 sm:pb-6">
               <ChartContainer
-                className="h-64"
+                className="h-72 w-full"
                 config={{
                   completion: { label: "Completion", color: "hsl(142, 70%, 45%)" },
                   compliance: { label: "Compliance", color: "hsl(45, 90%, 55%)" },
@@ -513,41 +474,45 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
             </CardContent>
           </Card>
 
-          <Card className="border border-[#292928] bg-[#10100f]">
+          <Card>
             <CardHeader>
               <CardTitle className="text-base text-[#f7f6f2]">Performance benchmarks</CardTitle>
-              <CardDescription className="text-sm text-[#979795]">
-                Tracking baseline deltas, PRs, and block shifts
-              </CardDescription>
+              <p className="sr-only">Tracking baseline deltas, PRs, and block shifts</p>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {benchmarkItems.map(item => (
-                <div key={item.label} className="flex items-center justify-between rounded-lg border border-[#1c1c1b] p-3">
-                  <div className="flex items-center gap-3">
-                    <span className="rounded-full bg-[#1f1f1e] p-2 text-emerald-300">
-                      <item.icon className="h-4 w-4" />
-                    </span>
-                    <div>
-                      <p className="text-sm text-[#f7f6f2]">{item.label}</p>
-                      <p className="text-xs text-[#979795] mt-2">{item.detail}</p>
+            <CardContent className="p-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {benchmarkItems.map((item, index) => (
+                  <div
+                    key={item.label}
+                    className={cn(
+                      "rounded-lg border border-[#1c1c1b] bg-[#0f0f0e] p-4",
+                      index === 0 && "bg-gradient-to-br from-[#102818] to-[#0f0f0e] border-[#1f3b26]"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-[#979795]">{item.label}</p>
+                        <p className="mt-3 text-xl font-semibold text-[#f7f6f2]">{item.value}</p>
+                      </div>
+                      <span className="rounded-full bg-[#1a1a19] p-2 text-emerald-300">
+                        <item.icon className="h-4 w-4" />
+                      </span>
                     </div>
+                    <p className="mt-3 text-xs text-[#979795]">{item.detail}</p>
                   </div>
-                  <p className="text-sm font-semibold text-[#f7f6f2]">{item.value}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="border border-[#292928] bg-[#10100f]">
+          <Card>
             <CardHeader>
               <CardTitle className="text-base text-[#f7f6f2]">Volume vs intensity</CardTitle>
-              <CardDescription className="text-sm text-[#979795]">
-                Week-over-week workload distribution
-              </CardDescription>
+              <p className="sr-only">Week-over-week workload distribution</p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 sm:px-6 sm:pb-6">
               <ChartContainer
                 className="h-64"
                 config={{
@@ -568,14 +533,12 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
             </CardContent>
           </Card>
 
-          <Card className="border border-[#292928] bg-[#10100f]">
+          <Card>
             <CardHeader>
               <CardTitle className="text-base text-[#f7f6f2]">Throwing velocity & RPE</CardTitle>
-              <CardDescription className="text-sm text-[#979795]">
-                Overlay of weekly RPE trends vs velocity gains
-              </CardDescription>
+              <p className="sr-only">Overlay of weekly RPE trends vs velocity gains</p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 sm:px-6 sm:pb-6">
               <ChartContainer
                 className="h-64"
                 config={{
@@ -596,12 +559,10 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
           </Card>
               </div>
 
-        <Card className="border border-[#292928] bg-[#10100f]">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base text-[#f7f6f2]">Compliance heatmap</CardTitle>
-            <CardDescription className="text-sm text-[#979795]">
-              Heatmap of workout completion by routine type
-            </CardDescription>
+            <p className="sr-only">Heatmap of workout completion by routine type</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-[auto_repeat(6,minmax(0,1fr))] gap-2 text-xs">
@@ -634,20 +595,18 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <Card className="border border-[#292928] bg-[#10100f]">
-          <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <Card>
+          <CardHeader className="flex flex-col gap-4">
             <div>
               <CardTitle className="text-base text-[#f7f6f2]">Schedule</CardTitle>
-              <CardDescription className="text-sm text-[#979795] mt-2">
-                Blocks, assessments, deadlines, and rest windows
-              </CardDescription>
+              <p className="sr-only">Blocks, assessments, deadlines, and rest windows</p>
             </div>
             <div className="flex items-center gap-2 text-sm text-[#979795]">
               <CalendarDays className="h-4 w-4" />
               {blocks.length ? `${format(parseISO(blocks[0].startDate), "MMM d")} - ${format(parseISO(blocks[blocks.length - 1].endDate), "MMM d")}` : "No schedule"}
             </div>
           </CardHeader>
-          <CardContent className="grid gap-6 lg:grid-cols-2">
+          <CardContent className="space-y-4">
             <div className="rounded-lg border border-[#292928] bg-[#0b0b0a]">
               <Calendar
                 mode="single"
@@ -664,12 +623,12 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
                 }}
               />
             </div>
-            <div className="space-y-4 max-h-[320px] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
               {scheduleEvents.map(event => (
-                <div key={event.id} className="flex justify-between gap-3 rounded-lg border border-[#1c1c1b] p-3">
-                  <div>
+                <div key={event.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-[#1c1c1b] p-3">
+                  <div className="flex-1 min-w-[200px]">
                     <p className="text-sm font-medium text-[#f7f6f2]">{event.label}</p>
-                    <p className="text-xs text-[#979795] mt-2">
+                    <p className="text-xs text-[#979795] mt-1">
                       {format(event.date, "EEE, MMM d")} {event.blockName ? `• ${event.blockName}` : ""}
                     </p>
                   </div>
@@ -691,55 +650,41 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
           </CardContent>
         </Card>
 
-        <Card className="border border-[#292928] bg-[#10100f]">
-          <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <CardTitle className="text-base text-[#f7f6f2]">Recent workout logs</CardTitle>
-              <CardDescription className="text-sm text-[#979795] mt-2">
-                Last 10 submissions with missing data flags
-              </CardDescription>
-            </div>
-            <ToggleGroup
-              type="single"
-              value={logFilter}
-              onValueChange={(value) => setLogFilter((value as typeof logFilter) || "all")}
-              className="flex gap-2"
-            >
-              <ToggleGroupItem value="all" className="text-xs px-3">All</ToggleGroupItem>
-              <ToggleGroupItem value="movement" className="text-xs px-3">Movement</ToggleGroupItem>
-              <ToggleGroupItem value="throwing" className="text-xs px-3">Throwing</ToggleGroupItem>
-              <ToggleGroupItem value="lifting" className="text-xs px-3">Lifting</ToggleGroupItem>
-            </ToggleGroup>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base text-[#f7f6f2]">Recent workout logs</CardTitle>
+            <p className="sr-only">Last 10 submissions with missing data flags</p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {filteredLogs.map(log => (
-              <div key={log.id} className="rounded-lg border border-[#1c1c1b] bg-[#0f0f0e] p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-[#f7f6f2]">{log.routineName}</p>
-                    <p className="text-xs text-[#979795] mt-2">
-                      {format(log.date, "EEE, MMM d")} • {log.routineLabel}
-                    </p>
-                  </div>
+            {recentWorkoutLogs.map(log => (
+              <div
+                key={log.id}
+                className="flex flex-wrap items-center gap-3 rounded-lg border border-[#1c1c1b] bg-[#0f0f0e] p-3"
+              >
+                <div>
+                  <p className="text-sm font-medium text-[#f7f6f2]">{log.routineName}</p>
+                  <p className="text-xs text-[#979795]">
+                    {format(log.date, "EEE, MMM d")} • {log.routineLabel}
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-xs text-[#c3c2bf] border-[#292928]">
+                  {log.routineLabel}
+                </Badge>
+                {log.missingData && (
+                  <Badge className="bg-amber-500/25 text-amber-100 text-xs flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Missing data
+                  </Badge>
+                )}
+                <div className="ml-auto flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-sm font-semibold text-[#f7f6f2]">{log.completion}%</p>
-                    <p className="text-xs text-[#979795]">complete</p>
+                    <p className="text-[11px] text-[#979795]">complete</p>
                   </div>
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="text-xs text-[#c3c2bf] border-[#292928]">
-                    {log.routineLabel}
-                  </Badge>
-                  {log.missingData && (
-                    <Badge className="bg-amber-500/25 text-amber-100 text-xs flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" />
-                      Missing data
-                    </Badge>
-                  )}
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="ghost"
-                    className="ml-auto"
+                    className="text-[#f7f6f2]"
                     onClick={() =>
                       openEntryModal({
                         source: log.routineName,
@@ -748,28 +693,13 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
                       })
                     }
                   >
-                    Enter results
+                    <Edit3 className="h-4 w-4" />
+                    <span className="sr-only">Enter results</span>
                   </Button>
                 </div>
               </div>
             ))}
           </CardContent>
-        </Card>
-      </section>
-
-      <section>
-        <Card className="border border-[#292928] bg-[#10100f]">
-          <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <CardTitle className="text-base text-[#f7f6f2]">Data entry</CardTitle>
-              <CardDescription className="text-sm text-[#979795] mt-2">
-                Launch the data-entry modal to push sets/reps, weight, RPE, notes
-              </CardDescription>
-            </div>
-            <Button onClick={() => openEntryModal({ source: "Manual entry" })}>
-              Enter workout results
-            </Button>
-          </CardHeader>
         </Card>
       </section>
 

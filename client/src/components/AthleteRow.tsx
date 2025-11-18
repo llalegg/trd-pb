@@ -508,7 +508,7 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
   
   const handleEditBlock = (e: React.MouseEvent, blockId: string) => {
     e.stopPropagation();
-    setLocation(`/add-program?mode=edit&blockId=${blockId}`);
+    setLocation(`/programs/${athlete.id}?tab=builder&mode=edit&blockId=${blockId}`);
   };
   
   const handleSignOff = (e: React.MouseEvent, blockId: string) => {

@@ -22,6 +22,12 @@ export default function TopBar({
 	leftOffset = 0,
 	athleteDetailsOpen = false,
 }: TopBarProps) {
+	const displayPhaseTitle = phaseTitle?.replace(/[()]/g, "").trim();
+	const phasePrimaryMatch = displayPhaseTitle?.match(/^(Phase\s*\d+)/i);
+	const phasePrimaryText = phasePrimaryMatch?.[0]?.trim() ?? (displayPhaseTitle || "");
+	const phaseSecondaryText = phasePrimaryMatch
+		? displayPhaseTitle?.slice(phasePrimaryMatch[0].length).trim()
+		: "";
 	return (
 		<div className="fixed top-0 right-0 z-50 border-b border-[#292928] bg-surface-base" style={{ left: leftOffset }}>
 			<div className="h-14 flex items-center px-4">
@@ -40,22 +46,31 @@ export default function TopBar({
 						<Button
 							variant="ghost"
 							size="icon"
-							className="h-8 w-8"
+						className="h-8 w-8 text-[#979795] hover:text-[#f7f6f2]"
 							onClick={onOpenAthleteDetails}
 							aria-label={athleteDetailsOpen ? "Hide athlete details" : "Open athlete details"}
 							aria-pressed={athleteDetailsOpen}
 						>
 							{athleteDetailsOpen ? (
-								<PanelLeftClose className="h-4 w-4 text-[#f7f6f2]" />
+							<PanelLeftClose className="h-4 w-4 text-inherit" />
 							) : (
-								<PanelLeftOpen className="h-4 w-4 text-[#f7f6f2]" />
+							<PanelLeftOpen className="h-4 w-4 text-inherit" />
 							)}
 						</Button>
 					)}
-					{phaseTitle && (
-						<div className="text-sm text-[#f7f6f2] font-medium">
-							{phaseTitle}
-						</div>
+				{displayPhaseTitle && (
+					<div className="flex items-baseline gap-2">
+						{phasePrimaryText && (
+							<span className="text-sm text-primary font-semibold">
+								{phasePrimaryText}
+							</span>
+						)}
+						{phaseSecondaryText && (
+							<span className="text-sm text-[#979795] font-medium">
+								{phaseSecondaryText}
+							</span>
+						)}
+					</div>
 					)}
 				</div>
 				{/* Center: Tabs */}
@@ -76,7 +91,9 @@ export default function TopBar({
 							</TabsTrigger>
 							<TabsTrigger
 								value="builder"
-								className="rounded-none h-14 px-3 data-[state=active]:text-[#f7f6f2] data-[state=active]:border-b-2 data-[state=active]:border-primary"
+								disabled
+								className="rounded-none h-14 px-3 text-muted-foreground/50 cursor-not-allowed opacity-50"
+								onClick={(e) => e.preventDefault()}
 							>
 								Build
 							</TabsTrigger>

@@ -7,6 +7,7 @@ import { addDays, isWithinInterval, startOfWeek, format } from "date-fns";
 
 type Block = { name: string; startDate: Date; endDate: Date };
 type ActiveProgram = { programId: string; startDate: Date; endDate: Date };
+type KeyEvent = { date: Date; label: string; tone?: "info" | "warning" | "success" };
 
 interface HorizontalCalendarProps {
   startDate: Date | null;
@@ -14,6 +15,7 @@ interface HorizontalCalendarProps {
   blocks?: Block[];
   activePrograms?: ActiveProgram[];
   selectedAthletePhaseEndDate?: string | null;
+  keyEvents?: KeyEvent[];
 }
 
 export default function HorizontalCalendar({
@@ -22,6 +24,7 @@ export default function HorizontalCalendar({
   blocks = [],
   activePrograms = [],
   selectedAthletePhaseEndDate,
+  keyEvents = [],
 }: HorizontalCalendarProps) {
   const calendarScrollRef = useRef<HTMLDivElement>(null);
 
@@ -42,41 +45,49 @@ export default function HorizontalCalendar({
     return `${startDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })} - ${endDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
   }, [startDate, endDate]);
 
-  return (
-    <div className="bg-[#0d0d0c] border-t-2 border-[#292928] w-full">
-      <div className="px-4 py-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-xs font-medium text-[#979795] font-['Montserrat']">
-            {rangeLabel || "Select start date to view calendar"}
-          </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs text-[#979795] hover:text-[#f7f6f2] font-['Montserrat']"
-              >
-                <Info className="h-3 w-3 mr-1" />
-                Legend
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-3 z-[60]" align="end" side="top">
-              <div className="space-y-2">
-                <h4 className="text-xs font-semibold font-['Montserrat']">Legend</h4>
-                <div className="space-y-1 text-xs text-[#979795] font-['Montserrat']">
-                  <div>Blue bars: Blocks</div>
-                  <div>Blue tint: Program duration</div>
-                  <div>Striped: Existing programming</div>
-                  <div>Dashed orange: Phase boundary</div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
+  const keyEventToneToClass = (tone: KeyEvent["tone"]) => {
+    switch (tone) {
+      case "warning":
+        return "bg-[#402f14] text-[#FEC84B]";
+      case "success":
+        return "bg-[#213725] text-[#4ade80]";
+      default:
+        return "bg-[#1e2b3a] text-[#7CD4FD]";
+    }
+  };
 
-        <div className="overflow-x-auto" ref={calendarScrollRef}>
-          <div className="flex gap-1 min-w-max">
+  return (
+    <div className="w-full">
+      <div className="flex items-center justify-between text-[11px] text-[#979795] font-['Montserrat'] py-2">
+        <span>{rangeLabel || "Select start date to view calendar"}</span>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs text-[#979795] hover:text-[#f7f6f2] font-['Montserrat']"
+            >
+              <Info className="h-3 w-3 mr-1" />
+              Legend
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-3 z-[60]" align="end" side="top">
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold font-['Montserrat']">Legend</h4>
+              <div className="space-y-1 text-xs text-[#979795] font-['Montserrat']">
+                <div>Blue bars: Blocks</div>
+                <div>Blue tint: Program duration</div>
+                <div>Striped: Existing programming</div>
+                <div>Dashed orange: Phase boundary</div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <div className="overflow-x-auto" ref={calendarScrollRef}>
+        <div className="flex gap-2 min-w-max pb-2">
             {(() => {
               if (!startDate) {
                 return (
@@ -91,7 +102,7 @@ export default function HorizontalCalendar({
               const end = endDate ? new Date(endDate) : addDays(start, 60);
 
               const days: Date[] = [];
-              let currentDate = new Date(today);
+              let currentDate = new Date(start);
               while (currentDate <= end) {
                 days.push(new Date(currentDate));
                 currentDate = addDays(currentDate, 1);
@@ -140,18 +151,19 @@ export default function HorizontalCalendar({
                 const dayBlocks = blocks.filter((b) =>
                   isWithinInterval(day, { start: b.startDate, end: b.endDate })
                 );
+                const dayEvents = keyEvents.filter(event => isSameDay(day, event.date));
 
                 return (
                   <div
                     key={day.toISOString()}
                     className={cn(
-                      "w-[120px] min-h-[96px] rounded-md border p-1.5 flex flex-col relative shrink-0",
-                      "bg-background",
+                      "w-[150px] min-h-[160px] rounded-2xl border border-[#1f1f1e] p-4 flex flex-col relative shrink-0",
+                      "bg-[#0b0b0a]",
                       isPhaseBoundary && "border-l-2 border-l-orange-500 border-dashed"
                     )}
                   >
                     {showWeekLabel && (
-                      <div className="absolute -top-3 left-0 bg-muted/80 text-[10px] font-medium px-1.5 py-0.5 rounded z-20 whitespace-nowrap">
+                      <div className="absolute top-2 left-3 bg-muted/80 text-[11px] font-medium px-2 py-0.5 rounded z-20 whitespace-nowrap">
                         Week {weekNumber}
                       </div>
                     )}
@@ -170,10 +182,10 @@ export default function HorizontalCalendar({
                       />
                     )}
 
-                    <div className="flex flex-col mb-1.5 relative z-10">
-                      <div className="text-[10px] text-muted-foreground font-medium">{dayName}</div>
-                      <div className="text-xs font-semibold text-foreground">{format(day, "d")}</div>
-                      <div className="text-[9px] text-muted-foreground">{format(day, "MMM")}</div>
+                    <div className="flex flex-col mb-3 relative z-10">
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">{dayName}</div>
+                      <div className="text-2xl font-semibold text-white leading-none">{format(day, "d")}</div>
+                      <div className="text-xs text-muted-foreground">{format(day, "MMM")}</div>
                     </div>
 
                     {isProgramStart && (
@@ -182,7 +194,7 @@ export default function HorizontalCalendar({
                       </div>
                     )}
 
-                    <div className="flex-1 flex flex-col gap-1 relative z-10">
+                    <div className="flex-1 flex flex-col gap-1.5 relative z-10">
                       {dayBlocks.slice(0, 3).map((b, idx) => {
                         const isStart = isSameDay(day, b.startDate);
                         const isEnd = isSameDay(day, b.endDate);
@@ -212,6 +224,21 @@ export default function HorizontalCalendar({
                         </div>
                       )}
                     </div>
+                    {dayEvents.length > 0 && (
+                      <div className="mt-3 space-y-1 relative z-10">
+                        {dayEvents.map(event => (
+                          <div
+                            key={`${event.label}-${event.date.toISOString()}`}
+                            className={cn(
+                              "text-[11px] font-medium px-2 py-1 rounded-full inline-flex items-center gap-1",
+                              keyEventToneToClass(event.tone)
+                            )}
+                          >
+                            {event.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               });
@@ -219,7 +246,6 @@ export default function HorizontalCalendar({
           </div>
         </div>
       </div>
-    </div>
   );
 }
 

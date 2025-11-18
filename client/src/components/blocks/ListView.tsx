@@ -110,7 +110,7 @@ export default function ListView({ athleteId, phaseId }: ListViewProps) {
               Get started by creating the first block for this phase.
             </p>
             <Button
-              onClick={() => setLocation(`/add-program?mode=create&athleteId=${athleteId}`)}
+              onClick={() => setLocation(`/programs/${athleteId}?tab=builder&mode=create`)}
               className="bg-[#e5e4e1] text-black hover:bg-[#d5d4d1] font-['Montserrat']"
             >
               Create First Block
@@ -193,7 +193,7 @@ export default function ListView({ athleteId, phaseId }: ListViewProps) {
             <div key={block.id} className="w-[380px] flex-shrink-0">
               <BlockCard
                 block={block}
-                onEdit={() => setLocation(`/add-program?mode=edit&blockId=${block.id}`)}
+                onEdit={() => setLocation(`/programs/${athleteId}?tab=builder&mode=edit&blockId=${block.id}`)}
                 onView={() => setLocation(`/program-page?blockId=${block.id}`)}
                 onSignOff={block.status === "pending-signoff" ? () => setPendingSignoffBlock(block) : undefined}
                 onDelete={block.status === "draft" || block.status === "pending-signoff" ? async () => {
@@ -215,7 +215,7 @@ export default function ListView({ athleteId, phaseId }: ListViewProps) {
                   }
                 } : undefined}
                 onCopy={block.status === "complete" ? () => {
-                  setLocation(`/add-program?mode=copy&blockId=${block.id}`);
+                  setLocation(`/programs/${athleteId}?tab=builder&mode=copy&blockId=${block.id}`);
                 } : undefined}
                 onViewPerformance={block.status === "active" ? () => {
                   setLocation(`/athletes/${athleteId}/blocks?view=performance&block=${block.id}`);

@@ -490,6 +490,11 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
   // Calendar month state for monthly visualization on Settings step
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
   const calendarScrollRef = useRef<HTMLDivElement>(null);
+  const normalizedToday = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  }, []);
   
   // Block durations state
   const [blockDurations, setBlockDurations] = useState<Map<number, number>>(new Map());
@@ -512,6 +517,12 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
   const [issueModalOpen, setIssueModalOpen] = useState(false);
   const [warningsModalOpen, setWarningsModalOpen] = useState(false);
   const [errorsModalOpen, setErrorsModalOpen] = useState(false);
+  
+  // Add Block Modal state
+  const [addBlockModalOpen, setAddBlockModalOpen] = useState(false);
+  const [newBlockStartDate, setNewBlockStartDate] = useState<Date | undefined>(undefined);
+  const [newBlockDuration, setNewBlockDuration] = useState<number>(4);
+  const [newBlockBuildType, setNewBlockBuildType] = useState<string>("standard");
   
   // Routine settings state - stores settings at block level by default
   const [blockSettings, setBlockSettings] = useState<Map<number, Partial<RoutineSettings>>>(new Map());
@@ -543,7 +554,6 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
   const [reviewRoutineTab, setReviewRoutineTab] = useState<string>("lifting");
   const [reviewWeekIndex, setReviewWeekIndex] = useState(0);
   const [reviewBlockIndex, setReviewBlockIndex] = useState(0);
-  const [reviewViewMode, setReviewViewMode] = useState<"week" | "block">("block");
   const [liftingData, setLiftingData] = useState<Map<string, LiftingDayData>>(new Map());
   const [throwingData, setThrowingData] = useState<Map<string, ThrowingDayData>>(new Map());
   const [movementData, setMovementData] = useState<Map<string, MovementDayData>>(new Map());
@@ -3213,143 +3223,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Step 2 Sub-Header */}
-      {currentStep === 2 && (
-        <div className="fixed top-16 left-0 right-0 z-40 border-b bg-surface-base w-full">
-          <div className="flex h-16 items-center px-5 relative w-full">
-            {/* Left side: Sidebar Toggle */}
-            <div className="absolute left-5">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setAthleteSidebarOpen(!athleteSidebarOpen)}
-                className="h-8 w-8"
-              >
-                {athleteSidebarOpen ? (
-                  <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
-                )}
-              </Button>
-            </div>
-            
-            {/* Center: View Mode Toggle */}
-            <div className="flex items-center gap-4 mx-auto">
-              <ToggleGroup
-                type="single"
-                value={viewMode}
-                onValueChange={(value) => value && setViewMode(value as "blocks" | "weeks")}
-                variant="segmented"
-              >
-                <ToggleGroupItem value="blocks" aria-label="Block view" data-testid="view-blocks">
-                  Block view
-                </ToggleGroupItem>
-                <ToggleGroupItem value="weeks" aria-label="Week view" data-testid="view-weeks">
-                  Week view
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Step 3 Sub-Header */}
-      {currentStep === 3 && (
-        <div className="fixed top-16 left-0 right-0 z-40 border-b bg-surface-base w-full">
-          <div className="flex h-16 items-center justify-between px-5 relative w-full">
-            {/* Left side: Sidebar Toggle */}
-            <div className="absolute left-5">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setAthleteSidebarOpen(!athleteSidebarOpen);
-                }}
-                className="h-8 w-8"
-              >
-                {athleteSidebarOpen ? (
-                  <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
-                )}
-              </Button>
-            </div>
-            
-            {/* Center: Block Selection and Week Navigation */}
-            <div className="flex items-center gap-4 mx-auto">
-              <Select value={reviewBlockIndex.toString()} onValueChange={(val) => {
-                setReviewBlockIndex(parseInt(val));
-                setReviewWeekIndex(0);
-              }}>
-                <SelectTrigger className="w-[180px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {blocks.map((block, idx) => (
-                    <SelectItem key={idx} value={idx.toString()}>
-                      Block {idx + 1}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {getCurrentTemplateName() !== "No Template Selected" && (
-                <span className="text-xs text-muted-foreground">
-                  Template: {getCurrentTemplateName()}
-                </span>
-              )}
-              {reviewViewMode === "week" && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setReviewWeekIndex(Math.max(0, reviewWeekIndex - 1))}
-                    disabled={reviewWeekIndex === 0}
-                    className="p-1.5 hover:bg-muted rounded disabled:opacity-50"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <span className="text-xs font-medium">
-                    Week {reviewWeekIndex + 1} of {getWeeksInBlock.length}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setReviewWeekIndex(Math.min(getWeeksInBlock.length - 1, reviewWeekIndex + 1))}
-                    disabled={reviewWeekIndex >= getWeeksInBlock.length - 1}
-                    className="p-1.5 hover:bg-muted rounded disabled:opacity-50"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                  {currentWeek && (
-                    <span className="text-xs text-muted-foreground">
-                      {format(currentWeek.startDate, "MMM d")} - {format(currentWeek.endDate, "MMM d, yyyy")}
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Right side: View Mode Toggle */}
-            <div className="flex items-center gap-4 absolute right-5">
-              <span className="text-xs font-medium text-foreground">View</span>
-              <ToggleGroup
-                type="single"
-                value={reviewViewMode}
-                onValueChange={(val) => val && setReviewViewMode(val as "week" | "block")}
-                variant="segmented"
-              >
-                <ToggleGroupItem value="block" aria-label="Block view" className="text-xs">
-                  Block View
-                </ToggleGroupItem>
-                <ToggleGroupItem value="week" aria-label="Week view" className="text-xs">
-                  Week View
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Removed Step-specific sub-headers to keep primary bar consistent */}
 
       <main className="px-0 flex">
         {/* Athlete Info Sidebar */}
@@ -3465,10 +3339,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
 
         {/* Main Content */}
         <div
-            className={cn(
-              "flex-1 min-h-0 transition-all duration-300 overflow-y-auto",
-              (currentStep === 2 || currentStep === 3) && athleteSidebarOpen && "ml-[320px]"
-            )}
+            className="flex-1 min-h-0 transition-all duration-300 overflow-y-auto"
             style={{ height: 'calc(100vh - 4rem)' }}
         >
         <Form {...form}>
@@ -4327,92 +4198,104 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
                   </AlertDialogContent>
                 </AlertDialog>
 
+              <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <h3 className="text-xs font-medium">Program blocks</h3>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAddBlockModalOpen(true)}
+                      className="h-7 px-3 text-xs"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1.5" />
+                      Add Block
+                    </Button>
+                  </div>
               {blocks.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-xs font-medium">Program blocks</h3>
-                  <div className="rounded-md border border-[#292928]">
-                    <Table className="table-auto">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-xs whitespace-nowrap">Block</TableHead>
-                          <TableHead className="text-xs whitespace-nowrap">Start Date</TableHead>
-                          <TableHead className="text-xs whitespace-nowrap">End Date</TableHead>
-                          <TableHead className="text-xs whitespace-nowrap">Season</TableHead>
-                          <TableHead className="text-xs whitespace-nowrap">Sub-Season</TableHead>
-                          <TableHead className="text-xs whitespace-nowrap">Duration (weeks)</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {blocks.map((block, index) => {
-                          const blockEndDate = blockEndDates.get(index) || block.endDate;
-                          const blockStartDate = blockStartDates.get(index) || block.startDate;
-                          const endDayOfWeek = blockEndDate.getDay();
-                          const isSunday = endDayOfWeek === 0;
-                          const isMidWeek = endDayOfWeek !== 0 && endDayOfWeek !== 1;
-                          const isRecentlyChanged = recentlyChangedBlocks.has(index);
-                          const isSelected = editingBlockIndex === index;
-                          
-                          // Ensure season and sub-season values are initialized
-                          const currentSeason = blockSeasons.get(index) || "off-season";
-                          const currentSubSeason = blockSubSeasons.get(index) || "general-off-season";
-                          
-                          // Validation: check if block is invalid
-                          const duration = differenceInWeeks(blockEndDate, blockStartDate);
-                          const isInvalid = duration < 1 || blockEndDate < blockStartDate;
-                          
-                          return (
-                          <TableRow 
-                            key={index} 
-                            data-testid={`block-row-${index + 1}`}
-                            className={cn(
-                              "transition-all",
-                              isSelected && "bg-blue-500/10 border-l-2 border-blue-500",
-                              isRecentlyChanged && "bg-yellow-500/10 border-l-2 border-yellow-500",
-                              isInvalid && "bg-red-500/10 border-l-2 border-red-500",
-                              "hover:bg-muted/50"
-                            )}
-                          >
-                            <TableCell className="font-medium whitespace-nowrap" data-testid={`block-name-${index + 1}`}>
-                              {block.name}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap" data-testid={`block-start-date-${index + 1}`}>
-                              <div className="flex h-8 w-fit items-center justify-start rounded-lg border border-[#292928] bg-[#292928] px-3 py-2 text-xs text-[#f7f6f2] font-['Montserrat']">
-                                {format(blockStartDate, "EEE, MM/dd/yy")}
-                              </div>
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap" data-testid={`block-end-date-${index + 1}`}>
-                              <div className="text-xs text-muted-foreground">
-                                {format(blockEndDate, "EEE, MM/dd/yy")}
-                              </div>
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              <div className="text-xs text-muted-foreground">
-                                Off-Season
-                              </div>
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              <div className="text-xs text-muted-foreground">
-                                General Off-Season (GOS)
-                              </div>
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap" data-testid={`block-duration-${index + 1}`}>
-                              <div className={cn(
-                                "text-xs",
-                                isInvalid && "text-red-400",
-                                !isInvalid && "text-muted-foreground"
-                              )}>
-                                {duration} weeks
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
+                  <div className="space-y-3">
+                    {blocks.map((block, index) => {
+                      const blockEndDate = blockEndDates.get(index) || block.endDate;
+                      const blockStartDate = blockStartDates.get(index) || block.startDate;
+                      const duration = differenceInWeeks(blockEndDate, blockStartDate);
+                      const isInvalid = duration < 1 || blockEndDate < blockStartDate;
+                      const currentSeason = blockSeasons.get(index) || "off-season";
+                      const currentSubSeason = blockSubSeasons.get(index) || "general-off-season";
+                      const normalizedStart = new Date(blockStartDate);
+                      normalizedStart.setHours(0, 0, 0, 0);
+                      const normalizedEnd = new Date(blockEndDate);
+                      normalizedEnd.setHours(0, 0, 0, 0);
+                      const isActiveBlock = isWithinInterval(normalizedToday, {
+                        start: normalizedStart,
+                        end: normalizedEnd,
+                      });
+
+                      return (
+                        <div
+                          key={index}
+                          className={cn(
+                            "rounded-lg border border-[#292928] bg-[#131312] p-4 space-y-3 transition-colors",
+                            isInvalid && "border-red-500/40 bg-red-500/5"
+                          )}
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{block.name}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {format(blockStartDate, "EEE, MMM d, yyyy")} - {format(blockEndDate, "EEE, MMM d, yyyy")}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[11px] px-2 py-0.5">
+                                {duration} week{duration !== 1 ? "s" : ""}
+                              </Badge>
+                              {isActiveBlock && (
+                                <Badge className="text-[11px] bg-green-500/10 text-green-400 border-green-500/30">
+                                  Active
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                            <span className="uppercase tracking-wide">Season:</span>
+                            <span className="text-foreground capitalize">{currentSeason.replace("-", " ")}</span>
+                            <span className="hidden sm:inline">•</span>
+                            <span className="uppercase tracking-wide">Sub-season:</span>
+                            <span className="text-foreground capitalize">
+                              {currentSubSeason.replace(/-/g, " ")}
+                            </span>
+                          </div>
+
+                          {!isActiveBlock && (
+                            <div className="flex items-center gap-3">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-3 text-xs text-destructive hover:text-destructive"
+                                disabled
+                              >
+                                Remove block
+                              </Button>
+                              <span className="text-[11px] text-muted-foreground">
+                                Removal controls coming soon
+                              </span>
+                            </div>
+                          )}
+
+                          {isInvalid && (
+                            <p className="text-[11px] text-red-400">
+                              Adjust block dates to ensure the end date is after the start date.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
               )}
-                  </div>
+              </div>
+              </div>
                   
                   {/* Column 2: Key Dates and Other Info */}
                   <div className="flex-1 flex flex-col px-4 py-6 lg:min-w-[300px] lg:flex-shrink-0 bg-surface-base">
@@ -5197,7 +5080,6 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
                           );
                         });
                       })()}
-                    </div>
                                         </div>
                                   </div>
                 </div>
@@ -6003,447 +5885,16 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
                     </div>
                   ) : (
                     <>
-                {/* Week Grid View */}
-                  {reviewViewMode === "week" && (
-                        <div className="flex-1 overflow-auto w-full bg-surface-base">
-                      {/* Week Grid - Table Layout */}
-                      <div className="w-full">
-                        {/* Column Headers */}
-                        <div className="flex border-b bg-surface-base sticky top-0 z-30">
-                          {/* Empty space for routine column */}
-                          <div className="w-10 shrink-0 border-r h-12 bg-surface-base" />
-                          {/* Section header - empty */}
-                          <div className="w-[120px] shrink-0 border-r h-12 bg-surface-base" />
-                          {/* Day headers */}
-                          {getDaysOfWeek.map((day, idx) => (
-                            <div key={idx} className="w-[240px] min-w-[240px] shrink-0 text-center border-r h-12 px-3 flex flex-col justify-center bg-surface-base">
-                              <div className="text-xs font-semibold">{day.name}</div>
-                              <div className="text-xs text-muted-foreground mt-0.5">
-                                {format(day.date, "MMM d")}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                {/* Lifting Routine Table */}
-                        {(routineTypes.includes("lifting") || routineTypes.includes("strength-conditioning")) && (
-                          <div className="flex border-b">
-                            {/* Routine Label Column (Vertical) */}
-                            <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-surface-base overflow-hidden">
-                              <div className="w-10 border-r bg-surface-base flex items-center justify-center" style={{ height: 'calc(3 * 2.5rem + 5rem + 3rem)' }}>
-                                  <div className="-rotate-90 whitespace-nowrap transform origin-center">
-                                    <span className="text-xs font-medium text-orange-700">Lifting</span>
-                                  </div>
-                                </div>
-                            </div>
-                            
-                            {/* Table Content */}
-                            <div className="flex">
-                              {/* Section Column */}
-                              <div className="w-[120px] shrink-0 border-r bg-surface-base">
-                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center bg-surface-base">Intensity</div>
-                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center bg-surface-base">Focus</div>
-                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center bg-surface-base">Emphasis</div>
-                                <div className="font-medium px-3 py-2.5 text-xs border-b min-h-[80px] flex items-start pt-2.5 bg-surface-base">Exercises</div>
-                              </div>
-                              {/* Day Columns */}
-                              {getDaysOfWeek.map((day, dayIdx) => {
-                                const dayData = getLiftingDayData(reviewWeekIndex, day.dayIndex);
-                            
-                            return (
-                                <div
-                                  key={dayIdx}
-                                  className={cn(
-                                    "w-[240px] min-w-[240px] shrink-0 border-r",
-                                    day.isRest ? "bg-surface-base" : "bg-surface-base"
-                                  )}
-                                >
-                                    {/* Intensity */}
-                                    <div className="px-3 py-2.5 text-center border-b h-10 flex items-center justify-center bg-surface-base">
-                                      {day.isRest ? (
-                                        <Bed className="h-4 w-4 mx-auto text-muted-foreground" />
-                                      ) : (
-                                        <Select
-                                          value={dayData.intensity || "light"}
-                                          onValueChange={(value) => updateLiftingDayData(reviewWeekIndex, day.dayIndex, { intensity: value })}
-                                        >
-                                          <SelectTrigger className="h-8 text-xs border-0 shadow-none focus:ring-0 w-full">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                    <SelectContent>
-                                            <SelectItem value="light">Light</SelectItem>
-                                            <SelectItem value="moderate">Moderate</SelectItem>
-                                            <SelectItem value="heavy">Heavy</SelectItem>
-                                            <SelectItem value="maximal">Maximal</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                )}
-                                    </div>
-                                    {/* Focus */}
-                                    <div className="px-3 py-2.5 border-b h-10 flex items-center bg-surface-base">
-                                      {day.isRest ? (
-                                        <Bed className="h-4 w-4 mx-auto text-muted-foreground" />
-                                      ) : (
-                                  <Select
-                                    value={dayData.focus || get4x2Focus(day.dayIndex)}
-                                          onValueChange={(value) => updateLiftingDayData(reviewWeekIndex, day.dayIndex, { focus: value })}
-                                  >
-                                          <SelectTrigger className="h-8 text-xs border-0 shadow-none focus:ring-0 w-full">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                            <SelectItem value="Lower Body #1">Lower Body #1</SelectItem>
-                                            <SelectItem value="Upper Body #1">Upper Body #1</SelectItem>
-                                            <SelectItem value="Conditioning #1">Conditioning #1</SelectItem>
-                                            <SelectItem value="Lower Body #2">Lower Body #2</SelectItem>
-                                            <SelectItem value="Upper Body #2">Upper Body #2</SelectItem>
-                                            <SelectItem value="Conditioning #2">Conditioning #2</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                )}
-                                    </div>
-                                    {/* Emphasis */}
-                                    <div className="px-3 py-2.5 border-b h-10 flex items-center bg-surface-base">
-                                      {day.isRest ? (
-                                        <Bed className="h-4 w-4 mx-auto text-muted-foreground" />
-                                      ) : (
-                                  <Select
-                                    value={dayData.emphasis || "Restorative"}
-                                          onValueChange={(value) => updateLiftingDayData(reviewWeekIndex, day.dayIndex, { emphasis: value })}
-                                  >
-                                          <SelectTrigger className="h-8 text-xs border-0 shadow-none focus:ring-0 w-full">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="Restorative">Restorative</SelectItem>
-                                            <SelectItem value="Strength">Strength</SelectItem>
-                                            <SelectItem value="Speed">Speed</SelectItem>
-                                            <SelectItem value="Hybrid">Hybrid</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                )}
-                                    </div>
-                                    {/* Exercises */}
-                                    <div className="p-1 border-b min-h-[80px] bg-surface-base">
-                                      {day.isRest ? (
-                                        <div className="flex items-center justify-center min-h-[80px]">
-                                          <Bed className="h-5 w-5 mx-auto text-muted-foreground" />
-                                        </div>
-                                      ) : (
-                                        <div className="space-y-1.5 relative min-h-[80px]">
-                                          {dayData.exercises.length === 0 ? (
-                                            <Button
-                                              type="button"
-                                              variant="secondary"
-                                              size="sm"
-                                              onClick={() => addExercises(reviewWeekIndex, day.dayIndex)}
-                                              disabled={isWeekViewReadOnly}
-                                              className="absolute bottom-0 left-0 h-7 w-7 p-0"
-                                            >
-                                              <Plus className="h-3.5 w-3.5" />
-                                            </Button>
-                                          ) : (
-                                            dayData.exercises.map((exercise, exIdx) => (
-                                              <ExerciseCard
-                                                key={exercise.id || exIdx}
-                                                exercise={exercise}
-                                                showRepSchemes={showRepSchemes}
-                                                onEdit={() => {
-                                                  setSelectedExerciseForEdit({
-                                                    weekIndex: reviewWeekIndex,
-                                                    dayIndex: day.dayIndex,
-                                                    section: "exercises",
-                                                    exerciseIndex: exIdx,
-                                                    routineType: "lifting",
-                                                    exercise: exercise,
-                                                  });
-                                                  setExerciseEditModalOpen(true);
-                                                }}
-                                                onShuffle={() => shuffleExercise(reviewWeekIndex, day.dayIndex, exIdx)}
-                                                onRemove={() => removeExercise(reviewWeekIndex, day.dayIndex, exIdx)}
-                                              />
-                                            ))
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                            );
-                          })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Throwing Routine Table */}
-                        {routineTypes.includes("throwing") && (
-                          <div className="flex border-b">
-                            {/* Routine Label Column (Vertical) */}
-                            <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-surface-base overflow-hidden">
-                              <div className="w-10 border-r bg-surface-base flex items-center justify-center" style={{ height: 'calc(1 * 2.5rem + 5rem + 3rem)' }}>
-                                  <div className="-rotate-90 whitespace-nowrap transform origin-center">
-                                    <span className="text-xs font-medium text-blue-700">Throwing</span>
-                                  </div>
-                                </div>
-                            </div>
-                            
-                            {/* Table Content */}
-                            <div className="flex">
-                              {/* Section Column */}
-                              <div className="w-[120px] shrink-0 border-r bg-surface-base">
-                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center bg-surface-base">Intensity</div>
-                                <div className="font-medium px-3 py-2.5 text-xs border-b min-h-[80px] flex items-start pt-2.5 bg-surface-base">Exercises</div>
-                              </div>
-                              {/* Day Columns */}
-                              {getDaysOfWeek.map((day, dayIdx) => (
-                                <div
-                                  key={dayIdx}
-                                  className={cn(
-                                    "w-[240px] min-w-[240px] shrink-0 border-r",
-                                    day.isRest ? "bg-muted/30" : "bg-surface-base"
-                                  )}
-                                >
-                                  {/* Intensity */}
-                                  <div className="p-1 border-b h-10 flex items-center bg-surface-base">
-                                    {day.isRest ? (
-                                      <Bed className="h-4 w-4 mx-auto text-muted-foreground" />
-                                    ) : (
-                                      <span className="text-xs">{getThrowingDayData(reviewWeekIndex, day.dayIndex).intensity || "moderate"}</span>
-                                    )}
-                                  </div>
-                                  {/* Exercises */}
-                                  <div className="p-1 border-b min-h-[80px] bg-surface-base">
-                                    {day.isRest ? (
-                                      <div className="flex items-center justify-center min-h-[80px]">
-                                        <Bed className="h-5 w-5 mx-auto text-muted-foreground" />
-                                      </div>
-                                    ) : (
-                                      <div className="space-y-1.5 relative min-h-[80px]">
-                                        {getThrowingDayData(reviewWeekIndex, day.dayIndex).exercises.length === 0 ? (
-                                          <Button
-                                            type="button"
-                                            variant="secondary"
-                                            size="sm"
-                                            onClick={() => addThrowingExercise(reviewWeekIndex, day.dayIndex)}
-                                            disabled={isWeekViewReadOnly}
-                                            className="absolute bottom-0 left-0 h-7 w-7 p-0"
-                                          >
-                                            <Plus className="h-3.5 w-3.5" />
-                                          </Button>
-                                        ) : (
-                                          getThrowingDayData(reviewWeekIndex, day.dayIndex).exercises.map((exercise, exIdx) => (
-                                            <ExerciseCard
-                                              key={exercise.id || exIdx}
-                                              exercise={exercise}
-                                              showRepSchemes={showRepSchemes}
-                                              onEdit={() => {
-                                                setSelectedExerciseForEdit({
-                                                  weekIndex: reviewWeekIndex,
-                                                  dayIndex: day.dayIndex,
-                                                  section: "exercises",
-                                                  exerciseIndex: exIdx,
-                                                  routineType: "throwing",
-                                                  exercise: exercise,
-                                                });
-                                                setExerciseEditModalOpen(true);
-                                              }}
-                                              onShuffle={() => shuffleThrowingExercise(reviewWeekIndex, day.dayIndex, exIdx)}
-                                              onRemove={() => removeThrowingExercise(reviewWeekIndex, day.dayIndex, exIdx)}
-                                            />
-                                          ))
-                                        )}
-                                      </div>
-                                    )}
-                                              </div>
-                                              </div>
-                              ))}
-                            </div>
-                                                </div>
-                                              )}
-
-                        {/* Movement Routine Table */}
-                        {routineTypes.includes("movement") && (
-                          <div className="flex border-b">
-                            {/* Routine Label Column (Vertical) */}
-                            <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-surface-base overflow-hidden">
-                              <div className="w-10 border-r bg-surface-base flex items-center justify-center" style={{ height: 'calc(2 * 2.5rem + 5rem + 3rem)' }}>
-                                  <div className="-rotate-90 whitespace-nowrap transform origin-center">
-                                    <span className="text-xs font-medium text-violet-700">Movement</span>
-                                              </div>
-                                            </div>
-                            </div>
-                            
-                            {/* Table Content */}
-                            <div className="flex">
-                              {/* Section Column */}
-                              <div className="w-[120px] shrink-0 border-r bg-surface-base">
-                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center bg-surface-base">Intensity</div>
-                                <div className="font-medium px-3 py-2.5 text-xs border-b h-10 flex items-center bg-surface-base">Volume</div>
-                                <div className="font-medium px-3 py-2.5 text-xs border-b min-h-[80px] flex items-start pt-2.5 bg-surface-base">Exercises</div>
-                              </div>
-                              {/* Day Columns */}
-                              {getDaysOfWeek.map((day, dayIdx) => (
-                                <div
-                                  key={dayIdx}
-                                  className={cn(
-                                    "w-[240px] min-w-[240px] shrink-0 border-r",
-                                    day.isRest ? "bg-muted/30" : "bg-surface-base"
-                                  )}
-                                >
-                                  {/* Intensity */}
-                                  <div className="p-1 border-b h-10 flex items-center bg-surface-base">
-                                    {day.isRest ? (
-                                      <Bed className="h-4 w-4 mx-auto text-muted-foreground" />
-                                    ) : (
-                                      <span className="text-xs capitalize">{getMovementDayData(reviewWeekIndex, day.dayIndex).intensity || "moderate"}</span>
-                                    )}
-                                  </div>
-                                  {/* Volume */}
-                                  <div className="p-1 border-b h-10 flex items-center bg-surface-base">
-                                    {day.isRest ? (
-                                      <Bed className="h-4 w-4 mx-auto text-muted-foreground" />
-                                    ) : (
-                                      <span className="text-xs capitalize">{getMovementDayData(reviewWeekIndex, day.dayIndex).volume || "standard"}</span>
-                                    )}
-                                  </div>
-                                  {/* Exercises */}
-                                  <div className="p-1 border-b min-h-[80px] bg-surface-base">
-                                    {day.isRest ? (
-                                      <div className="flex items-center justify-center min-h-[80px]">
-                                        <Bed className="h-5 w-5 mx-auto text-muted-foreground" />
-                                      </div>
-                                    ) : (
-                                      <div className="space-y-1.5 relative min-h-[80px]">
-                                        {getMovementDayData(reviewWeekIndex, day.dayIndex).exercises.length === 0 ? (
-                                          <Button
-                                            type="button"
-                                            variant="secondary"
-                                            size="sm"
-                                            onClick={() => addMovementExercise(reviewWeekIndex, day.dayIndex)}
-                                            disabled={isWeekViewReadOnly}
-                                            className="absolute bottom-0 left-0 h-7 w-7 p-0"
-                                          >
-                                            <Plus className="h-3.5 w-3.5" />
-                                          </Button>
-                                        ) : (
-                                          getMovementDayData(reviewWeekIndex, day.dayIndex).exercises.map((exercise, exIdx) => (
-                                            <ExerciseCard
-                                              key={exercise.id || exIdx}
-                                              exercise={exercise}
-                                              showRepSchemes={showRepSchemes}
-                                              onEdit={() => {
-                                                setSelectedExerciseForEdit({
-                                                  weekIndex: reviewWeekIndex,
-                                                  dayIndex: day.dayIndex,
-                                                  section: "exercises",
-                                                  exerciseIndex: exIdx,
-                                                  routineType: "movement",
-                                                  exercise: exercise,
-                                                });
-                                                setExerciseEditModalOpen(true);
-                                              }}
-                                              onShuffle={() => shuffleMovementExercise(reviewWeekIndex, day.dayIndex, exIdx)}
-                                              onRemove={() => removeMovementExercise(reviewWeekIndex, day.dayIndex, exIdx)}
-                                            />
-                                          ))
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Conditioning Routine Table */}
-                        {(routineTypes.includes("conditioning") || routineTypes.includes("strength-conditioning")) && (
-                          <div className="flex border-b">
-                            {/* Routine Label Column (Vertical) */}
-                            <div className="flex flex-col shrink-0 sticky left-0 z-20 bg-surface-base overflow-hidden">
-                              <div className="w-10 border-r bg-surface-base flex items-center justify-center" style={{ height: 'calc(2 * 2.5rem + 3rem)' }}>
-                                  <div className="-rotate-90 whitespace-nowrap transform origin-center">
-                                    <span className="text-xs font-medium text-orange-700">Conditioning</span>
-                                  </div>
-                                </div>
-                            </div>
-
-                            {/* Section Headers */}
-                            <div className="flex flex-col shrink-0 sticky left-10 z-20 bg-background border-r w-[120px]">
-                              <div className="h-12 flex items-center px-3 border-b bg-muted/10">
-                                <span className="text-xs font-medium text-muted-foreground">Adaptation</span>
-                              </div>
-                              <div className="h-10 flex items-center px-3 border-b bg-muted/10">
-                                <span className="text-xs font-medium text-muted-foreground">Method</span>
-                              </div>
-                            </div>
-
-                            {/* Day Columns */}
-                            {getDaysOfWeek.map((day, dayIdx) => {
-                              const isDayOff = day.isRest;
-                              return (
-                                <div key={dayIdx} className="flex flex-col w-[240px] min-w-[240px] shrink-0 border-r">
-                                  {/* Adaptation Row */}
-                                  <div className={cn(
-                                    "h-10 flex items-center px-3 border-b relative",
-                                    isDayOff ? "bg-muted/30" : "bg-orange-500/10 hover:bg-orange-500/20 transition-colors"
-                                  )}>
-                                    {!isDayOff && (
-                                      <Select defaultValue="angiogenesis">
-                                        <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="angiogenesis">Angiogenesis</SelectItem>
-                                          <SelectItem value="capillary-density">Capillary Density</SelectItem>
-                                          <SelectItem value="stroke-volume">Stroke Volume</SelectItem>
-                                          <SelectItem value="lactate-threshold">Lactate Threshold</SelectItem>
-                                          <SelectItem value="power-endurance">Power Endurance</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    )}
-                                  </div>
-
-                                  {/* Method Row */}
-                                  <div className={cn(
-                                    "h-10 flex items-center px-3 border-b relative",
-                                    isDayOff ? "bg-muted/30" : "bg-orange-500/10 hover:bg-orange-500/20 transition-colors"
-                                  )}>
-                                    {!isDayOff && (
-                                      <Select defaultValue="long-slow-duration">
-                                        <SelectTrigger className="border-0 shadow-none h-9 text-xs font-normal w-full focus:ring-0 focus:ring-offset-0 bg-transparent">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="long-slow-duration">Long Slow Duration (LSD)</SelectItem>
-                                          <SelectItem value="tempo-runs">Tempo Runs</SelectItem>
-                                          <SelectItem value="intervals">Intervals</SelectItem>
-                                          <SelectItem value="hiit">HIIT</SelectItem>
-                                          <SelectItem value="fartlek">Fartlek</SelectItem>
-                                          <SelectItem value="steady-state">Steady State</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                  </div>
-                )}
-
                   {/* Block View */}
-                  {reviewViewMode === "block" && (
-                    <div className="flex-1 overflow-auto w-full bg-surface-base">
-                      <div className="w-full">
-                        {/* Day Headers */}
-                        <div className="sticky top-0 z-30 bg-surface-base border-b">
-                          <div className="flex min-w-max">
-                            {/* Empty space for section labels */}
-                            <div className="w-[150px] shrink-0 border-r bg-surface-base h-12 flex items-center justify-center">
-                              <span className="text-xs font-medium text-muted-foreground">Sections</span>
-                            </div>
+                  <div className="flex-1 overflow-auto w-full bg-surface-base">
+                    <div className="w-full">
+                      {/* Day Headers */}
+                      <div className="sticky top-0 z-30 bg-surface-base border-b">
+                        <div className="flex min-w-max">
+                          {/* Empty space for section labels */}
+                          <div className="w-[150px] shrink-0 border-r bg-surface-base h-12 flex items-center justify-center">
+                            <span className="text-xs font-medium text-muted-foreground">Sections</span>
+                          </div>
                             
                             {/* Day columns */}
                             {(() => {
@@ -6464,17 +5915,17 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
                                   >
                                     <div className="text-xs font-semibold">{dayName}</div>
                                     {dayDate && (
-                                      <div className="text-xs text-muted-foreground mt-0.5">
+                              <div className="text-xs text-muted-foreground mt-0.5">
                                         {format(dayDate, "MMM d")}
-                                      </div>
+                              </div>
                                     )}
-                                  </div>
+                            </div>
                                 );
                               });
                             })()}
-                          </div>
-                          
                         </div>
+
+                                  </div>
 
                         {/* Section Rows */}
                         <div className="min-w-max space-y-0.5 relative bg-surface-base">
@@ -6495,33 +5946,41 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
                                 className="absolute top-0 bottom-0 border-r pointer-events-none z-10"
                                 style={{
                                   left: `${leftOffset}px`,
-                                  width: '240px',
+                                  width: "240px",
                                 }}
                               >
-                                <div className="h-full flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-muted/40 bg-muted/20 py-6 mx-3 my-6">
-                                  <Bed className="h-5 w-5 text-muted-foreground" />
-                                  <span className="text-[11px] text-muted-foreground font-medium tracking-wide">Rest Day</span>
+                                <div className="h-full flex items-center justify-center bg-surface-base/50 border-r">
+                                  <Bed className="h-8 w-8 text-muted-foreground" />
                                 </div>
-                              </div>
+                            </div>
                             );
                           })}
                           
-                          {renderMovementBlockSection()}
-                          {sectionConfigs.map((section, sectionIdx) => (
-                            <div key={section.id} className="border-b bg-surface-base">
-                              <div className="flex min-w-max">
-                                {/* Section header */}
-                                <div className="w-[150px] shrink-0 border-r bg-surface-base sticky left-0 z-20">
-                                  <div className="px-3 py-4 min-h-[100px] flex flex-col justify-center">
-                                    <div className="text-xs font-semibold">{section.label}</div>
-                                    <div className="text-[10px] text-muted-foreground mt-1">
-                                      {section.description}
-                                    </div>
-                                    </div>
+                          {/* Lifting Section */}
+                          {(routineTypes.includes("lifting") || routineTypes.includes("strength-conditioning")) && (
+                            <div className="flex min-w-max">
+                              {/* Section Label Column */}
+                              <div className="w-[150px] shrink-0 sticky left-0 z-20 bg-surface-base border-r">
+                                <div className="px-3 py-2.5 text-xs font-semibold text-orange-700 border-b h-12 flex items-center bg-surface-base">
+                                  Lifting
+                              </div>
+                                {sectionConfigs.map((section) => (
+                                  <div
+                                    key={section.id}
+                                    className={cn(
+                                      "px-3 py-2.5 text-xs border-b min-h-[80px] flex items-start pt-2.5 bg-surface-base",
+                                      !expandedSections.has(section.id) && "h-10"
+                                    )}
+                                  >
+                                    {section.label}
                                   </div>
-                                  
-                                {/* Day columns with exercise cards */}
-                                {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((dayName, dayIdx) => {
+                                ))}
+                              </div>
+                              
+                              {/* Day Columns */}
+                              {(() => {
+                                const weekMonday = currentWeek ? startOfWeek(currentWeek.startDate, { weekStartsOn: 1 }) : null;
+                                return ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((dayName, dayIdx) => {
                                   const dayOfWeek = dayIdx + 1;
                                   const adjustedDayOfWeek = dayOfWeek === 7 ? 0 : dayOfWeek;
                                   const isRest = calculatedDaysOff.has(adjustedDayOfWeek) || adjustedDayOfWeek === 4;
@@ -6529,162 +5988,106 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
                                     reviewWeekIndex,
                                     Math.max(0, getWeeksInBlock.length - 1)
                                   );
-                                  const blockDayData = getLiftingDayData(canonicalWeekIndex, adjustedDayOfWeek);
-                                  const sectionExercises = (blockDayData.exercises || []).filter(
-                                    (exercise) => exercise.sectionId === section.id
-                                  );
-
-                                  const handleAddSuggestedExercise = () => {
-                                    const template = getSuggestedExerciseTemplate(section.id);
-                                    if (!template) {
-                                      toast({
-                                        title: "No suggestions available",
-                                        description: "Please add exercises manually for this section.",
-                                      });
-                                      return;
-                                    }
-                                    addExerciseToBlock(section.id, adjustedDayOfWeek, template, "suggested");
-                                  };
-
-                                  const openManualExerciseSelection = () => {
-                                    setBlockExerciseSelectionContext({ sectionId: section.id, dayIndex: adjustedDayOfWeek });
-                                  };
-
-                                  return (
-                                    <div
-                                      key={dayIdx}
-                                      className={cn(
-                                        "w-[240px] min-w-[240px] shrink-0 border-r min-h-[120px] p-1 transition-colors",
-                                        isRest ? "bg-transparent" : "bg-surface-base hover:bg-muted/10"
+                            
+                            return (
+                                <div
+                                  key={dayIdx}
+                                  className={cn(
+                                    "w-[240px] min-w-[240px] shrink-0 border-r",
+                                        isRest && "bg-surface-base"
                                       )}
                                     >
-                                      {!isRest && (
-                                        <div className="flex flex-col gap-2">
-                                          <div className="space-y-2">
-                                            {sectionExercises.map((exercise) => {
-                                              const exerciseKey = exercise.blockExerciseId ?? exercise.id;
-                                              return (
-                                                <div
-                                                  key={exerciseKey}
-                                                  className="relative rounded-lg border border-border bg-card/80 px-3 py-2 shadow-sm transition hover:border-muted-foreground/40 group cursor-pointer"
-                                                  onClick={() => {
-                                                    const dayData = getLiftingDayData(canonicalWeekIndex, adjustedDayOfWeek);
-                                                    const exerciseIndex = dayData.exercises.findIndex(ex => (ex.blockExerciseId ?? ex.id) === exerciseKey);
-                                                    if (exerciseIndex !== -1) {
-                                                      setSelectedExerciseForEdit({
-                                                        weekIndex: canonicalWeekIndex,
-                                                        dayIndex: adjustedDayOfWeek,
-                                                        section: "exercises",
-                                                        exerciseIndex,
-                                                        routineType: "lifting",
-                                                        exercise: dayData.exercises[exerciseIndex],
-                                                      });
-                                                      setExerciseEditModalOpen(true);
-                                                    }
-                                                  }}
-                                                >
-                                                  <div className="flex justify-between gap-2">
-                                                    <div className="flex-1 min-w-0">
-                                                      <div className="text-xs font-semibold truncate">{exercise.name}</div>
-                                                      <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                                                        {exercise.sets} x {exercise.reps}
-                                                        {exercise.weight ? ` • ${exercise.weight}` : ""}
-                                                        {exercise.restTime ? ` • Rest ${exercise.restTime}` : ""}
-                                                      </div>
-                                                  {(exercise.repScheme || exercise.progression) && (
-                                                    <div className="text-[10px] text-muted-foreground/80 mt-1 flex flex-col gap-0.5">
-                                                      {exercise.repScheme && <span>Scheme: {exercise.repScheme}</span>}
-                                                      {exercise.progression && <span>Progression: {exercise.progression}</span>}
-                                                    </div>
-                                                  )}
-                                                    </div>
-                                                  </div>
-                                                  <div className="absolute top-1 right-1 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
-                                                    <TooltipProvider delayDuration={200}>
-                                                      <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                          <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-6 w-6"
-                                                            onClick={() =>
-                                                              shuffleExerciseInBlock(
-                                                                section.id,
-                                                                adjustedDayOfWeek,
-                                                                exercise.blockExerciseId ?? exercise.id
-                                                              )
-                                                            }
-                                                          >
-                                                            <Shuffle className="h-3.5 w-3.5" />
-                                                          </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Shuffle suggestion</TooltipContent>
-                                                      </Tooltip>
-                                                    </TooltipProvider>
-                                                    <TooltipProvider delayDuration={200}>
-                                                      <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                          <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-6 w-6"
-                                                            onClick={() =>
-                                                              removeExerciseFromBlock(
-                                                                adjustedDayOfWeek,
-                                                                exercise.blockExerciseId ?? exercise.id
-                                                              )
-                                                            }
-                                                          >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                          </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>Remove exercise</TooltipContent>
-                                                      </Tooltip>
-                                                    </TooltipProvider>
-                                                  </div>
-                                                </div>
-                                              );
-                                            })}
-                                          </div>
-
-                                          <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
+                                      {/* Day Header in Section Column */}
+                                      <div className="h-12 border-b bg-surface-base" />
+                                      
+                                      {/* Section Cells */}
+                                      {sectionConfigs.map((section) => {
+                                        const blockDayData = getLiftingDayData(canonicalWeekIndex, adjustedDayOfWeek);
+                                        const sectionExercises = (blockDayData.exercises || []).filter(
+                                          (ex) => ex.sectionId === section.id
+                                        );
+                                        const exercise = sectionExercises.length > 0 ? sectionExercises[0] : null;
+                                        
+                                        return (
+                                          <div
+                                            key={section.id}
+                                            className={cn(
+                                              "border-b min-h-[80px] bg-surface-base",
+                                              !expandedSections.has(section.id) && "h-10"
+                                            )}
+                                          >
+                                            {isRest ? (
+                                              <div className="h-full flex items-center justify-center">
+                                                <Bed className="h-5 w-5 text-muted-foreground" />
+                                              </div>
+                                            ) : exercise ? (
+                                              <ExerciseCard
+                                                exercise={exercise}
+                                                showRepSchemes={showRepSchemes}
+                                                onClick={() => {
+                                                  const exerciseIndex = blockDayData.exercises.findIndex(ex => ex.id === exercise.id);
+                                                  setSelectedExerciseForEdit({
+                                                    weekIndex: canonicalWeekIndex,
+                                                    dayIndex: adjustedDayOfWeek,
+                                                    section: "exercises",
+                                                    exerciseIndex: exerciseIndex,
+                                                    routineType: "lifting",
+                                                    exercise: exercise,
+                                                  });
+                                                  setExerciseEditModalOpen(true);
+                                                }}
+                                                onEdit={() => {
+                                                  const exerciseIndex = blockDayData.exercises.findIndex(ex => ex.id === exercise.id);
+                                                  setSelectedExerciseForEdit({
+                                                    weekIndex: canonicalWeekIndex,
+                                                    dayIndex: adjustedDayOfWeek,
+                                                    section: "exercises",
+                                                    exerciseIndex: exerciseIndex,
+                                                    routineType: "lifting",
+                                                    exercise: exercise,
+                                                  });
+                                                  setExerciseEditModalOpen(true);
+                                                }}
+                                                onShuffle={() => {
+                                                  const exerciseIndex = blockDayData.exercises.findIndex(ex => ex.id === exercise.id);
+                                                  shuffleExercise(canonicalWeekIndex, adjustedDayOfWeek, exerciseIndex);
+                                                }}
+                                                onRemove={() => {
+                                                  const exerciseIndex = blockDayData.exercises.findIndex(ex => ex.id === exercise.id);
+                                                  removeExercise(canonicalWeekIndex, adjustedDayOfWeek, exerciseIndex);
+                                                }}
+                                              />
+                                            ) : (
                                               <Button
                                                 type="button"
-                                                variant="outline"
-                                                className="w-full border-dashed text-xs font-medium"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => {
+                                                  addExercises(canonicalWeekIndex, adjustedDayOfWeek);
+                                                }}
+                                                className="h-full w-full text-muted-foreground hover:text-foreground"
                                               >
-                                                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                                                Add exercise
+                                                <Plus className="h-4 w-4" />
                                               </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="start" className="w-48">
-                                              <DropdownMenuItem onClick={handleAddSuggestedExercise}>
-                                                <span className="text-xs">Add suggested</span>
-                                              </DropdownMenuItem>
-                                              <DropdownMenuItem onClick={openManualExerciseSelection}>
-                                                <span className="text-xs">Select manually</span>
-                                              </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                          </DropdownMenu>
-                                        </div>
-                                      )}
+                                            )}
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   );
-                                })}
-                              </div>
+                                });
+                              })()}
                             </div>
-                          ))}
+                          )}
+                          
                           {renderThrowingBlockSection()}
                         </div>
                       </div>
                     </div>
+                  </div>
+                  </>
                   )}
-                    </>
-                  )}
-                </div>
+              </div>
               </>
             )}
 
@@ -6695,369 +6098,148 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0 
       
       {/* Exercise Edit Modal */}
       <Dialog open={exerciseEditModalOpen} onOpenChange={setExerciseEditModalOpen}>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Edit Exercise</DialogTitle>
-                  <DialogDescription>
-                    {selectedExerciseForEdit?.exercise.name}
-                  </DialogDescription>
-                </DialogHeader>
-                {selectedExerciseForEdit && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="edit-sets">Sets</Label>
-                        <Input
-                          id="edit-sets"
-                          type="number"
-                          min="1"
-                          value={selectedExerciseForEdit.exercise.sets}
-                          onChange={(e) => {
-                            const newSets = parseInt(e.target.value) || 1;
-                            updateExercise(
-                              selectedExerciseForEdit.weekIndex,
-                              selectedExerciseForEdit.dayIndex,
-                              selectedExerciseForEdit.exerciseIndex,
-                              selectedExerciseForEdit.routineType,
-                              { sets: newSets }
-                            );
-                            setSelectedExerciseForEdit({
-                              ...selectedExerciseForEdit,
-                              exercise: { ...selectedExerciseForEdit.exercise, sets: newSets },
-                            });
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="edit-reps">Reps</Label>
-                        <Input
-                          id="edit-reps"
-                          type="number"
-                          min="1"
-                          value={selectedExerciseForEdit.exercise.reps}
-                          onChange={(e) => {
-                            const newReps = parseInt(e.target.value) || 1;
-                            updateExercise(
-                              selectedExerciseForEdit.weekIndex,
-                              selectedExerciseForEdit.dayIndex,
-                              selectedExerciseForEdit.exerciseIndex,
-                              selectedExerciseForEdit.routineType,
-                              { reps: newReps }
-                            );
-                            setSelectedExerciseForEdit({
-                              ...selectedExerciseForEdit,
-                              exercise: { ...selectedExerciseForEdit.exercise, reps: newReps },
-                            });
-                          }}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="edit-restTime">Rest Time</Label>
-                        <Input
-                          id="edit-restTime"
-                          type="text"
-                          placeholder="e.g., 2:00 or 90s"
-                          value={selectedExerciseForEdit.exercise.restTime}
-                          onChange={(e) => {
-                            updateExercise(
-                              selectedExerciseForEdit.weekIndex,
-                              selectedExerciseForEdit.dayIndex,
-                              selectedExerciseForEdit.exerciseIndex,
-                              selectedExerciseForEdit.routineType,
-                              { restTime: e.target.value }
-                            );
-                            setSelectedExerciseForEdit({
-                              ...selectedExerciseForEdit,
-                              exercise: { ...selectedExerciseForEdit.exercise, restTime: e.target.value },
-                            });
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="edit-weight">Weight</Label>
-                        <Input
-                          id="edit-weight"
-                          type="text"
-                          placeholder="e.g., 185 lbs or 85 kg"
-                          value={selectedExerciseForEdit.exercise.weight || ""}
-                          onChange={(e) => {
-                            updateExercise(
-                              selectedExerciseForEdit.weekIndex,
-                              selectedExerciseForEdit.dayIndex,
-                              selectedExerciseForEdit.exerciseIndex,
-                              selectedExerciseForEdit.routineType,
-                              { weight: e.target.value }
-                            );
-                            setSelectedExerciseForEdit({
-                              ...selectedExerciseForEdit,
-                              exercise: { ...selectedExerciseForEdit.exercise, weight: e.target.value },
-                            });
-                          }}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="edit-tempo">Tempo</Label>
-                        <Input
-                          id="edit-tempo"
-                          type="text"
-                          placeholder="e.g., 3-0-1-0"
-                          value={selectedExerciseForEdit.exercise.tempo}
-                          onChange={(e) => {
-                            updateExercise(
-                              selectedExerciseForEdit.weekIndex,
-                              selectedExerciseForEdit.dayIndex,
-                              selectedExerciseForEdit.exerciseIndex,
-                              selectedExerciseForEdit.routineType,
-                              { tempo: e.target.value }
-                            );
-                            setSelectedExerciseForEdit({
-                              ...selectedExerciseForEdit,
-                              exercise: { ...selectedExerciseForEdit.exercise, tempo: e.target.value },
-                            });
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="edit-rpe">RPE</Label>
-                        <Select
-                          value={selectedExerciseForEdit.exercise.rpe || ""}
-                          onValueChange={(value) => {
-                            updateExercise(
-                              selectedExerciseForEdit.weekIndex,
-                              selectedExerciseForEdit.dayIndex,
-                              selectedExerciseForEdit.exerciseIndex,
-                              selectedExerciseForEdit.routineType,
-                              { rpe: value }
-                            );
-                            setSelectedExerciseForEdit({
-                              ...selectedExerciseForEdit,
-                              exercise: { ...selectedExerciseForEdit.exercise, rpe: value },
-                            });
-                          }}
-                        >
-                          <SelectTrigger id="edit-rpe">
-                            <SelectValue placeholder="Select RPE" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">1 - Very Light</SelectItem>
-                            <SelectItem value="2">2 - Light</SelectItem>
-                            <SelectItem value="3">3 - Moderate</SelectItem>
-                            <SelectItem value="4">4 - Somewhat Hard</SelectItem>
-                            <SelectItem value="5">5 - Hard</SelectItem>
-                            <SelectItem value="6">6 - Very Hard</SelectItem>
-                            <SelectItem value="7">7 - Extremely Hard</SelectItem>
-                            <SelectItem value="8">8 - Max Effort</SelectItem>
-                            <SelectItem value="9">9 - Max Effort (with spot)</SelectItem>
-                            <SelectItem value="10">10 - Max Effort (no spot)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="edit-repscheme">Rep Scheme</Label>
-                        <Select
-                          value={selectedExerciseForEdit.exercise.repScheme || ""}
-                          onValueChange={(value) => {
-                            updateExercise(
-                              selectedExerciseForEdit.weekIndex,
-                              selectedExerciseForEdit.dayIndex,
-                              selectedExerciseForEdit.exerciseIndex,
-                              selectedExerciseForEdit.routineType,
-                              { repScheme: value }
-                            );
-                            setSelectedExerciseForEdit({
-                              ...selectedExerciseForEdit,
-                              exercise: { ...selectedExerciseForEdit.exercise, repScheme: value },
-                            });
-                          }}
-                        >
-                          <SelectTrigger id="edit-repscheme">
-                            <SelectValue placeholder="Select scheme" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {repSchemeOptions.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="edit-progression">Progression</Label>
-                        <Select
-                          value={selectedExerciseForEdit.exercise.progression || ""}
-                          onValueChange={(value) => {
-                            updateExercise(
-                              selectedExerciseForEdit.weekIndex,
-                              selectedExerciseForEdit.dayIndex,
-                              selectedExerciseForEdit.exerciseIndex,
-                              selectedExerciseForEdit.routineType,
-                              { progression: value }
-                            );
-                            setSelectedExerciseForEdit({
-                              ...selectedExerciseForEdit,
-                              exercise: { ...selectedExerciseForEdit.exercise, progression: value },
-                            });
-                          }}
-                        >
-                          <SelectTrigger id="edit-progression">
-                            <SelectValue placeholder="Select progression" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {progressionOptions.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-end gap-2 pt-4 border-t">
-                      <Button
-                        variant="outline"
-                        onClick={() => setExerciseEditModalOpen(false)}
-                      >
-                        Close
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
-
-      {/* Block View Exercise Library */}
-      <Dialog
-        open={!!blockExerciseSelectionContext}
-        onOpenChange={(open) => {
-          if (!open) {
-            setBlockExerciseSelectionContext(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Select Exercise</DialogTitle>
+            <DialogTitle>Edit Exercise</DialogTitle>
             <DialogDescription>
-              Choose an exercise to add to the block view cell.
+              {selectedExerciseForEdit?.exercise.name}
             </DialogDescription>
           </DialogHeader>
-          {blockExerciseSelectionContext && (
-            <Command className="border rounded-md">
-              <CommandInput placeholder="Search exercises..." />
-              <CommandList>
-                <CommandEmpty>No exercises found.</CommandEmpty>
-                <CommandGroup heading="Exercise Library">
-                  {(blockExerciseLibrary[blockExerciseSelectionContext.sectionId] || []).map((template, index) => (
-                    <CommandItem
-                      key={`${blockExerciseSelectionContext.sectionId}-${index}-${template.name}`}
-                      onSelect={() => {
-                        addExerciseToBlock(
-                          blockExerciseSelectionContext.sectionId,
-                          blockExerciseSelectionContext.dayIndex,
-                          template,
-                          "manual"
-                        );
-                        setBlockExerciseSelectionContext(null);
-                      }}
-                      className="flex flex-col items-start gap-1 py-2"
-                    >
-                      <span className="text-sm font-medium">{template.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {template.sets} x {template.reps}
-                        {template.weight ? ` • ${template.weight}` : ""}
-                        {template.restTime ? ` • Rest ${template.restTime}` : ""}
-                      </span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
+          {selectedExerciseForEdit && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-sets">Sets</Label>
+                  <Input
+                    id="edit-sets"
+                    type="number"
+                    value={selectedExerciseForEdit.exercise.sets || ""}
+                    onChange={(e) => {
+                      const newSets = parseInt(e.target.value) || 0;
+                      updateExercise(
+                        selectedExerciseForEdit.weekIndex,
+                        selectedExerciseForEdit.dayIndex,
+                        selectedExerciseForEdit.exerciseIndex,
+                        selectedExerciseForEdit.routineType,
+                        { sets: newSets }
+                      );
+                      setSelectedExerciseForEdit({
+                        ...selectedExerciseForEdit,
+                        exercise: { ...selectedExerciseForEdit.exercise, sets: newSets },
+                      });
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-reps">Reps</Label>
+                  <Input
+                    id="edit-reps"
+                    type="number"
+                    value={selectedExerciseForEdit.exercise.reps || ""}
+                    onChange={(e) => {
+                      const newReps = parseInt(e.target.value) || 0;
+                      updateExercise(
+                        selectedExerciseForEdit.weekIndex,
+                        selectedExerciseForEdit.dayIndex,
+                        selectedExerciseForEdit.exerciseIndex,
+                        selectedExerciseForEdit.routineType,
+                        { reps: newReps }
+                      );
+                      setSelectedExerciseForEdit({
+                        ...selectedExerciseForEdit,
+                        exercise: { ...selectedExerciseForEdit.exercise, reps: newReps },
+                      });
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-weight">Weight</Label>
+                  <Input
+                    id="edit-weight"
+                    type="text"
+                    value={selectedExerciseForEdit.exercise.weight || ""}
+                    onChange={(e) => {
+                      updateExercise(
+                        selectedExerciseForEdit.weekIndex,
+                        selectedExerciseForEdit.dayIndex,
+                        selectedExerciseForEdit.exerciseIndex,
+                        selectedExerciseForEdit.routineType,
+                        { weight: e.target.value }
+                      );
+                      setSelectedExerciseForEdit({
+                        ...selectedExerciseForEdit,
+                        exercise: { ...selectedExerciseForEdit.exercise, weight: e.target.value },
+                      });
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-rest">Rest Time</Label>
+                  <Input
+                    id="edit-rest"
+                    type="text"
+                    value={selectedExerciseForEdit.exercise.restTime || ""}
+                    onChange={(e) => {
+                      updateExercise(
+                        selectedExerciseForEdit.weekIndex,
+                        selectedExerciseForEdit.dayIndex,
+                        selectedExerciseForEdit.exerciseIndex,
+                        selectedExerciseForEdit.routineType,
+                        { restTime: e.target.value }
+                      );
+                      setSelectedExerciseForEdit({
+                        ...selectedExerciseForEdit,
+                        exercise: { ...selectedExerciseForEdit.exercise, restTime: e.target.value },
+                      });
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedExerciseForEdit(null);
+                    setExerciseEditModalOpen(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (selectedExerciseForEdit) {
+                      setSelectedExerciseForEdit(null);
+                      setExerciseEditModalOpen(false);
+                    }
+                  }}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
-  
-            {/* Exercise Swap Modal */}
-            <Dialog open={exerciseSwapModalOpen} onOpenChange={setExerciseSwapModalOpen}>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Swap Exercise</DialogTitle>
-                  <DialogDescription>Search and select a new exercise</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <Command>
-                    <CommandInput placeholder="Search exercises..." />
-                    <CommandList>
-                      <CommandEmpty>No exercises found.</CommandEmpty>
-                      <CommandGroup>
-                        {[
-                          "Barbell Bench Press",
-                          "Dumbbell Bench Press",
-                          "Push-ups",
-                          "Pull-ups",
-                          "Barbell Row",
-                          "Back Squat",
-                          "Front Squat",
-                          "Romanian Deadlift",
-                        ].map((exercise) => (
-                          <CommandItem
-                            key={exercise}
-                            onSelect={() => {
-                              if (selectedExerciseForSwap) {
-                                // Update exercise logic here
-                                setExerciseSwapModalOpen(false);
-                              }
-                            }}
-                          >
-                            {exercise}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </div>
-              </DialogContent>
-            </Dialog>
       
-      {/* Confirmation Dialog for Block-Level Changes with Overrides */}
-      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => {
-        if (!open) {
-          setConfirmDialog({
-            open: false,
-            routine: null,
-            field: null,
-            newValue: null,
-            blockIndex: null,
-            affectedCount: 0,
-          });
-        }
-      }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reset to default?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This field has been customized at {confirmDialog.affectedCount} week/day level{confirmDialog.affectedCount > 1 ? 's' : ''}.
-              Changing the block-level value will reset all customizations to the new default.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmBlockChange}>
-              Reset & Apply
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Block View Exercise Library */}
+      <Dialog
+        open={!!blockExerciseSelectionContext}
+        onOpenChange={(open) => !open && setBlockExerciseSelectionContext(null)}
+      >
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Select Exercise</DialogTitle>
+            <DialogDescription>
+              Choose an exercise to add to {blockExerciseSelectionContext?.sectionId}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Exercise library content */}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

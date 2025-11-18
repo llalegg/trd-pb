@@ -14,7 +14,6 @@ const routeHierarchy: { [key: string]: number } = {
   '/session-view': 2,
   '/focus-view': 3,
   '/execution-view': 2,
-  '/add-program': 1,
   '/messages': 1,
   '/vault': 1,
   '/me': 1,

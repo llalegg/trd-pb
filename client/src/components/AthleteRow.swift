@@ -294,7 +294,7 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
             <Button
               variant="outline"
               size="sm"
-              onClick={(e) => { e.stopPropagation(); setLocation(`/add-program?mode=create&athleteId=${athlete.id}`); }}
+              onClick={(e) => { e.stopPropagation(); setLocation(`/programs/${athlete.id}?tab=builder&mode=create`); }}
               className="bg-[#171716] text-[# f7f6 f2] border-[#292928] hover:bg="#1a1a19" font-['Montserrat']"
             >
               Create first block
@@ -352,7 +352,7 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
                       size="sm"
                       aria-label={`Edit ${block.name}`}
                       className="h-9 px-3 text-xs font-['Montserrat']"
-                      onClick={(e) => { e.stopPropagation(); setLocation(`/add-program?mode=edit&blockId=${block.id}`); }}
+                      onClick={(e) => { e.stopPropagation(); setLocation(`/programs/${athlete.id}?tab=builder&mode=edit&blockId=${block.id}`); }}
                     >
                       <Edit className="h-4 w-4" />
                       Edit

@@ -97,7 +97,7 @@ export default function TemplateView({ athleteId, phaseId, selectedBlockId }: Te
               Create a block to configure its templates.
             </p>
             <Button
-              onClick={() => setLocation(`/add-program?mode=create&athleteId=${athleteId}`)}
+              onClick={() => setLocation(`/programs/${athleteId}?tab=builder&mode=create`)}
               className="bg-[#e5e4e1] text-black hover:bg-[#d5d4d1] font-['Montserrat']"
             >
               Create Block
