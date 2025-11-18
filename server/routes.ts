@@ -54,14 +54,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all athletes with blocks (new athlete-centric endpoint)
   app.get("/api/athletes", async (_req, res) => {
     try {
+      console.log(`[API] /api/athletes - Request received`);
+      console.log(`[API] Storage instance:`, storage ? 'exists' : 'null');
       const athletes = await storage.getAthletes();
       console.log(`[API] /api/athletes - Returning ${athletes.length} athletes`);
       if (athletes.length > 0) {
-        console.log(`[API] First athlete:`, JSON.stringify(athletes[0], null, 2));
+        console.log(`[API] First athlete ID: ${athletes[0].athlete.id}, Name: ${athletes[0].athlete.name}`);
+        console.log(`[API] First athlete blocks count: ${athletes[0].blocks.length}`);
+        console.log(`[API] First athlete structure:`, {
+          hasAthlete: !!athletes[0].athlete,
+          hasBlocks: !!athletes[0].blocks,
+          athleteKeys: Object.keys(athletes[0]),
+        });
+      } else {
+        console.log(`[API] WARNING: No athletes returned from storage!`);
       }
       res.json(athletes);
     } catch (error) {
-      console.error("Error fetching athletes:", error);
+      console.error("[API] Error fetching athletes:", error);
+      if (error instanceof Error) {
+        console.error("[API] Error stack:", error.stack);
+      }
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({ error: "Failed to fetch athletes", details: errorMessage });
     }

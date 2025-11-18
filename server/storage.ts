@@ -456,9 +456,24 @@ export class MemStorage implements IStorage {
     // Return athletes from seed data
     const athletes = Array.from(this.athletes.values());
     console.log(`[MemStorage] getAthletes() - Returning ${athletes.length} athletes`);
+    console.log(`[MemStorage] Total athletes in map: ${this.athletes.size}`);
+    console.log(`[MemStorage] Total blocks in map: ${this.blocks.size}`);
+    
     if (athletes.length > 0) {
-      console.log(`[MemStorage] First athlete ID: ${athletes[0].athlete.id}, Name: ${athletes[0].athlete.name}, Blocks: ${athletes[0].blocks.length}`);
+      const first = athletes[0];
+      console.log(`[MemStorage] First athlete ID: ${first.athlete.id}, Name: ${first.athlete.name}`);
+      console.log(`[MemStorage] First athlete blocks count: ${first.blocks ? first.blocks.length : 'NO BLOCKS PROPERTY'}`);
+      console.log(`[MemStorage] First athlete structure keys:`, Object.keys(first));
+      
+      // Ensure blocks are properly attached
+      const athleteBlocks = Array.from(this.blocks.values()).filter(
+        b => b.athleteId === first.athlete.id
+      );
+      console.log(`[MemStorage] Blocks found for first athlete in blocks map: ${athleteBlocks.length}`);
+    } else {
+      console.log(`[MemStorage] WARNING: No athletes in storage!`);
     }
+    
     return athletes;
   }
 
