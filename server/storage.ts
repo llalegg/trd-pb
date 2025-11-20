@@ -535,12 +535,12 @@ let storageInstance: IStorage | null = null;
 
 export function getStorage(): IStorage {
   if (!storageInstance) {
-    // Force using MemStorage (hardcoded data) to avoid database connections
-    // Set USE_DATABASE=true in environment variables to enable database storage
-    const useDatabase = process.env.USE_DATABASE === "true";
+    // Automatically use database if DATABASE_URL is present
+    // Set USE_DATABASE=false to force using MemStorage (for testing/development)
     const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
+    const forceMemStorage = process.env.USE_DATABASE === "false";
     
-    if (useDatabase && databaseUrl) {
+    if (!forceMemStorage && databaseUrl) {
       try {
         console.log("Using database storage");
         storageInstance = new DbStorage(databaseUrl);
@@ -549,7 +549,11 @@ export function getStorage(): IStorage {
         storageInstance = new MemStorage();
       }
     } else {
-      console.log("Using in-memory storage (hardcoded data)");
+      if (forceMemStorage) {
+        console.log("Using in-memory storage (USE_DATABASE=false)");
+      } else {
+        console.log("Using in-memory storage (no DATABASE_URL found)");
+      }
       storageInstance = new MemStorage();
     }
   }
