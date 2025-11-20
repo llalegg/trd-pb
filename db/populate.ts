@@ -473,7 +473,6 @@ async function populateDatabase() {
         photo: athlete.photo ?? null,
         status: athlete.status ?? null,
         currentPhaseId: athlete.currentPhaseId ?? null,
-        team: athlete.team ?? null,
       }).onConflictDoNothing();
       console.log(`Inserted athlete: ${athlete.name} (${athlete.id})`);
 

@@ -295,7 +295,6 @@ export class DbStorage implements IStorage {
       photo: dbAthlete.photo ?? undefined,
       status: dbAthlete.status as Athlete["status"],
       currentPhaseId: dbAthlete.currentPhaseId ?? undefined,
-      team: dbAthlete.team ?? undefined,
       phases: phasesList,
     };
   }

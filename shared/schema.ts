@@ -26,7 +26,6 @@ export const athletes = pgTable("athletes", {
   photo: text("photo"),
   status: varchar("status", { length: 50 }), // "injured" | "rehabbing" | "lingering-issues" | null
   currentPhaseId: varchar("current_phase_id"),
-  team: text("team"), // Current athlete team
 });
 
 // Phases table
@@ -153,7 +152,6 @@ export interface Athlete {
   photo?: string; // URL or path to athlete photo
   status?: "injured" | "rehabbing" | "lingering-issues" | null; // Only shown when relevant
   currentPhaseId?: string;
-  team?: string; // Current athlete team
   phases?: Phase[];
 }
 

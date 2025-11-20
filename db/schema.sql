@@ -16,8 +16,7 @@ CREATE TABLE IF NOT EXISTS "athletes" (
   "name" text NOT NULL,
   "photo" text,
   "status" varchar(50),
-  "current_phase_id" varchar,
-  "team" text
+  "current_phase_id" varchar
 );
 
 -- 3. Phases table (depends on athletes)

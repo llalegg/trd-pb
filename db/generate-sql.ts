@@ -51,10 +51,10 @@ async function generateSQL() {
 
   // Insert Athletes
   sql += "-- Insert Athletes\n";
-  sql += "INSERT INTO athletes (id, name, photo, status, current_phase_id, team) VALUES\n";
+  sql += "INSERT INTO athletes (id, name, photo, status, current_phase_id) VALUES\n";
   const athleteValues = seedAthletes.map((a, idx) => {
     const athlete = a.athlete;
-    return `('${athlete.id}', ${escapeString(athlete.name)}, ${athlete.photo ? escapeString(athlete.photo) : 'NULL'}, ${athlete.status ? escapeString(athlete.status) : 'NULL'}, ${athlete.currentPhaseId ? escapeString(athlete.currentPhaseId) : 'NULL'}, ${athlete.team ? escapeString(athlete.team) : 'NULL'})`;
+    return `('${athlete.id}', ${escapeString(athlete.name)}, ${athlete.photo ? escapeString(athlete.photo) : 'NULL'}, ${athlete.status ? escapeString(athlete.status) : 'NULL'}, ${athlete.currentPhaseId ? escapeString(athlete.currentPhaseId) : 'NULL'})`;
   });
   sql += athleteValues.join(',\n') + "\n";
   sql += "ON CONFLICT (id) DO NOTHING;\n\n";

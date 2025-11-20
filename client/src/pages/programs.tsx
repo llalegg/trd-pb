@@ -28,7 +28,7 @@ import { format, formatDistanceToNow, differenceInDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 
 type TabView = "all" | "pending" | "current" | "upcoming";
-type SortField = "athleteName" | "team" | "subSeasonStatus" | "blockProgress" | "programStatus" | "lastEntryDay" | "lastModificationDay";
+type SortField = "athleteName" | "subSeasonStatus" | "blockProgress" | "programStatus" | "lastEntryDay" | "lastModificationDay";
 type SortDirection = "asc" | "desc";
 
 interface FilterState {
@@ -37,7 +37,6 @@ interface FilterState {
   seasons: string[];
   subSeasons: string[];
   urgency: string[]; // due-this-week, overdue, no-active-block
-  teams: string[]; // Team filter
   programStatuses: string[]; // active/pending/draft
   lastEntryStart: string; // Last entry day filter start
   lastEntryEnd: string; // Last entry day filter end
@@ -67,7 +66,6 @@ const URGENCY_OPTIONS = [
   { value: "overdue", label: "Overdue" },
   { value: "no-active-block", label: "No active block" },
 ];
-const TEAM_OPTIONS = ["Varsity", "JV", "Freshman", "Redshirt", "Transfer"];
 const PROGRAM_STATUS_OPTIONS = [
   { value: "active", label: "Active" },
   { value: "pending", label: "Pending" },
@@ -422,7 +420,6 @@ export default function Programs() {
     seasons: [],
     subSeasons: [],
     urgency: [],
-    teams: [],
     programStatuses: [],
     lastEntryStart: "",
     lastEntryEnd: "",
@@ -575,11 +572,6 @@ export default function Programs() {
         if (!hasMatchingBlock) return false;
       }
 
-      // Filter by team
-      if (filters.teams.length > 0) {
-        if (!athlete.team || !filters.teams.includes(athlete.team)) return false;
-      }
-
       // Filter by program status
       if (filters.programStatuses.length > 0) {
         const programStatus = getProgramStatus(blocks);
@@ -678,10 +670,6 @@ export default function Programs() {
         case "athleteName":
           aValue = a.athlete.name;
           bValue = b.athlete.name;
-          break;
-        case "team": {
-          aValue = a.athlete.team || "";
-          bValue = b.athlete.team || "";
           break;
         }
         case "subSeasonStatus": {
@@ -826,15 +814,6 @@ export default function Programs() {
     }));
   };
 
-  const handleTeamToggle = (team: string) => {
-    setFilters(prev => ({
-      ...prev,
-      teams: prev.teams.includes(team)
-        ? prev.teams.filter(t => t !== team)
-        : [...prev.teams, team]
-    }));
-  };
-
   const handleProgramStatusToggle = (status: string) => {
     setFilters(prev => ({
       ...prev,
@@ -851,7 +830,6 @@ export default function Programs() {
       seasons: [],
       subSeasons: [],
       urgency: [],
-      teams: [],
       programStatuses: [],
       lastEntryStart: "",
       lastEntryEnd: "",
@@ -871,7 +849,6 @@ export default function Programs() {
       filters.seasons.length > 0 ||
       filters.subSeasons.length > 0 ||
       filters.urgency.length > 0 ||
-      filters.teams.length > 0 ||
       filters.programStatuses.length > 0 ||
       filters.lastEntryStart ||
       filters.lastEntryEnd ||
@@ -1031,19 +1008,6 @@ export default function Programs() {
 
                   {/* Scrollable Columns Header */}
                   <div className="flex items-center h-full" style={{ minWidth: '1300px' }}>
-                    {/* Team */}
-                    <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
-                      <button 
-                        onClick={() => handleSort('team')}
-                        onMouseEnter={() => setHoveredSortField('team')}
-                        onMouseLeave={() => setHoveredSortField(null)}
-                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
-                      >
-                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Team</span>
-                        {getSortIcon('team', hoveredSortField === 'team' || sortField === 'team')}
-                      </button>
-                    </div>
-
                     {/* Sub-Season Status */}
                     <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
                       <button 
@@ -1152,7 +1116,6 @@ export default function Programs() {
                                 <TooltipContent className="max-w-xs">
                                   <div className="space-y-1">
                                     <p className="font-semibold">{athleteData.athlete.name}</p>
-                                    {athleteData.athlete.team && <p className="text-sm">Team: {athleteData.athlete.team}</p>}
                                     {athleteData.athlete.status && (
                                       <p className="text-sm capitalize">{athleteData.athlete.status.replace('-', ' ')}</p>
                                     )}
@@ -1231,13 +1194,6 @@ export default function Programs() {
 
                         {/* Scrollable Columns */}
                         <div className="flex items-center h-full" style={{ minWidth: '1300px' }}>
-                          {/* Team */}
-                          <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
-                            <span className="text-[#f7f6f2] text-sm">
-                              {athleteData.athlete.team || "–"}
-                            </span>
-                          </div>
-
                           {/* Sub-Season Status */}
                           <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
                             {(() => {
@@ -1458,33 +1414,6 @@ export default function Programs() {
                       className="font-['Montserrat'] text-[#f7f6f2] focus:bg-[#292928]"
                     >
                       {subSeason}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* Team */}
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Team</Label>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" size="sm" className="w-full justify-between font-['Montserrat'] !border-0">
-                    {filters.teams.length > 0 
-                      ? `${filters.teams.length} selected`
-                      : "Select team"}
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-[#171716] border-[#292928]">
-                  {TEAM_OPTIONS.map((team) => (
-                    <DropdownMenuCheckboxItem
-                      key={team}
-                      checked={filters.teams.includes(team)}
-                      onCheckedChange={() => handleTeamToggle(team)}
-                      className="font-['Montserrat'] text-[#f7f6f2] focus:bg-[#292928]"
-                    >
-                      {team}
                     </DropdownMenuCheckboxItem>
                   ))}
                 </DropdownMenuContent>

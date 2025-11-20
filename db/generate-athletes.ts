@@ -40,7 +40,6 @@ const seasons = ["Pre-Season", "In-Season", "Off-Season", "Redshirt"] as const;
 const subSeasons = ["Early", "Mid", "Late", "General Off-Season (GOS)"] as const;
 const statuses = ["draft", "active", "planned", "complete"] as const;
 const athleteStatuses = [null, "injured", "rehabbing", "lingering-issues"] as const;
-const teams = ["Varsity", "JV", "Freshman", "Redshirt", "Transfer"] as const;
 
 // Generate Unsplash photo URL for young male athlete
 // Using Unsplash Source API with curated photo IDs for young male athletes/sports
@@ -206,7 +205,6 @@ export function generateSeedAthletes(): AthleteWithPhase[] {
       photo: generatePhotoUrl(i),
       status: random(athleteStatuses),
       currentPhaseId: phaseId,
-      team: random(teams),
     };
 
     const phase: Phase = {

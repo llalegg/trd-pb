@@ -103,7 +103,6 @@ interface ExtendedAthlete extends Athlete {
   height?: string;
   weight?: string;
   levelOfPlay?: string;
-  team?: string;
   league?: string;
   season?: string;
   xRole?: string;
@@ -113,16 +112,16 @@ interface ExtendedAthlete extends Athlete {
 }
 
 const mockAthletes: ExtendedAthlete[] = [
-  { id: "1", name: "Samuel Johnson", position: "Pitcher", age: 22, height: "5'8\"", weight: "145 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Starting Pitcher", status: "cleared", location: "Austin, TX" },
-  { id: "2", name: "Michael Chen", position: "Catcher", age: 21, height: "6'0\"", weight: "180 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Starting Catcher", status: "cleared", location: "Dallas, TX" },
-  { id: "3", name: "Ethan Rodriguez", position: "Outfielder", age: 20, height: "5'6\"", weight: "135 lbs", levelOfPlay: "High School", team: "Central High", league: "Varsity", season: "2024-25", xRole: "Center Field", status: "not cleared", location: "Houston, TX" },
-  { id: "4", name: "James Williams", position: "Infielder", age: 23, height: "6'2\"", weight: "195 lbs", levelOfPlay: "Professional", team: "Minor League A", league: "MiLB", season: "2024-25", xRole: "Shortstop", status: "cleared", location: "San Antonio, TX" },
-  { id: "5", name: "Oliver Martinez", position: "Pitcher", age: 19, height: "5'7\"", weight: "140 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Relief Pitcher", status: "cleared", location: "Austin, TX" },
-  { id: "6", name: "Daniel Anderson", position: "First Base", age: 22, height: "6'1\"", weight: "190 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "First Baseman", status: "cleared", location: "Dallas, TX" },
-  { id: "7", name: "Sebastian Taylor", position: "Outfielder", age: 21, height: "5'5\"", weight: "130 lbs", levelOfPlay: "High School", team: "East High", league: "Varsity", season: "2024-25", xRole: "Left Field", status: "injured", location: "Houston, TX" },
-  { id: "8", name: "Liam Brown", position: "Catcher", age: 20, height: "5'11\"", weight: "175 lbs", levelOfPlay: "College", team: "State University", league: "NCAA Division I", season: "2024-25", xRole: "Backup Catcher", status: "cleared", location: "Austin, TX" },
-  { id: "9", name: "Alexander Davis", position: "Infielder", age: 18, height: "5'4\"", weight: "125 lbs", levelOfPlay: "High School", team: "West High", league: "Varsity", season: "2024-25", xRole: "Second Base", status: "cleared", location: "Dallas, TX" },
-  { id: "10", name: "Noah Wilson", position: "Pitcher", age: 24, height: "6'0\"", weight: "185 lbs", levelOfPlay: "Professional", team: "Minor League AA", league: "MiLB", season: "2024-25", xRole: "Starting Pitcher", status: "cleared", location: "San Antonio, TX" },
+  { id: "1", name: "Samuel Johnson", position: "Pitcher", age: 22, height: "5'8\"", weight: "145 lbs", levelOfPlay: "College", league: "NCAA Division I", season: "2024-25", xRole: "Starting Pitcher", status: "cleared", location: "Austin, TX" },
+  { id: "2", name: "Michael Chen", position: "Catcher", age: 21, height: "6'0\"", weight: "180 lbs", levelOfPlay: "College", league: "NCAA Division I", season: "2024-25", xRole: "Starting Catcher", status: "cleared", location: "Dallas, TX" },
+  { id: "3", name: "Ethan Rodriguez", position: "Outfielder", age: 20, height: "5'6\"", weight: "135 lbs", levelOfPlay: "High School", league: "Varsity", season: "2024-25", xRole: "Center Field", status: "not cleared", location: "Houston, TX" },
+  { id: "4", name: "James Williams", position: "Infielder", age: 23, height: "6'2\"", weight: "195 lbs", levelOfPlay: "Professional", league: "MiLB", season: "2024-25", xRole: "Shortstop", status: "cleared", location: "San Antonio, TX" },
+  { id: "5", name: "Oliver Martinez", position: "Pitcher", age: 19, height: "5'7\"", weight: "140 lbs", levelOfPlay: "College", league: "NCAA Division I", season: "2024-25", xRole: "Relief Pitcher", status: "cleared", location: "Austin, TX" },
+  { id: "6", name: "Daniel Anderson", position: "First Base", age: 22, height: "6'1\"", weight: "190 lbs", levelOfPlay: "College", league: "NCAA Division I", season: "2024-25", xRole: "First Baseman", status: "cleared", location: "Dallas, TX" },
+  { id: "7", name: "Sebastian Taylor", position: "Outfielder", age: 21, height: "5'5\"", weight: "130 lbs", levelOfPlay: "High School", league: "Varsity", season: "2024-25", xRole: "Left Field", status: "injured", location: "Houston, TX" },
+  { id: "8", name: "Liam Brown", position: "Catcher", age: 20, height: "5'11\"", weight: "175 lbs", levelOfPlay: "College", league: "NCAA Division I", season: "2024-25", xRole: "Backup Catcher", status: "cleared", location: "Austin, TX" },
+  { id: "9", name: "Alexander Davis", position: "Infielder", age: 18, height: "5'4\"", weight: "125 lbs", levelOfPlay: "High School", league: "Varsity", season: "2024-25", xRole: "Second Base", status: "cleared", location: "Dallas, TX" },
+  { id: "10", name: "Noah Wilson", position: "Pitcher", age: 24, height: "6'0\"", weight: "185 lbs", levelOfPlay: "Professional", league: "MiLB", season: "2024-25", xRole: "Starting Pitcher", status: "cleared", location: "San Antonio, TX" },
 ];
 
 const buildTypeOptions = [
@@ -3211,12 +3210,6 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                         <span className="text-foreground">{selectedAthlete.levelOfPlay}</span>
                       </div>
                     )}
-                    {selectedAthlete.team && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Team</span>
-                        <span className="text-foreground">{selectedAthlete.team}</span>
-                      </div>
-                    )}
                     {selectedAthlete.league && (
                       <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">League</span>
@@ -3488,12 +3481,6 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                         <div>
                           <span className="text-[#979795] font-['Montserrat']">Level:</span>
                           <span className="ml-2 text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.levelOfPlay}</span>
-                        </div>
-                      )}
-                      {selectedAthlete.team && (
-                        <div>
-                          <span className="text-[#979795] font-['Montserrat']">Team:</span>
-                          <span className="ml-2 text-[#f7f6f2] font-['Montserrat']">{selectedAthlete.team}</span>
                         </div>
                       )}
                       {selectedAthlete.league && (

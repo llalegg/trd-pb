@@ -45,7 +45,6 @@ export default function AthleteInfoSidebar({ athlete, currentPhase, blocks, clas
     height: (athlete as any).height || "5'7\"",
     weight: (athlete as any).weight || "140 lbs",
     level: (athlete as any).level || "College",
-    team: (athlete as any).team || "State University",
     league: (athlete as any).league || "NCAA Division I",
     role: (athlete as any).xRole || (athlete as any).role || "Relief Pitcher",
     status: (athlete as any).status || athlete.status || "Cleared",
@@ -109,10 +108,6 @@ export default function AthleteInfoSidebar({ athlete, currentPhase, blocks, clas
             <div className="flex items-center justify-between">
               <span className="text-xs text-[#979795] font-['Montserrat']">Level</span>
               <span className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">{athleteDetails.level}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[#979795] font-['Montserrat']">Team</span>
-              <span className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">{athleteDetails.team}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-[#979795] font-['Montserrat']">League</span>
