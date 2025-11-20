@@ -671,7 +671,6 @@ export default function Programs() {
           aValue = a.athlete.name;
           bValue = b.athlete.name;
           break;
-        }
         case "subSeasonStatus": {
           aValue = getSubSeasonStatus(a.blocks);
           bValue = getSubSeasonStatus(b.blocks);

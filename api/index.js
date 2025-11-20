@@ -5145,7 +5145,6 @@ var seasons = ["Pre-Season", "In-Season", "Off-Season", "Redshirt"];
 var subSeasons = ["Early", "Mid", "Late", "General Off-Season (GOS)"];
 var statuses = ["draft", "active", "planned", "complete"];
 var athleteStatuses = [null, "injured", "rehabbing", "lingering-issues"];
-var teams = ["Varsity", "JV", "Freshman", "Redshirt", "Transfer"];
 var unsplashPhotoIds = [
   "1507003211169-0a1dd7228f2d",
   // Young male athlete
@@ -5307,8 +5306,7 @@ function generateSeedAthletes() {
       name,
       photo: generatePhotoUrl(i),
       status: random(athleteStatuses),
-      currentPhaseId: phaseId,
-      team: random(teams)
+      currentPhaseId: phaseId
     };
     const phase = {
       id: phaseId,
@@ -5360,9 +5358,7 @@ var athletes = pgTable("athletes", {
   photo: text("photo"),
   status: varchar("status", { length: 50 }),
   // "injured" | "rehabbing" | "lingering-issues" | null
-  currentPhaseId: varchar("current_phase_id"),
-  team: text("team")
-  // Current athlete team
+  currentPhaseId: varchar("current_phase_id")
 });
 var phases = pgTable("phases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -5656,7 +5652,6 @@ var DbStorage = class {
       photo: dbAthlete.photo ?? void 0,
       status: dbAthlete.status,
       currentPhaseId: dbAthlete.currentPhaseId ?? void 0,
-      team: dbAthlete.team ?? void 0,
       phases: phasesList
     };
   }
