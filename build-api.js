@@ -42,10 +42,9 @@ function buildApiFile(entryFile, outputFile) {
   });
 }
 
-// Build both API endpoints
+// Build API endpoint
 Promise.all([
   buildApiFile('api/index.ts', 'api/index.js'),
-  buildApiFile('api/populate.ts', 'api/populate.js'),
 ]).then(() => {
   console.log('✅ All API endpoints bundled successfully');
 }).catch((error) => {
