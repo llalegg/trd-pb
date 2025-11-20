@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS "blocks" (
   "lifting" jsonb,
   "conditioning" jsonb,
   "last_modification" timestamp,
+  "last_submission" timestamp,
+  "next_block_due" timestamp,
   "created_at" timestamp DEFAULT now() NOT NULL,
   "updated_at" timestamp DEFAULT now() NOT NULL,
   CONSTRAINT "blocks_athlete_id_athletes_id_fk" FOREIGN KEY ("athlete_id") REFERENCES "athletes"("id") ON DELETE cascade ON UPDATE no action,
