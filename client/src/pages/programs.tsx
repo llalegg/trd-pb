@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Activity, AlertCircle, Circle, ChevronRight, ChevronDown } from "lucide-react";
+import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Activity, AlertCircle, ChevronRight, ChevronDown, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,6 +37,12 @@ interface FilterState {
   seasons: string[];
   subSeasons: string[];
   urgency: string[]; // due-this-week, overdue, no-active-block
+  teams: string[]; // Team filter
+  programStatuses: string[]; // active/pending/draft
+  lastEntryStart: string; // Last entry day filter start
+  lastEntryEnd: string; // Last entry day filter end
+  recentEditStart: string; // Recent edit filter start
+  recentEditEnd: string; // Recent edit filter end
   nextBlockDueStart: string;
   nextBlockDueEnd: string;
   lastActivityStart: string;
@@ -60,6 +67,12 @@ const URGENCY_OPTIONS = [
   { value: "overdue", label: "Overdue" },
   { value: "no-active-block", label: "No active block" },
 ];
+const TEAM_OPTIONS = ["Varsity", "JV", "Freshman", "Redshirt", "Transfer"];
+const PROGRAM_STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "pending", label: "Pending" },
+  { value: "draft", label: "Draft" },
+];
 
 // Helper Functions
 const getStatusIcon = (status?: "injured" | "rehabbing" | "lingering-issues" | null) => {
@@ -68,20 +81,20 @@ const getStatusIcon = (status?: "injured" | "rehabbing" | "lingering-issues" | n
   switch (status) {
     case "injured":
       return (
-        <div className={cn("p-1.5 rounded-full", bgClass)}>
-          <AlertTriangle className="h-5 w-5 text-red-500" />
+        <div className={cn("p-1 rounded-full", bgClass)}>
+          <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
         </div>
       );
     case "rehabbing":
       return (
-        <div className={cn("p-1.5 rounded-full", bgClass)}>
-          <Activity className="h-5 w-5 text-blue-500" />
+        <div className={cn("p-1 rounded-full", bgClass)}>
+          <Activity className="h-3.5 w-3.5 text-blue-500" />
         </div>
       );
     case "lingering-issues":
       return (
-        <div className={cn("p-1.5 rounded-full", bgClass)}>
-          <AlertCircle className="h-5 w-5 text-amber-500" />
+        <div className={cn("p-1 rounded-full", bgClass)}>
+          <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
         </div>
       );
     default:
@@ -409,6 +422,12 @@ export default function Programs() {
     seasons: [],
     subSeasons: [],
     urgency: [],
+    teams: [],
+    programStatuses: [],
+    lastEntryStart: "",
+    lastEntryEnd: "",
+    recentEditStart: "",
+    recentEditEnd: "",
     nextBlockDueStart: "",
     nextBlockDueEnd: "",
     lastActivityStart: "",
@@ -556,6 +575,70 @@ export default function Programs() {
         if (!hasMatchingBlock) return false;
       }
 
+      // Filter by team
+      if (filters.teams.length > 0) {
+        if (!athlete.team || !filters.teams.includes(athlete.team)) return false;
+      }
+
+      // Filter by program status
+      if (filters.programStatuses.length > 0) {
+        const programStatus = getProgramStatus(blocks);
+        if (!filters.programStatuses.includes(programStatus.status)) return false;
+      }
+
+      // Filter by last entry day
+      if (filters.lastEntryStart || filters.lastEntryEnd) {
+        const lastEntry = getLastEntryDay(blocks);
+        if (lastEntry.daysAgo === null) return false;
+        
+        const lastEntryDate = new Date();
+        lastEntryDate.setDate(lastEntryDate.getDate() - (lastEntry.daysAgo || 0));
+        lastEntryDate.setHours(0, 0, 0, 0);
+        
+        if (filters.lastEntryStart) {
+          const filterStart = new Date(filters.lastEntryStart);
+          filterStart.setHours(0, 0, 0, 0);
+          if (lastEntryDate < filterStart) return false;
+        }
+        if (filters.lastEntryEnd) {
+          const filterEnd = new Date(filters.lastEntryEnd);
+          filterEnd.setHours(23, 59, 59, 999);
+          if (lastEntryDate > filterEnd) return false;
+        }
+      }
+
+      // Filter by recent edit
+      if (filters.recentEditStart || filters.recentEditEnd) {
+        const recentEdit = getLastModificationDay(blocks);
+        if (!recentEdit.formattedDate) return false;
+        
+        // Parse the formatted date (MMM d format)
+        const editDate = new Date();
+        // We need to find the actual date from blocks
+        const modificationDates: Date[] = [];
+        blocks.forEach(block => {
+          if (block.lastModification) {
+            modificationDates.push(new Date(block.lastModification));
+          }
+        });
+        
+        if (modificationDates.length === 0) return false;
+        
+        const mostRecentEdit = new Date(Math.max(...modificationDates.map(d => d.getTime())));
+        mostRecentEdit.setHours(0, 0, 0, 0);
+        
+        if (filters.recentEditStart) {
+          const filterStart = new Date(filters.recentEditStart);
+          filterStart.setHours(0, 0, 0, 0);
+          if (mostRecentEdit < filterStart) return false;
+        }
+        if (filters.recentEditEnd) {
+          const filterEnd = new Date(filters.recentEditEnd);
+          filterEnd.setHours(23, 59, 59, 999);
+          if (mostRecentEdit > filterEnd) return false;
+        }
+      }
+
       // Filter by urgency
       if (filters.urgency.length > 0) {
         const hasMatchingUrgency = filters.urgency.some(urgencyType => {
@@ -631,9 +714,33 @@ export default function Programs() {
         case "lastModificationDay": {
           const aMod = getLastModificationDay(a.blocks);
           const bMod = getLastModificationDay(b.blocks);
-          // Sort by date string (M/d format)
-          aValue = aMod.formattedDate || "";
-          bValue = bMod.formattedDate || "";
+          // Sort by actual date value for proper chronological sorting
+          const modificationDatesA: Date[] = [];
+          a.blocks.forEach(block => {
+            if (block.lastModification) {
+              modificationDatesA.push(new Date(block.lastModification));
+            }
+          });
+          const modificationDatesB: Date[] = [];
+          b.blocks.forEach(block => {
+            if (block.lastModification) {
+              modificationDatesB.push(new Date(block.lastModification));
+            }
+          });
+          
+          if (modificationDatesA.length === 0 && modificationDatesB.length === 0) {
+            aValue = 0;
+            bValue = 0;
+          } else if (modificationDatesA.length === 0) {
+            aValue = Number.MIN_SAFE_INTEGER;
+            bValue = Math.max(...modificationDatesB.map(d => d.getTime()));
+          } else if (modificationDatesB.length === 0) {
+            aValue = Math.max(...modificationDatesA.map(d => d.getTime()));
+            bValue = Number.MIN_SAFE_INTEGER;
+          } else {
+            aValue = Math.max(...modificationDatesA.map(d => d.getTime()));
+            bValue = Math.max(...modificationDatesB.map(d => d.getTime()));
+          }
           break;
         }
         default:
@@ -719,6 +826,24 @@ export default function Programs() {
     }));
   };
 
+  const handleTeamToggle = (team: string) => {
+    setFilters(prev => ({
+      ...prev,
+      teams: prev.teams.includes(team)
+        ? prev.teams.filter(t => t !== team)
+        : [...prev.teams, team]
+    }));
+  };
+
+  const handleProgramStatusToggle = (status: string) => {
+    setFilters(prev => ({
+      ...prev,
+      programStatuses: prev.programStatuses.includes(status)
+        ? prev.programStatuses.filter(s => s !== status)
+        : [...prev.programStatuses, status]
+    }));
+  };
+
   const clearFilters = () => {
     setFilters({
       athleteStatuses: [],
@@ -726,6 +851,12 @@ export default function Programs() {
       seasons: [],
       subSeasons: [],
       urgency: [],
+      teams: [],
+      programStatuses: [],
+      lastEntryStart: "",
+      lastEntryEnd: "",
+      recentEditStart: "",
+      recentEditEnd: "",
       nextBlockDueStart: "",
       nextBlockDueEnd: "",
       lastActivityStart: "",
@@ -740,6 +871,12 @@ export default function Programs() {
       filters.seasons.length > 0 ||
       filters.subSeasons.length > 0 ||
       filters.urgency.length > 0 ||
+      filters.teams.length > 0 ||
+      filters.programStatuses.length > 0 ||
+      filters.lastEntryStart ||
+      filters.lastEntryEnd ||
+      filters.recentEditStart ||
+      filters.recentEditEnd ||
       filters.nextBlockDueStart ||
       filters.nextBlockDueEnd ||
       filters.lastActivityStart ||
@@ -821,6 +958,7 @@ export default function Programs() {
               variant="secondary"
               size="sm"
               className={cn(
+                "font-['Montserrat']",
                 hasActiveFilters && "border-primary"
               )}
               onClick={() => setFilterSheetOpen(true)}
@@ -876,8 +1014,8 @@ export default function Programs() {
               <div className="bg-[#121210] rounded-2xl overflow-hidden relative" style={{ minWidth: '1600px' }}>
                 {/* Table Header */}
                 <div className="flex h-10 bg-[#121210] text-[#bcbbb7] text-xs font-medium relative">
-                  {/* Athlete Name Column */}
-                  <div className="flex items-center pl-[8px] pr-[16px] w-[300px] min-w-[300px] flex-shrink-0 border-r border-[#292928]">
+                  {/* Athlete Column */}
+                  <div className="flex items-center pl-[8px] pr-[16px] w-[320px] min-w-[320px] flex-shrink-0 border-r border-[#292928]">
                     <button 
                       onClick={() => handleSort('athleteName')}
                       onMouseEnter={() => setHoveredSortField('athleteName')}
@@ -885,7 +1023,7 @@ export default function Programs() {
                       className="flex gap-[4px] items-center flex-1 hover:text-[#f7f6f2] transition-colors pl-[16px]"
                     >
                       <span className="font-['Montserrat'] font-medium text-[12px] leading-[1.32] text-[#bcbbb7] whitespace-nowrap overflow-hidden text-ellipsis">
-                        Athlete name
+                        Athlete
                       </span>
                       {getSortIcon('athleteName', hoveredSortField === 'athleteName' || sortField === 'athleteName')}
                     </button>
@@ -959,7 +1097,7 @@ export default function Programs() {
                     </div>
 
                     {/* Recent Edit */}
-                    <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
+                    <div className="flex items-center pl-4 pr-0 w-[160px] min-w-[160px]">
                       <button 
                         onClick={() => handleSort('lastModificationDay')}
                         onMouseEnter={() => setHoveredSortField('lastModificationDay')}
@@ -969,11 +1107,6 @@ export default function Programs() {
                         <span className="whitespace-nowrap overflow-hidden text-ellipsis">Recent edit</span>
                         {getSortIcon('lastModificationDay', hoveredSortField === 'lastModificationDay' || sortField === 'lastModificationDay')}
                       </button>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
-                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Actions</span>
                     </div>
                   </div>
                 </div>
@@ -993,34 +1126,90 @@ export default function Programs() {
                         className="group flex items-center border-b border-[#292928] h-12 bg-[#1C1C1B] hover:bg-[#2C2C2B] transition-colors cursor-pointer"
                         onClick={() => setLocation(`/programs/${athleteData.athlete.id}`)}
                       >
-                        {/* Athlete Name Column */}
-                        <div className="flex gap-[8px] items-center pl-[8px] pr-[16px] py-0 w-[300px] min-w-[300px] flex-shrink-0 border-r border-[#292928]">
+                        {/* Athlete Column */}
+                        <div className="flex gap-[8px] items-center pl-[8px] pr-[16px] py-0 w-[320px] min-w-[320px] flex-shrink-0 border-r border-[#292928]">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <Avatar className={cn("h-8 w-8 flex-shrink-0", getAvatarBorderClass(athleteData.athlete.status))}>
-                              <AvatarImage src={athleteData.athlete.photo} alt={athleteData.athlete.name} />
-                              <AvatarFallback className="bg-[#292928] text-[#f7f6f2] text-xs font-['Montserrat']">
-                                {athleteData.athlete.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-['Montserrat'] font-semibold text-[14px] text-[#f7f6f2] truncate">
-                              {athleteData.athlete.name}
-                            </span>
-                            {isActionableInjury(athleteData.athlete.status) && (
-                              <div className="ml-auto flex-shrink-0">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <div>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer">
+                                    <Avatar className={cn("h-8 w-8 flex-shrink-0", getAvatarBorderClass(athleteData.athlete.status))}>
+                                      <AvatarImage src={athleteData.athlete.photo} alt={athleteData.athlete.name} />
+                                      <AvatarFallback className="bg-[#292928] text-[#f7f6f2] text-xs font-['Montserrat']">
+                                        {athleteData.athlete.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="font-['Montserrat'] font-semibold text-[14px] text-[#f7f6f2] truncate">
+                                      {athleteData.athlete.name}
+                                    </span>
+                                    {isActionableInjury(athleteData.athlete.status) && (
+                                      <div className="flex-shrink-0">
                                         {statusIcon}
                                       </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{statusTooltip}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            )}
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="space-y-1">
+                                    <p className="font-semibold">{athleteData.athlete.name}</p>
+                                    {athleteData.athlete.team && <p className="text-sm">Team: {athleteData.athlete.team}</p>}
+                                    {athleteData.athlete.status && (
+                                      <p className="text-sm capitalize">{athleteData.athlete.status.replace('-', ' ')}</p>
+                                    )}
+                                    {(() => {
+                                      const programStatus = getProgramStatus(athleteData.blocks);
+                                      return <p className="text-sm">Status: {programStatus.status}</p>;
+                                    })()}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+                              {(() => {
+                                const taskCount = getTaskCount(athleteData.athlete.id);
+                                const needsAttn = needsAttention(athleteData.blocks, athleteData.athlete.id, tabView);
+                                
+                                return (
+                                  <>
+                                    {needsAttn && taskCount > 0 && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#292928]">
+                                              <ClipboardList className="h-3.5 w-3.5 text-[#f7f6f2]" />
+                                              <span className="text-[#f7f6f2] text-xs font-semibold">{taskCount}</span>
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>{taskCount} associated task{taskCount !== 1 ? 's' : ''}</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-xs h-8 px-2 hover:bg-[#2C2C2B]"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setLocation(`/programs/${athleteData.athlete.id}`);
+                                            }}
+                                          >
+                                            <ChevronRight className="h-4 w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>View program</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </>
+                                );
+                              })()}
+                            </div>
                           </div>
                         </div>
 
@@ -1041,7 +1230,7 @@ export default function Programs() {
                                 <Badge 
                                   variant={subSeasonStatus === "In-Season" ? "outline" : "neutral"}
                                   className={cn(
-                                    subSeasonStatus === "In-Season" && "bg-green-500/20 text-green-400"
+                                    subSeasonStatus === "In-Season" && "bg-black text-white"
                                   )}
                                 >
                                   {subSeasonStatus}
@@ -1109,62 +1298,15 @@ export default function Programs() {
                           </div>
 
                           {/* Recent Edit */}
-                          <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
-                            <span className="text-[#979795] text-sm">
-                              {getLastModificationDay(athleteData.blocks).text}
-                            </span>
-                          </div>
-
-                          {/* Actions with Indicators */}
-                          <div className="flex items-center gap-2 pl-4 pr-0 w-[150px] min-w-[150px]">
+                          <div className="flex items-center pl-4 pr-0 w-[160px] min-w-[160px]">
                             {(() => {
-                              const taskCount = getTaskCount(athleteData.athlete.id);
-                              const needsAttn = needsAttention(athleteData.blocks, athleteData.athlete.id, tabView);
-                              
-                              return (
-                                <>
-                                  {needsAttn && (
-                                    <div className="flex items-center gap-1">
-                                      {taskCount > 0 && (
-                                        <TooltipProvider>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-red-500/20 text-red-400 text-xs font-semibold">
-                                                {taskCount}
-                                              </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              <p>{taskCount} associated task{taskCount !== 1 ? 's' : ''}</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-                                      )}
-                                      {(!taskCount || taskCount === 0) && (
-                                        <TooltipProvider>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Circle className="h-4 w-4 text-red-500 fill-red-500" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              <p>Requires attention</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-                                      )}
-                                    </div>
-                                  )}
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-xs h-8 px-2 hover:bg-[#2C2C2B]"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setLocation(`/programs/${athleteData.athlete.id}`);
-                                    }}
-                                  >
-                                    <ChevronRight className="h-4 w-4" />
-                                  </Button>
-                                </>
+                              const recentEdit = getLastModificationDay(athleteData.blocks);
+                              return recentEdit.formattedDate ? (
+                                <Badge variant="neutral">
+                                  {recentEdit.text}
+                                </Badge>
+                              ) : (
+                                <span className="text-[#979795] text-sm">–</span>
                               );
                             })()}
                           </div>
@@ -1186,115 +1328,244 @@ export default function Programs() {
             <SheetTitle className="text-xl font-['Montserrat'] text-[#f7f6f2]">Filters</SheetTitle>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
             {/* Athlete Status */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Athlete status</Label>
-              <div className="flex flex-wrap gap-4">
-                {STATUS_OPTIONS.map((statusOption) => (
-                  <div key={statusOption.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`athlete-status-${statusOption.value}`}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" className="w-full justify-between font-['Montserrat'] !border-0">
+                    {filters.athleteStatuses.length > 0 
+                      ? `${filters.athleteStatuses.length} selected`
+                      : "Select athlete status"}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-[#171716] border-[#292928]">
+                  {STATUS_OPTIONS.map((statusOption) => (
+                    <DropdownMenuCheckboxItem
+                      key={statusOption.value}
                       checked={filters.athleteStatuses.includes(statusOption.value)}
                       onCheckedChange={() => handleAthleteStatusToggle(statusOption.value)}
-                    />
-                    <Label
-                      htmlFor={`athlete-status-${statusOption.value}`}
-                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
+                      className="font-['Montserrat'] text-[#f7f6f2] focus:bg-[#292928]"
                     >
                       {statusOption.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Block Status */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Block status</Label>
-              <div className="flex flex-wrap gap-4">
-                {BLOCK_STATUS_OPTIONS.map((statusOption) => (
-                  <div key={statusOption.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`block-status-${statusOption.value}`}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" className="w-full justify-between font-['Montserrat'] !border-0">
+                    {filters.blockStatuses.length > 0 
+                      ? `${filters.blockStatuses.length} selected`
+                      : "Select block status"}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-[#171716] border-[#292928]">
+                  {BLOCK_STATUS_OPTIONS.map((statusOption) => (
+                    <DropdownMenuCheckboxItem
+                      key={statusOption.value}
                       checked={filters.blockStatuses.includes(statusOption.value)}
                       onCheckedChange={() => handleBlockStatusToggle(statusOption.value)}
-                    />
-                    <Label
-                      htmlFor={`block-status-${statusOption.value}`}
-                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
+                      className="font-['Montserrat'] text-[#f7f6f2] focus:bg-[#292928]"
                     >
                       {statusOption.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Season */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Season</Label>
-              <div className="flex flex-wrap gap-4">
-                {SEASON_OPTIONS.map((season) => (
-                  <div key={season} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`season-${season}`}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" className="w-full justify-between font-['Montserrat'] !border-0">
+                    {filters.seasons.length > 0 
+                      ? `${filters.seasons.length} selected`
+                      : "Select season"}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-[#171716] border-[#292928]">
+                  {SEASON_OPTIONS.map((season) => (
+                    <DropdownMenuCheckboxItem
+                      key={season}
                       checked={filters.seasons.includes(season)}
                       onCheckedChange={() => handleSeasonToggle(season)}
-                    />
-                    <Label
-                      htmlFor={`season-${season}`}
-                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
+                      className="font-['Montserrat'] text-[#f7f6f2] focus:bg-[#292928]"
                     >
                       {season}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Sub-Season */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Sub-season</Label>
-              <div className="flex flex-wrap gap-4">
-                {SUB_SEASON_OPTIONS.map((subSeason) => (
-                  <div key={subSeason} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`subseason-${subSeason}`}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" className="w-full justify-between font-['Montserrat'] !border-0">
+                    {filters.subSeasons.length > 0 
+                      ? `${filters.subSeasons.length} selected`
+                      : "Select sub-season"}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-[#171716] border-[#292928]">
+                  {SUB_SEASON_OPTIONS.map((subSeason) => (
+                    <DropdownMenuCheckboxItem
+                      key={subSeason}
                       checked={filters.subSeasons.includes(subSeason)}
                       onCheckedChange={() => handleSubSeasonToggle(subSeason)}
-                    />
-                    <Label
-                      htmlFor={`subseason-${subSeason}`}
-                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
+                      className="font-['Montserrat'] text-[#f7f6f2] focus:bg-[#292928]"
                     >
                       {subSeason}
-                    </Label>
-                  </div>
-                ))}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Team */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Team</Label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" className="w-full justify-between font-['Montserrat'] !border-0">
+                    {filters.teams.length > 0 
+                      ? `${filters.teams.length} selected`
+                      : "Select team"}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-[#171716] border-[#292928]">
+                  {TEAM_OPTIONS.map((team) => (
+                    <DropdownMenuCheckboxItem
+                      key={team}
+                      checked={filters.teams.includes(team)}
+                      onCheckedChange={() => handleTeamToggle(team)}
+                      className="font-['Montserrat'] text-[#f7f6f2] focus:bg-[#292928]"
+                    >
+                      {team}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Program Status */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Program status</Label>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" className="w-full justify-between font-['Montserrat'] !border-0">
+                    {filters.programStatuses.length > 0 
+                      ? `${filters.programStatuses.length} selected`
+                      : "Select program status"}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-[#171716] border-[#292928]">
+                  {PROGRAM_STATUS_OPTIONS.map((statusOption) => (
+                    <DropdownMenuCheckboxItem
+                      key={statusOption.value}
+                      checked={filters.programStatuses.includes(statusOption.value)}
+                      onCheckedChange={() => handleProgramStatusToggle(statusOption.value)}
+                      className="font-['Montserrat'] text-[#f7f6f2] focus:bg-[#292928]"
+                    >
+                      {statusOption.label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Last Entry Day */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Last entry day</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs font-['Montserrat'] text-[#979795]">Start date</Label>
+                  <Input
+                    type="date"
+                    value={filters.lastEntryStart}
+                    onChange={(e) => setFilters(prev => ({ ...prev, lastEntryStart: e.target.value }))}
+                    className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-['Montserrat'] text-[#979795]">End date</Label>
+                  <Input
+                    type="date"
+                    value={filters.lastEntryEnd}
+                    onChange={(e) => setFilters(prev => ({ ...prev, lastEntryEnd: e.target.value }))}
+                    className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Edit */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Recent edit</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs font-['Montserrat'] text-[#979795]">Start date</Label>
+                  <Input
+                    type="date"
+                    value={filters.recentEditStart}
+                    onChange={(e) => setFilters(prev => ({ ...prev, recentEditStart: e.target.value }))}
+                    className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-['Montserrat'] text-[#979795]">End date</Label>
+                  <Input
+                    type="date"
+                    value={filters.recentEditEnd}
+                    onChange={(e) => setFilters(prev => ({ ...prev, recentEditEnd: e.target.value }))}
+                    className="bg-[#171716] border-[#292928] text-[#f7f6f2] font-['Montserrat']"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Urgency */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Urgency</Label>
-              <div className="flex flex-wrap gap-4">
-                {URGENCY_OPTIONS.map((urgencyOption) => (
-                  <div key={urgencyOption.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`urgency-${urgencyOption.value}`}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" className="w-full justify-between font-['Montserrat'] !border-0">
+                    {filters.urgency.length > 0 
+                      ? `${filters.urgency.length} selected`
+                      : "Select urgency"}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-[#171716] border-[#292928]">
+                  {URGENCY_OPTIONS.map((urgencyOption) => (
+                    <DropdownMenuCheckboxItem
+                      key={urgencyOption.value}
                       checked={filters.urgency.includes(urgencyOption.value)}
                       onCheckedChange={() => handleUrgencyToggle(urgencyOption.value)}
-                    />
-                    <Label
-                      htmlFor={`urgency-${urgencyOption.value}`}
-                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
+                      className="font-['Montserrat'] text-[#f7f6f2] focus:bg-[#292928]"
                     >
                       {urgencyOption.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Last Activity */}
