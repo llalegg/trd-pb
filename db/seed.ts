@@ -16,8 +16,16 @@ const daysFromNow = (days: number): string => {
   return date.toISOString();
 };
 
-// Generate mock athlete-centric data with new Block and Phase structure
+// Import the new generator function
+import { generateSeedAthletes as generate60Athletes } from "./generate-athletes";
+
+// Legacy function - now uses the new generator
 export function generateSeedAthletes(): AthleteWithPhase[] {
+  return generate60Athletes();
+}
+
+// Old manual generation code (kept for reference but not used)
+function generateSeedAthletesOld(): AthleteWithPhase[] {
   const athletes: AthleteWithPhase[] = [];
 
   // Athlete 1: Marcus Johnson - Phase 1 with 2 blocks

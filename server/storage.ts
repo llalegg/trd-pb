@@ -538,7 +538,7 @@ export function getStorage(): IStorage {
     // Force using MemStorage (hardcoded data) to avoid database connections
     // Set USE_DATABASE=true in environment variables to enable database storage
     const useDatabase = process.env.USE_DATABASE === "true";
-    const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NO_SSL;
+    const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
     
     if (useDatabase && databaseUrl) {
       try {

@@ -1,5 +1,3 @@
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import type { IStorage } from "./storage";
@@ -20,6 +18,7 @@ import {
   blocks,
   programs,
 } from "@shared/schema";
+import { getDatabaseConnection } from "../db/connection";
 
 function generateProgramId(): string {
   const randomDigits = Math.floor(100000 + Math.random() * 900000);
@@ -27,21 +26,32 @@ function generateProgramId(): string {
 }
 
 export class DbStorage implements IStorage {
-  private db;
+  private dbPromise: Promise<any>;
 
   constructor(databaseUrl: string) {
-    const sql = neon(databaseUrl);
-    this.db = drizzle(sql);
+    // Store the database URL in environment for connection utility
+    // The connection utility will read from env vars
+    if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+      // Temporarily set it if not already set
+      process.env.DATABASE_URL = databaseUrl;
+    }
+    this.dbPromise = getDatabaseConnection();
+  }
+
+  private async getDb() {
+    return await this.dbPromise;
   }
 
   // User methods
   async getUser(id: string): Promise<User | undefined> {
-    const result = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
+    const db = await this.getDb();
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await this.db
+    const db = await this.getDb();
+    const result = await db
       .select()
       .from(users)
       .where(eq(users.username, username))
@@ -50,8 +60,9 @@ export class DbStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    const db = await this.getDb();
     const id = randomUUID();
-    const [user] = await this.db
+    const [user] = await db
       .insert(users)
       .values({ id, ...insertUser })
       .returning();
@@ -60,12 +71,14 @@ export class DbStorage implements IStorage {
 
   // Program methods
   async getPrograms(): Promise<Program[]> {
-    const dbPrograms = await this.db.select().from(programs);
+    const db = await this.getDb();
+    const dbPrograms = await db.select().from(programs);
     return dbPrograms.map(this.mapDbProgramToProgram);
   }
 
   async getProgram(id: string): Promise<Program | undefined> {
-    const result = await this.db
+    const db = await this.getDb();
+    const result = await db
       .select()
       .from(programs)
       .where(eq(programs.id, id))
@@ -74,9 +87,10 @@ export class DbStorage implements IStorage {
   }
 
   async createProgram(insertProgram: InsertProgram): Promise<Program> {
+    const db = await this.getDb();
     const id = randomUUID();
     const programId = generateProgramId();
-    const [dbProgram] = await this.db
+    const [dbProgram] = await db
       .insert(programs)
       .values({
         id,
@@ -108,15 +122,17 @@ export class DbStorage implements IStorage {
   }
 
   async deleteProgram(id: string): Promise<boolean> {
-    const result = await this.db.delete(programs).where(eq(programs.id, id)).returning();
+    const db = await this.getDb();
+    const result = await db.delete(programs).where(eq(programs.id, id)).returning();
     return result.length > 0;
   }
 
   // Athlete methods
   async getAthletes(): Promise<AthleteWithPhase[]> {
-    const dbAthletes = await this.db.select().from(athletes);
-    const dbPhases = await this.db.select().from(phases);
-    const dbBlocks = await this.db.select().from(blocks);
+    const db = await this.getDb();
+    const dbAthletes = await db.select().from(athletes);
+    const dbPhases = await db.select().from(phases);
+    const dbBlocks = await db.select().from(blocks);
 
     return dbAthletes.map((athlete) => {
       const athletePhases = dbPhases
@@ -145,7 +161,8 @@ export class DbStorage implements IStorage {
 
   // Block methods
   async getBlocksByPhase(athleteId: string, phaseId: string): Promise<Block[]> {
-    const dbBlocks = await this.db
+    const db = await this.getDb();
+    const dbBlocks = await db
       .select()
       .from(blocks)
       .where(and(eq(blocks.athleteId, athleteId), eq(blocks.phaseId, phaseId)));
@@ -155,10 +172,11 @@ export class DbStorage implements IStorage {
   async createBlock(
     blockData: Omit<Block, "id" | "createdAt" | "updatedAt">
   ): Promise<Block> {
+    const db = await this.getDb();
     const id = randomUUID();
     const now = new Date();
 
-    const [dbBlock] = await this.db
+    const [dbBlock] = await db
       .insert(blocks)
       .values({
         id,
@@ -192,6 +210,7 @@ export class DbStorage implements IStorage {
     blockId: string,
     updates: Partial<Block>
   ): Promise<Block | undefined> {
+    const db = await this.getDb();
     const updateData: any = {
       updatedAt: new Date(),
     };
@@ -214,7 +233,7 @@ export class DbStorage implements IStorage {
         ? new Date(updates.lastModification)
         : null;
 
-    const result = await this.db
+    const result = await db
       .update(blocks)
       .set(updateData)
       .where(eq(blocks.id, blockId))
@@ -224,7 +243,8 @@ export class DbStorage implements IStorage {
   }
 
   async deleteBlock(blockId: string): Promise<boolean> {
-    const result = await this.db.delete(blocks).where(eq(blocks.id, blockId)).returning();
+    const db = await this.getDb();
+    const result = await db.delete(blocks).where(eq(blocks.id, blockId)).returning();
     return result.length > 0;
   }
 

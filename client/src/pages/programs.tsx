@@ -19,8 +19,9 @@ import {
 import { type AthleteWithPhase, type Block } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow, differenceInDays } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 
-type TabView = "pending" | "current" | "upcoming";
+type TabView = "all" | "pending" | "current" | "upcoming";
 type SortField = "athleteName" | "subSeason" | "blockProgress" | "programStatus" | "lastEntryDay" | "lastModificationDay";
 type SortDirection = "asc" | "desc";
 
@@ -379,7 +380,7 @@ const needsAttention = (blocks: Block[], athleteId: string, tabView: TabView): b
 
 export default function Programs() {
   const [, setLocation] = useLocation();
-  const [tabView, setTabView] = useState<TabView>("pending");
+  const [tabView, setTabView] = useState<TabView>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("athleteName");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -397,256 +398,21 @@ export default function Programs() {
     lastActivityEnd: "",
   });
 
-  // Hardcoded athletes data (to avoid API calls)
-  const hardcodedAthletes: AthleteWithPhase[] = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const daysAgo = (days: number) => {
-      const date = new Date(today);
-      date.setDate(date.getDate() - days);
-      return date.toISOString().split('T')[0];
-    };
-    const daysFromNow = (days: number) => {
-      const date = new Date(today);
-      date.setDate(date.getDate() + days);
-      return date.toISOString().split('T')[0];
-    };
-
-    return [
-      {
-        athlete: {
-          id: "athlete-1",
-          name: "Marcus Johnson",
-          status: null,
-          currentPhaseId: "phase-athlete-1",
-        },
-        currentPhase: {
-          id: "phase-athlete-1",
-          athleteId: "athlete-1",
-          phaseNumber: 1,
-          startDate: daysAgo(60),
-          endDate: daysFromNow(30),
-          status: "active",
-        },
-        blocks: [
-          {
-            id: "block-1-1",
-            athleteId: "athlete-1",
-            phaseId: "phase-athlete-1",
-            blockNumber: 1,
-            name: "Pre-Season Block 1",
-            startDate: daysAgo(60),
-            endDate: daysAgo(32),
-            duration: 4,
-            season: "Pre-Season",
-            subSeason: "Early",
-            status: "complete",
-            createdAt: daysAgo(65),
-            updatedAt: daysAgo(32),
-          },
-          {
-            id: "block-1-2",
-            athleteId: "athlete-1",
-            phaseId: "phase-athlete-1",
-            blockNumber: 2,
-            name: "Pre-Season Block 2",
-            startDate: daysAgo(32),
-            endDate: daysFromNow(2),
-            duration: 5,
-            season: "Pre-Season",
-            subSeason: "Mid",
-            status: "active",
-            createdAt: daysAgo(35),
-            updatedAt: daysAgo(1),
-            lastModification: daysAgo(1),
-            lastSubmission: daysAgo(2),
-            nextBlockDue: daysFromNow(5),
-          },
-        ],
-      },
-      {
-        athlete: {
-          id: "athlete-2",
-          name: "Michael Chen",
-          status: null,
-          currentPhaseId: "phase-athlete-2",
-        },
-        currentPhase: {
-          id: "phase-athlete-2",
-          athleteId: "athlete-2",
-          phaseNumber: 1,
-          startDate: daysAgo(90),
-          endDate: daysFromNow(60),
-          status: "active",
-        },
-        blocks: [
-          {
-            id: "block-2-1",
-            athleteId: "athlete-2",
-            phaseId: "phase-athlete-2",
-            blockNumber: 1,
-            name: "In-Season Block 1",
-            startDate: daysAgo(90),
-            endDate: daysAgo(62),
-            duration: 4,
-            season: "In-Season",
-            subSeason: "Early",
-            status: "complete",
-            createdAt: daysAgo(95),
-            updatedAt: daysAgo(62),
-          },
-          {
-            id: "block-2-2",
-            athleteId: "athlete-2",
-            phaseId: "phase-athlete-2",
-            blockNumber: 2,
-            name: "In-Season Block 2",
-            startDate: daysAgo(62),
-            endDate: daysFromNow(2),
-            duration: 9,
-            season: "In-Season",
-            subSeason: "Mid",
-            status: "active",
-            createdAt: daysAgo(65),
-            updatedAt: daysAgo(1),
-            lastModification: daysAgo(1),
-            lastSubmission: daysAgo(1),
-            nextBlockDue: daysFromNow(10),
-          },
-        ],
-      },
-      {
-        athlete: {
-          id: "athlete-3",
-          name: "Alexander Rodriguez",
-          status: "rehabbing",
-          currentPhaseId: "phase-athlete-3",
-        },
-        currentPhase: {
-          id: "phase-athlete-3",
-          athleteId: "athlete-3",
-          phaseNumber: 1,
-          startDate: daysAgo(45),
-          endDate: daysFromNow(45),
-          status: "active",
-        },
-        blocks: [
-          {
-            id: "block-3-1",
-            athleteId: "athlete-3",
-            phaseId: "phase-athlete-3",
-            blockNumber: 1,
-            name: "Off-Season Block 1",
-            startDate: daysAgo(45),
-            endDate: daysFromNow(5),
-            duration: 7,
-            season: "Off-Season",
-            subSeason: "Late",
-            status: "active",
-            createdAt: daysAgo(48),
-            updatedAt: daysAgo(1),
-            lastModification: daysAgo(1),
-            lastSubmission: daysAgo(5),
-            nextBlockDue: daysFromNow(3),
-          },
-        ],
-      },
-      {
-        athlete: {
-          id: "athlete-4",
-          name: "James Williams",
-          status: "lingering-issues",
-          currentPhaseId: "phase-athlete-4",
-        },
-        currentPhase: {
-          id: "phase-athlete-4",
-          athleteId: "athlete-4",
-          phaseNumber: 1,
-          startDate: daysAgo(120),
-          endDate: daysFromNow(30),
-          status: "active",
-        },
-        blocks: [
-          {
-            id: "block-4-1",
-            athleteId: "athlete-4",
-            phaseId: "phase-athlete-4",
-            blockNumber: 1,
-            name: "Pre-Season Block 1",
-            startDate: daysAgo(120),
-            endDate: daysAgo(92),
-            duration: 4,
-            season: "Pre-Season",
-            subSeason: "Early",
-            status: "complete",
-            createdAt: daysAgo(125),
-            updatedAt: daysAgo(92),
-          },
-          {
-            id: "block-4-2",
-            athleteId: "athlete-4",
-            phaseId: "phase-athlete-4",
-            blockNumber: 2,
-            name: "Pre-Season Block 2",
-            startDate: daysAgo(62),
-            endDate: daysFromNow(36),
-            duration: 14,
-            season: "Pre-Season",
-            subSeason: "Mid",
-            status: "active",
-            createdAt: daysAgo(65),
-            updatedAt: daysAgo(1),
-            lastModification: daysAgo(1),
-            lastSubmission: daysAgo(4),
-            nextBlockDue: daysFromNow(15),
-          },
-        ],
-      },
-      {
-        athlete: {
-          id: "athlete-5",
-          name: "Ryan Martinez",
-          status: null,
-          currentPhaseId: "phase-athlete-5",
-        },
-        currentPhase: {
-          id: "phase-athlete-5",
-          athleteId: "athlete-5",
-          phaseNumber: 1,
-          startDate: daysAgo(30),
-          endDate: daysFromNow(60),
-          status: "active",
-        },
-        blocks: [
-          {
-            id: "block-5-1",
-            athleteId: "athlete-5",
-            phaseId: "phase-athlete-5",
-            blockNumber: 1,
-            name: "In-Season Block 1",
-            startDate: daysAgo(30),
-            endDate: daysFromNow(0),
-            duration: 4,
-            season: "In-Season",
-            subSeason: "Early",
-            status: "active",
-            createdAt: daysAgo(35),
-            updatedAt: daysAgo(1),
-            lastModification: daysAgo(1),
-            lastSubmission: daysAgo(0),
-            nextBlockDue: daysFromNow(7),
-          },
-        ],
-      },
-    ];
-  }, []);
-
-  // Use hardcoded data instead of API
-  const athletesData = hardcodedAthletes;
-  const isLoading = false;
+  // Fetch athletes data from API
+  const { data: athletesData, isLoading } = useQuery<AthleteWithPhase[]>({
+    queryKey: ["/api/athletes"],
+    queryFn: async () => {
+      const response = await fetch("/api/athletes");
+      if (!response.ok) {
+        throw new Error("Failed to fetch athletes");
+      }
+      return response.json();
+    },
+  });
 
   // Filter and sort athletes
   const filteredAndSortedAthletes = useMemo(() => {
+    if (!athletesData) return [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -665,7 +431,10 @@ export default function Programs() {
       }
 
       // Filter by tab view
-      if (tabView === "pending") {
+      if (tabView === "all") {
+        // All: Show all athletes (no filtering)
+        // Continue to other filters
+      } else if (tabView === "pending") {
         // Pending: Actionable items requiring review/attention today
         // Items with overdue nextBlockDue, pacing warnings, or tasks
         const hasOverdue = blocks.some(block => {
@@ -967,6 +736,16 @@ export default function Programs() {
             <Tabs value={tabView} onValueChange={(value) => setTabView(value as TabView)}>
               <TabsList className="inline-flex h-10 items-center justify-center rounded-full border border-[#292928] p-0.5 bg-[#171716]">
                 <TabsTrigger 
+                  value="all" 
+                  className={cn(
+                    "rounded-full px-4 py-1.5 text-sm font-['Montserrat'] transition-all",
+                    "data-[state=active]:bg-[#1C1C1B] data-[state=active]:text-[#f7f6f2]",
+                    "data-[state=inactive]:text-[#979795]"
+                  )}
+                >
+                  All
+                </TabsTrigger>
+                <TabsTrigger 
                   value="pending" 
                   className={cn(
                     "rounded-full px-4 py-1.5 text-sm font-['Montserrat'] transition-all",
@@ -1053,12 +832,14 @@ export default function Programs() {
                     <Search className="h-8 w-8 text-[#979795]" />
                   </div>
                   <h3 className="text-lg font-semibold font-['Montserrat'] text-[#f7f6f2] mb-2">
-                    No {tabView === "pending" ? "pending" : tabView === "current" ? "current" : "upcoming"} athletes found
+                    No {tabView === "all" ? "" : tabView === "pending" ? "pending" : tabView === "current" ? "current" : "upcoming"} athletes found
                   </h3>
                   <p className="text-sm font-['Montserrat'] text-[#979795] mb-6">
                     {hasActiveFilters 
                       ? "Try adjusting your filters to see more results."
-                      : "Use filters or go to an athlete to create the first block."}
+                      : tabView === "all" 
+                        ? "No athletes found. Check your search or filters."
+                        : "Use filters or go to an athlete to create the first block."}
                   </p>
                 </div>
               </div>
