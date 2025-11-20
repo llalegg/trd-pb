@@ -19,6 +19,7 @@ import WeekPage from "@/pages/week-page";
 import CoachSessionView from "@/pages/coach-session-view";
 import TemplatesPage from "@/pages/templates";
 import AthleteProgramPage from "@/pages/athlete-program";
+import AthleteProgramView from "@/pages/athlete-program-view";
 
 // Web-view routes (coach views) - no animations
 const webViewRoutes = [
@@ -33,6 +34,16 @@ const webViewRoutes = [
 
 // Route hierarchy for determining transition direction (athlete mobile views only)
 const routeHierarchy: { [key: string]: number } = {
+  '/athlete/home': 1,
+  '/athlete/session-view': 2,
+  '/athlete/focus-view': 3,
+  '/athlete/execution-view': 2,
+  '/athlete/messages': 1,
+  '/athlete/vault': 1,
+  '/athlete/me': 1,
+  '/athlete/program': 1,
+  '/athlete/week-page': 1,
+  // Legacy routes for backward compatibility
   '/home': 1,
   '/session-view': 2,
   '/focus-view': 3,
@@ -63,8 +74,9 @@ function AnimatedRouter() {
   );
   
   // Check if route starts with any web-view route (handles query params)
-  const isWebView = webViewRoutes.some(route => location === route || location.startsWith(route + '/') || location.startsWith(route + '?'));
-  const wasWebView = webViewRoutes.some(route => prevLocation === route || prevLocation.startsWith(route + '/') || prevLocation.startsWith(route + '?'));
+  // Also exclude /athlete/ routes from web-view (they are mobile athlete views)
+  const isWebView = !location.startsWith('/athlete/') && webViewRoutes.some(route => location === route || location.startsWith(route + '/') || location.startsWith(route + '?'));
+  const wasWebView = !prevLocation.startsWith('/athlete/') && webViewRoutes.some(route => prevLocation === route || prevLocation.startsWith(route + '/') || prevLocation.startsWith(route + '?'));
 
   React.useEffect(() => {
     // Only calculate direction for athlete mobile views
@@ -112,12 +124,23 @@ function AnimatedRouter() {
       <Route path="/programs/:athleteId" component={withCoachLayout(AthleteProgramPage)} />
       <Route path="/programs" component={withCoachLayout(Programs)} />
       <Route path="/templates" component={withCoachLayout(TemplatesPage)} />
+      <Route path="/program-page" component={withCoachLayout(ProgramPage)} />
+      <Route path="/coach-session-view" component={CoachSessionView} />
+      {/* Athlete views with /athlete/ prefix */}
+      <Route path="/athlete/program" component={AthleteProgramView} />
+      <Route path="/athlete/home" component={AthleteView} />
+      <Route path="/athlete/messages" component={MessagesPage} />
+      <Route path="/athlete/vault" component={VaultPage} />
+      <Route path="/athlete/me" component={MePage} />
+      <Route path="/athlete/week-page" component={WeekPage} />
+      <Route path="/athlete/session-view" component={SessionView} />
+      <Route path="/athlete/execution-view" component={ExecutionView} />
+      <Route path="/athlete/focus-view" component={FocusView} />
+      {/* Legacy athlete routes for backward compatibility */}
       <Route path="/home" component={AthleteView} />
       <Route path="/messages" component={MessagesPage} />
       <Route path="/vault" component={VaultPage} />
       <Route path="/me" component={MePage} />
-      <Route path="/program-page" component={withCoachLayout(ProgramPage)} />
-      <Route path="/coach-session-view" component={CoachSessionView} />
       <Route path="/week-page" component={WeekPage} />
       <Route path="/session-view" component={SessionView} />
       <Route path="/execution-view" component={ExecutionView} />

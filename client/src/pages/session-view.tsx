@@ -9,8 +9,6 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { getSessionData } from "@/lib/sessionData";
 import { exerciseStateManager } from "@/lib/exerciseState";
-import { useQuery } from "@tanstack/react-query";
-import { type Program } from "@shared/schema";
 import { getExerciseVariations, getVariationCount, type ExerciseVariation } from "@/lib/exerciseVariations";
 
 // Exercise Card Component based on Figma design
@@ -364,13 +362,13 @@ export default function SessionView() {
 
   const handleStartRoutine = (routineType: string): void => {
     setSelectedRoutine(routineType);
-    setLocation("/execution-view");
+    setLocation("/athlete/execution-view");
   };
 
   const goToFocusView = (routineType?: string, exerciseName?: string): void => {
     if (routineType && exerciseName) {
       // Direct navigation for exercise cards
-      setLocation(`/focus-view?routineType=${encodeURIComponent(routineType)}&exerciseName=${encodeURIComponent(exerciseName)}`);
+      setLocation(`/athlete/focus-view?routineType=${encodeURIComponent(routineType)}&exerciseName=${encodeURIComponent(exerciseName)}`);
     } else {
       // Show instructions overlay for Continue button
       setShowInstructionsOverlay(true);
@@ -379,31 +377,17 @@ export default function SessionView() {
 
   const handleContinueFromOverlay = (): void => {
     setShowInstructionsOverlay(false);
-    setLocation("/focus-view");
+    setLocation("/athlete/focus-view");
   };
 
   const goToSupersetFocusView = (routineType: string): void => {
-    setLocation(`/focus-view?superset=true&supersetType=${routineType}`);
+    setLocation(`/athlete/focus-view?superset=true&supersetType=${routineType}`);
   };
 
   const handleNavigateHome = (): void => {
-    setLocation("/home");
+    setLocation("/athlete/home");
   };
 
-  // Fetch programs to get programId for navigation
-  const { data: programs } = useQuery<Program[]>({
-    queryKey: ["/api/programs"],
-  });
-
-  const handleNavigateProgramPage = (): void => {
-    // Get the first program's ID, or navigate to home if no programs exist
-    if (programs && programs.length > 0) {
-      setLocation(`/program-page?id=${programs[0].id}`);
-    } else {
-      // If no program found, navigate to home instead
-      setLocation("/home");
-    }
-  };
 
   const handleToggleCompleted = (): void => {
     setShowCompleted(!showCompleted);
@@ -491,8 +475,8 @@ export default function SessionView() {
             </p>
           </div>
           <button 
-            onClick={handleNavigateProgramPage}
-            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/50 transition-colors"
+            onClick={() => setLocation("/athlete/program")}
+            className="flex items-center justify-center w-12 h-12 rounded-full hover:bg-muted/50 transition-colors"
             data-testid="nav-program-button"
           >
             <FileText className="w-6 h-6 text-[#f7f6f2]" />

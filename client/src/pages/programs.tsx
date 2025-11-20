@@ -231,8 +231,8 @@ const getBlockProgress = (blocks: Block[]): { daysRemaining: number | null; text
   
   const daysRemaining = differenceInDays(endDate, today);
   
-  if (daysRemaining < 0) {
-    return { daysRemaining: 0, text: "In 0 d", needsAction: true };
+  if (daysRemaining < 0 || daysRemaining === 0) {
+    return { daysRemaining: 0, text: "Past Due", needsAction: true };
   }
   
   const needsAction = daysRemaining <= 3;
@@ -1015,7 +1015,7 @@ export default function Programs() {
                 {/* Table Header */}
                 <div className="flex h-10 bg-[#121210] text-[#bcbbb7] text-xs font-medium relative">
                   {/* Athlete Column */}
-                  <div className="flex items-center pl-[8px] pr-[16px] w-[320px] min-w-[320px] flex-shrink-0 border-r border-[#292928]">
+                  <div className="flex items-center pl-[8px] pr-[16px] w-[400px] min-w-[400px] flex-shrink-0 border-r border-[#292928]">
                     <button 
                       onClick={() => handleSort('athleteName')}
                       onMouseEnter={() => setHoveredSortField('athleteName')}
@@ -1126,8 +1126,8 @@ export default function Programs() {
                         className="group flex items-center border-b border-[#292928] h-12 bg-[#1C1C1B] hover:bg-[#2C2C2B] transition-colors cursor-pointer"
                         onClick={() => setLocation(`/programs/${athleteData.athlete.id}`)}
                       >
-                        {/* Athlete Column */}
-                        <div className="flex gap-[8px] items-center pl-[8px] pr-[16px] py-0 w-[320px] min-w-[320px] flex-shrink-0 border-r border-[#292928]">
+                         {/* Athlete Column */}
+                         <div className="flex gap-[8px] items-center pl-[8px] pr-[16px] py-0 w-[400px] min-w-[400px] flex-shrink-0 border-r border-[#292928]">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <TooltipProvider>
                               <Tooltip>
@@ -1168,6 +1168,8 @@ export default function Programs() {
                               {(() => {
                                 const taskCount = getTaskCount(athleteData.athlete.id);
                                 const needsAttn = needsAttention(athleteData.blocks, athleteData.athlete.id, tabView);
+                                const progress = getBlockProgress(athleteData.blocks);
+                                const showSignOff = progress.daysRemaining !== null && progress.daysRemaining <= 3;
                                 
                                 return (
                                   <>
@@ -1185,6 +1187,20 @@ export default function Programs() {
                                           </TooltipContent>
                                         </Tooltip>
                                       </TooltipProvider>
+                                    )}
+                                    {showSignOff && (
+                                      <Button
+                                        variant="default"
+                                        size="sm"
+                                        className="text-xs font-['Montserrat'] h-8"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          // TODO: Implement sign-off functionality
+                                          console.log('Sign-off clicked for athlete:', athleteData.athlete.id);
+                                        }}
+                                      >
+                                        Sign-off
+                                      </Button>
                                     )}
                                     <TooltipProvider>
                                       <Tooltip>
@@ -1248,13 +1264,24 @@ export default function Programs() {
                               if (progress.daysRemaining === null) {
                                 return <span className="text-[#979795] text-sm">–</span>;
                               }
+                              
+                              // Color coding:
+                              // Red for Past Due (0 days)
+                              // Orange for 48 hours (1-2 days)
+                              // Yellow for last week (3-7 days)
+                              let badgeClassName = "";
+                              if (progress.daysRemaining === 0) {
+                                badgeClassName = "bg-red-500/20 text-red-400";
+                              } else if (progress.daysRemaining <= 2) {
+                                badgeClassName = "bg-orange-500/20 text-orange-400";
+                              } else if (progress.daysRemaining <= 7) {
+                                badgeClassName = "bg-yellow-500/20 text-yellow-400";
+                              }
+                              
                               return (
                                 <Badge 
-                                  variant={progress.needsAction || progress.daysRemaining <= 7 ? "outline" : "neutral"}
-                                  className={cn(
-                                    progress.needsAction && "bg-red-500/20 text-red-400",
-                                    !progress.needsAction && progress.daysRemaining <= 7 && "bg-amber-500/20 text-amber-400"
-                                  )}
+                                  variant={progress.daysRemaining <= 7 ? "outline" : "neutral"}
+                                  className={cn(badgeClassName)}
                                 >
                                   {progress.text}
                                 </Badge>

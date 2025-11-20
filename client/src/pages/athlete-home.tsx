@@ -135,7 +135,7 @@ export default function AthleteView() {
           {movementRoutine && (
             <div 
               className="bg-[#171716] flex gap-[12px] items-center p-[12px] rounded-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors"
-              onClick={() => setLocation("/session-view?scrollTo=movement")}
+              onClick={() => setLocation("/athlete/session-view?scrollTo=movement")}
             >
               <div className="flex-1 flex flex-col gap-[4px]">
                 <div className="flex items-center gap-2">
@@ -165,7 +165,7 @@ export default function AthleteView() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setLocation("/session-view?scrollTo=movement");
+                    setLocation("/athlete/session-view?scrollTo=movement");
                   }}
                   className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors"
                 >
@@ -181,7 +181,7 @@ export default function AthleteView() {
               {/* Lifting Card */}
               <div 
                 className="flex gap-[12px] items-center p-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors bg-[#171716]"
-                onClick={() => setLocation("/session-view?scrollTo=strength")}
+                onClick={() => setLocation("/athlete/session-view?scrollTo=strength")}
               >
                 <div className="flex-1 flex flex-col gap-[4px]">
                   <div className="flex items-center gap-2">
@@ -208,7 +208,7 @@ export default function AthleteView() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setLocation("/session-view?scrollTo=strength");
+                      setLocation("/athlete/session-view?scrollTo=strength");
                     }}
                     className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors flex-shrink-0"
                   >
@@ -221,7 +221,7 @@ export default function AthleteView() {
               {strengthRoutine.conditioningType && (
                 <div 
                   className="flex gap-[12px] items-center p-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors bg-[#171716] border-t border-[#292928]"
-                  onClick={() => setLocation("/session-view?scrollTo=strength")}
+                  onClick={() => setLocation("/athlete/session-view?scrollTo=strength")}
                 >
                   <div className="flex-1 flex flex-col gap-[4px]">
                     <div className="flex items-center gap-2">
@@ -239,7 +239,7 @@ export default function AthleteView() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setLocation("/session-view?scrollTo=strength");
+                        setLocation("/athlete/session-view?scrollTo=strength");
                       }}
                       className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors flex-shrink-0"
                     >
@@ -255,7 +255,7 @@ export default function AthleteView() {
           {throwingRoutine && (
             <div 
               className={`bg-[#171716] flex gap-[12px] items-center p-[12px] rounded-[12px] cursor-pointer hover:bg-[#1a1a19] transition-colors ${throwingRoutine.isRestDay ? 'opacity-60' : ''}`}
-              onClick={() => !throwingRoutine.isRestDay && setLocation("/session-view?scrollTo=throwing")}
+              onClick={() => !throwingRoutine.isRestDay && setLocation("/athlete/session-view?scrollTo=throwing")}
             >
               <div className="flex-1 flex flex-col gap-[4px]">
                 <div className="flex items-center gap-2">
@@ -303,7 +303,7 @@ export default function AthleteView() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setLocation("/session-view?scrollTo=throwing");
+                      setLocation("/athlete/session-view?scrollTo=throwing");
                     }}
                     className="px-3 py-1.5 bg-[#292928] hover:bg-[#3a3a38] rounded-full text-[12px] font-semibold text-[#f7f6f2] font-['Montserrat'] transition-colors flex-shrink-0"
                   >

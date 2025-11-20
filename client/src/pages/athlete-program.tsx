@@ -22,7 +22,7 @@ import {
 
 export default function AthleteProgramPage() {
 	const { athleteId } = useParams<{ athleteId: string }>();
-	const [, setLocation] = useLocation();
+	const [location, setLocation] = useLocation();
 
 	const [currentTab, setCurrentTab] = React.useState<"summary" | "review" | "builder">("summary");
 

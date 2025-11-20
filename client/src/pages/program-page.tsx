@@ -1,4 +1,4 @@
- import { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import TopBar from "@/components/athlete-program/TopBar";
 import AthleteInfoSidebar from "@/components/blocks/AthleteInfoSidebar";
 import { Button } from "@/components/ui/button";
@@ -65,38 +65,82 @@ export default function ProgramPage() {
   // Fetch athletes data to find the block
   const { data: athletesData, isLoading } = useQuery<AthleteWithPhase[]>({
     queryKey: ["/api/athletes"],
-    enabled: !!blockId,
   });
 
-  // Find the block and athlete from athletes data
-  const blockData = useMemo(() => {
-    if (!athletesData || !blockId) return null;
+  // Collect all blocks from all athletes
+  const allBlocksWithAthlete = useMemo(() => {
+    if (!athletesData) return [];
+    
+    const blocks: Array<{ block: Block; athlete: typeof athletesData[0]['athlete']; athleteId: string }> = [];
     
     for (const athleteData of athletesData) {
-      const block = athleteData.blocks.find(b => b.id === blockId);
-      if (block) {
-        return { block, athlete: athleteData.athlete, allBlocks: athleteData.blocks };
+      for (const block of athleteData.blocks) {
+        blocks.push({
+          block,
+          athlete: athleteData.athlete,
+          athleteId: athleteData.athlete.id,
+        });
       }
     }
-    return null;
-  }, [athletesData, blockId]);
+    
+    // Sort blocks by start date
+    return blocks.sort((a, b) => {
+      const dateA = new Date(a.block.startDate).getTime();
+      const dateB = new Date(b.block.startDate).getTime();
+      return dateA - dateB;
+    });
+  }, [athletesData]);
 
-  // Generate blocks for display (use all blocks from athlete, or generate from block if needed)
-  const blocks = blockData ? blockData.allBlocks.map((b, idx) => ({
+  // Find the selected block and athlete
+  const blockData = useMemo(() => {
+    if (!allBlocksWithAthlete.length) return null;
+    
+    // If blockId is provided, find that specific block
+    if (blockId) {
+      const found = allBlocksWithAthlete.find(item => item.block.id === blockId);
+      if (found) {
+        return {
+          block: found.block,
+          athlete: found.athlete,
+          athleteId: found.athleteId,
+        };
+      }
+      return null;
+    }
+    
+    // If no blockId, default to first block
+    const first = allBlocksWithAthlete[0];
+    return {
+      block: first.block,
+      athlete: first.athlete,
+      athleteId: first.athleteId,
+    };
+  }, [allBlocksWithAthlete, blockId]);
+
+  // Generate blocks for display (all blocks from all athletes)
+  const blocks = allBlocksWithAthlete.map((item, idx) => ({
     id: idx + 1,
-    name: b.name,
-    startDate: new Date(b.startDate),
-    endDate: new Date(b.endDate),
-  })) : [];
+    name: `${item.athlete.name} - ${item.block.name}`,
+    startDate: new Date(item.block.startDate),
+    endDate: new Date(item.block.endDate),
+    blockId: item.block.id,
+    athleteId: item.athleteId,
+  }));
   
   // Find the index of the current block
-  const currentBlockIndex = blockData ? blocks.findIndex((b, idx) => {
-    const originalBlock = blockData.allBlocks[idx];
-    return originalBlock?.id === blockId;
+  const currentBlockIndex = blockData ? blocks.findIndex((b) => {
+    return b.blockId === blockData.block.id && b.athleteId === blockData.athleteId;
   }) : 0;
   
   // Use current block index if found, otherwise use selectedBlockIndex
   const displayBlockIndex = currentBlockIndex >= 0 ? currentBlockIndex : selectedBlockIndex;
+  
+  // Sync selectedBlockIndex when displayBlockIndex changes (e.g., when blockId changes)
+  useEffect(() => {
+    if (currentBlockIndex >= 0) {
+      setSelectedBlockIndex(currentBlockIndex);
+    }
+  }, [currentBlockIndex]);
   
   // Get selected block
   const selectedBlock = blocks[displayBlockIndex];
@@ -108,8 +152,9 @@ export default function ProgramPage() {
   }) : [];
 
   const handleDayClick = (day: Date) => {
-    if (blockId) {
-      setLocation(`/coach-session-view?blockId=${blockId}&day=${day.getDate()}`);
+    // Use the current block's ID from blockData if available
+    if (blockData?.block?.id) {
+      setLocation(`/coach-session-view?blockId=${blockData.block.id}&day=${day.getDate()}`);
     }
   };
 
@@ -126,9 +171,12 @@ export default function ProgramPage() {
   if (!blockData || !selectedBlock) {
     return (
       <div className="min-h-screen bg-surface-base flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">Block not found</p>
-          <Button onClick={() => setLocation("/programs")} className="mt-4">
+        <div className="text-center max-w-md mx-auto px-4">
+          <p className="text-lg font-semibold text-[#f7f6f2] font-['Montserrat'] mb-2">Block not found</p>
+          <p className="text-sm text-[#979795] font-['Montserrat'] mb-6">
+            The requested block could not be found. It may have been deleted or the link is invalid.
+          </p>
+          <Button onClick={() => setLocation("/programs")} className="bg-[#e5e4e1] hover:bg-[#d5d4d1] text-black font-['Montserrat']">
             Back to Programs
           </Button>
         </div>
@@ -162,7 +210,7 @@ export default function ProgramPage() {
             <AthleteInfoSidebar
               athlete={blockData.athlete}
               currentPhase={undefined}
-              blocks={blockData.allBlocks}
+              blocks={allBlocksWithAthlete.filter(item => item.athleteId === blockData.athleteId).map(item => item.block)}
             />
           </div>
         </div>
@@ -180,9 +228,15 @@ export default function ProgramPage() {
             <div className="flex items-center gap-4 flex-shrink-0">
               <span className="text-sm font-medium text-[#f7f6f2] font-['Montserrat']">Block:</span>
               <select
-                value={selectedBlockIndex}
+                value={displayBlockIndex}
                 onChange={(e) => {
-                  setSelectedBlockIndex(parseInt(e.target.value));
+                  const newIndex = parseInt(e.target.value);
+                  setSelectedBlockIndex(newIndex);
+                  // Update URL with new blockId when user selects a different block
+                  if (blocks[newIndex]) {
+                    const newBlockId = blocks[newIndex].blockId;
+                    setLocation(`/program-page?blockId=${newBlockId}`);
+                  }
                 }}
                 className="rounded-md border border-[#292928] bg-[#171716] px-3 py-1.5 text-sm text-[#f7f6f2] font-['Montserrat']"
               >

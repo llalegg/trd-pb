@@ -27,7 +27,7 @@ export default function MePage() {
   ];
 
   const additionalItems = [
-    { icon: FileText, label: "Program", href: "/program-page" },
+    { icon: FileText, label: "Program", href: "/athlete/program" },
     { icon: Calendar, label: "Schedule", href: "#" },
     { icon: Dumbbell, label: "Equipment", href: "#" },
     { icon: BookOpenCheck, label: "Injury Ledger", href: "#" },

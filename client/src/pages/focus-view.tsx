@@ -428,7 +428,7 @@ export default function FocusView() {
       );
 
       // Go back to session view (no success screen for supersets)
-      setLocation("/session-view");
+      setLocation("/athlete/session-view");
       return;
     }
 
@@ -498,16 +498,16 @@ export default function FocusView() {
       ]);
     } else {
       // All exercises completed, go back to session view
-      setLocation("/session-view");
+      setLocation("/athlete/session-view");
     }
   };
 
   const handleBackToSession = (): void => {
-    setLocation("/session-view");
+    setLocation("/athlete/session-view");
   };
 
   const handleNavigateToSessionView = (): void => {
-    setLocation("/session-view");
+    setLocation("/athlete/session-view");
   };
 
   const handleVariationsButtonClick = (exerciseName: string, routineType: string): void => {
@@ -526,7 +526,7 @@ export default function FocusView() {
   const handlePreviousExercise = (): void => {
     if (isSuperset) {
       // For supersets, just go back to session view
-      setLocation("/session-view");
+      setLocation("/athlete/session-view");
       return;
     }
 
@@ -537,7 +537,7 @@ export default function FocusView() {
       // Reset table data for previous exercise - useEffect will handle this automatically
     } else {
       // If at first exercise, go back to session view
-      setLocation("/session-view");
+      setLocation("/athlete/session-view");
     }
   };
 
@@ -1539,7 +1539,7 @@ export default function FocusView() {
 
       {/* X Button - Top Right */}
       <button 
-        onClick={() => setLocation("/session-view")}
+        onClick={() => setLocation("/athlete/session-view")}
         className="absolute top-4 right-4 w-10 h-10 bg-[#292928] rounded-full flex items-center justify-center"
       >
         <X className="w-6 h-6 text-[#f7f6f2]" />

@@ -172,10 +172,10 @@ export default function WeekPage() {
           <h2 className="text-lg font-semibold mb-2 text-[#f7f6f2] font-['Montserrat']">Week not found</h2>
           <p className="text-[#979795] mb-4 font-['Montserrat'] font-medium">This week is not available yet.</p>
           <Button 
-            onClick={() => setLocation("/program-page")}
+            onClick={() => setLocation("/athlete/home")}
             className="bg-[#e5e4e1] hover:bg-[#f7f6f2] text-[#0d0d0c] font-semibold font-['Montserrat']"
           >
-            Back to Program
+            Back to Home
           </Button>
         </div>
       </div>
@@ -193,14 +193,14 @@ export default function WeekPage() {
   // Navigation functions (same as session-view)
   const goToFocusView = (routineType?: string, exerciseName?: string) => {
     if (routineType && exerciseName) {
-      setLocation(`/focus-view?routineType=${encodeURIComponent(routineType)}&exerciseName=${encodeURIComponent(exerciseName)}`);
+      setLocation(`/athlete/focus-view?routineType=${encodeURIComponent(routineType)}&exerciseName=${encodeURIComponent(exerciseName)}`);
     } else {
-      setLocation("/focus-view");
+      setLocation("/athlete/focus-view");
     }
   };
 
   const goToSupersetFocusView = (routineType: string) => {
-    setLocation(`/focus-view?superset=true&supersetType=${routineType}`);
+    setLocation(`/athlete/focus-view?superset=true&supersetType=${routineType}`);
   };
 
   // Get superset data (same as session-view)
@@ -236,7 +236,7 @@ export default function WeekPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setLocation("/program-page")}
+            onClick={() => setLocation("/athlete/home")}
             className="p-2 hover:bg-[#171716]"
           >
             <ArrowLeft className="h-4 w-4 text-[#f7f6f2]" />

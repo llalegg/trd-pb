@@ -13,10 +13,10 @@ interface TabConfig {
 }
 
 const tabs: TabConfig[] = [
-  { key: "home", label: "Home", href: "/home", icon: Home },
-  { key: "messages", label: "Messages", href: "/messages", icon: MessageCircleMore, disabled: true },
-  { key: "vault", label: "Vault", href: "/vault", icon: SquarePlay, disabled: true },
-  { key: "me", label: "Me", href: "/me", icon: User },
+  { key: "home", label: "Home", href: "/athlete/home", icon: Home },
+  { key: "messages", label: "Messages", href: "/athlete/messages", icon: MessageCircleMore, disabled: true },
+  { key: "vault", label: "Vault", href: "/athlete/vault", icon: SquarePlay, disabled: true },
+  { key: "me", label: "Me", href: "/athlete/me", icon: User },
 ];
 
 export default function MobileTabBar() {
@@ -26,7 +26,7 @@ export default function MobileTabBar() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0d0d0c]">
       <div className="flex gap-6 items-center justify-center px-4 pt-4 pb-4">
         {tabs.map(({ key, label, href, icon: Icon, disabled }) => {
-          const active = location === href;
+          const active = location === href || location.startsWith(href + '/') || location.startsWith(href + '?');
           return (
             <div key={key} className="flex flex-col items-center gap-[6px] flex-1 relative">
               <button

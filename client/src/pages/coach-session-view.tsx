@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
-import { ArrowLeft, User, Shield, ExternalLink, Plus, Trash2, Check, Pencil } from "lucide-react";
+import { ArrowLeft, User, Shield, Plus, Trash2, Check, Pencil } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -457,15 +457,6 @@ export default function CoachSessionView() {
                       </Badge>
                     )}
                   </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="border-[#292928] text-[#f7f6f2] hover:bg-[#171716] font-['Montserrat'] h-7 px-2 text-xs"
-                    onClick={() => setLocation("/vault")}
-                  >
-                    <ExternalLink className="h-3 w-3 mr-1.5" />
-                    Exercise Library
-                  </Button>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-[#979795] font-['Montserrat']">
                   <span>{selectedExercise.routineName}</span>

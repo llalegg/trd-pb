@@ -10,7 +10,7 @@ export default function Home() {
       <div className="flex items-center gap-6">
         {/* Athlete View Card */}
         <button
-          onClick={() => setLocation("/home")}
+          onClick={() => setLocation("/athlete/home")}
           className="flex flex-col items-center justify-center w-32 h-32 rounded-lg cursor-pointer hover:bg-[#171716] transition-colors duration-200"
           data-testid="card-athlete-view"
         >

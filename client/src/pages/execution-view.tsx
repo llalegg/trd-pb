@@ -256,7 +256,7 @@ export default function ExecutionView() {
 
   const handleFinishRoutine = (): void => {
     // TODO: Mark routine as complete and navigate back
-    setLocation("/session-view");
+    setLocation("/athlete/session-view");
   };
 
   const toggleExerciseExpansion = (exerciseId: string): void => {
