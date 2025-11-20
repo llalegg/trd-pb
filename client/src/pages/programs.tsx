@@ -1,8 +1,13 @@
 import React, { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Activity, AlertCircle, Circle } from "lucide-react";
+import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Activity, AlertCircle, Circle, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -733,52 +738,57 @@ export default function Programs() {
             <h1 className="text-2xl font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.32]">
               Programs
             </h1>
-            <Tabs value={tabView} onValueChange={(value) => setTabView(value as TabView)}>
-              <TabsList className="inline-flex h-10 items-center justify-center rounded-full border border-[#292928] p-0.5 bg-[#171716]">
-                <TabsTrigger 
-                  value="all" 
-                  className={cn(
-                    "rounded-full px-4 py-1.5 text-sm font-['Montserrat'] transition-all",
-                    "data-[state=active]:bg-[#1C1C1B] data-[state=active]:text-[#f7f6f2]",
-                    "data-[state=inactive]:text-[#979795]"
-                  )}
-                >
-                  All
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="pending" 
-                  className={cn(
-                    "rounded-full px-4 py-1.5 text-sm font-['Montserrat'] transition-all",
-                    "data-[state=active]:bg-[#1C1C1B] data-[state=active]:text-[#f7f6f2]",
-                    "data-[state=inactive]:text-[#979795]"
-                  )}
-                >
-                  Pending
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="current"
-                  className={cn(
-                    "rounded-full px-4 py-1.5 text-sm font-['Montserrat'] transition-all",
-                    "data-[state=active]:bg-[#1C1C1B] data-[state=active]:text-[#f7f6f2]",
-                    "data-[state=inactive]:text-[#979795]"
-                  )}
-                >
-                  Current
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="upcoming"
-                  className={cn(
-                    "rounded-full px-4 py-1.5 text-sm font-['Montserrat'] transition-all",
-                    "data-[state=active]:bg-[#1C1C1B] data-[state=active]:text-[#f7f6f2]",
-                    "data-[state=inactive]:text-[#979795]"
-                  )}
-                >
-                  Upcoming
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
           </div>
           <div className="flex items-center gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="secondary"
+                  className="h-8 px-3 rounded-lg border-[#292928] bg-surface-base text-[#f7f6f2] hover:bg-[#1a1a19] font-['Montserrat']"
+                >
+                  {tabView === "all" ? "All" : tabView === "pending" ? "Pending" : tabView === "current" ? "Current" : "Upcoming"}
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="bg-[#171716] border-[#292928] min-w-[120px]">
+                <DropdownMenuItem
+                  className={cn(
+                    "cursor-pointer text-sm font-['Montserrat'] focus:bg-[#1C1C1B] focus:text-[#f7f6f2]",
+                    tabView === "all" ? "bg-[#1C1C1B] text-[#f7f6f2]" : "text-[#979795]"
+                  )}
+                  onClick={() => setTabView("all")}
+                >
+                  All
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className={cn(
+                    "cursor-pointer text-sm font-['Montserrat'] focus:bg-[#1C1C1B] focus:text-[#f7f6f2]",
+                    tabView === "pending" ? "bg-[#1C1C1B] text-[#f7f6f2]" : "text-[#979795]"
+                  )}
+                  onClick={() => setTabView("pending")}
+                >
+                  Pending
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className={cn(
+                    "cursor-pointer text-sm font-['Montserrat'] focus:bg-[#1C1C1B] focus:text-[#f7f6f2]",
+                    tabView === "current" ? "bg-[#1C1C1B] text-[#f7f6f2]" : "text-[#979795]"
+                  )}
+                  onClick={() => setTabView("current")}
+                >
+                  Current
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className={cn(
+                    "cursor-pointer text-sm font-['Montserrat'] focus:bg-[#1C1C1B] focus:text-[#f7f6f2]",
+                    tabView === "upcoming" ? "bg-[#1C1C1B] text-[#f7f6f2]" : "text-[#979795]"
+                  )}
+                  onClick={() => setTabView("upcoming")}
+                >
+                  Upcoming
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <div className="relative w-[337px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#979795] pointer-events-none" />
               <Input
