@@ -40,6 +40,7 @@ const seasons = ["Pre-Season", "In-Season", "Off-Season", "Redshirt"] as const;
 const subSeasons = ["Early", "Mid", "Late", "General Off-Season (GOS)"] as const;
 const statuses = ["draft", "active", "planned", "complete"] as const;
 const athleteStatuses = [null, "injured", "rehabbing", "lingering-issues"] as const;
+const teams = ["Varsity", "JV", "Freshman", "Redshirt", "Transfer"] as const;
 const xRoles = ["Starter", "Reliever"] as const;
 const intensities = ["Low", "Moderate", "High"] as const;
 const volumes = ["Low", "Moderate", "High"] as const;
@@ -126,6 +127,8 @@ const generateBlocks = (
       createdAt: daysAgo(randomInt(30, 180)),
       updatedAt: daysAgo(randomInt(0, 30)),
       lastModification: daysAgo(randomInt(0, 10)),
+      lastSubmission: blockStatus === "active" ? daysAgo(randomInt(0, 7)) : undefined,
+      nextBlockDue: blockStatus === "active" && i < numBlocks - 1 ? daysFromNow(randomInt(1, 14)) : undefined,
     };
 
     blocks.push(block);
@@ -163,6 +166,7 @@ export function generateSeedAthletes(): AthleteWithPhase[] {
       photo: undefined,
       status: random(athleteStatuses),
       currentPhaseId: phaseId,
+      team: random(teams),
     };
 
     const phase: Phase = {

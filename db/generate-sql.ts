@@ -51,10 +51,10 @@ async function generateSQL() {
 
   // Insert Athletes
   sql += "-- Insert Athletes\n";
-  sql += "INSERT INTO athletes (id, name, photo, status, current_phase_id) VALUES\n";
+  sql += "INSERT INTO athletes (id, name, photo, status, current_phase_id, team) VALUES\n";
   const athleteValues = seedAthletes.map((a, idx) => {
     const athlete = a.athlete;
-    return `('${athlete.id}', ${escapeString(athlete.name)}, ${athlete.photo ? escapeString(athlete.photo) : 'NULL'}, ${athlete.status ? escapeString(athlete.status) : 'NULL'}, ${athlete.currentPhaseId ? escapeString(athlete.currentPhaseId) : 'NULL'})`;
+    return `('${athlete.id}', ${escapeString(athlete.name)}, ${athlete.photo ? escapeString(athlete.photo) : 'NULL'}, ${athlete.status ? escapeString(athlete.status) : 'NULL'}, ${athlete.currentPhaseId ? escapeString(athlete.currentPhaseId) : 'NULL'}, ${athlete.team ? escapeString(athlete.team) : 'NULL'})`;
   });
   sql += athleteValues.join(',\n') + "\n";
   sql += "ON CONFLICT (id) DO NOTHING;\n\n";
@@ -74,11 +74,11 @@ async function generateSQL() {
 
   // Insert Blocks
   sql += "-- Insert Blocks\n";
-  sql += "INSERT INTO blocks (id, athlete_id, phase_id, block_number, name, start_date, end_date, duration, season, sub_season, status, current_day, throwing, movement, lifting, conditioning, last_modification, created_at, updated_at) VALUES\n";
+  sql += "INSERT INTO blocks (id, athlete_id, phase_id, block_number, name, start_date, end_date, duration, season, sub_season, status, current_day, throwing, movement, lifting, conditioning, last_modification, last_submission, next_block_due, created_at, updated_at) VALUES\n";
   const blockValues: string[] = [];
   seedAthletes.forEach(a => {
     a.blocks.forEach(block => {
-      blockValues.push(`('${block.id}', '${block.athleteId}', '${block.phaseId}', ${block.blockNumber}, ${escapeString(block.name)}, '${block.startDate}', '${block.endDate}', ${block.duration}, '${block.season}', ${block.subSeason ? escapeString(block.subSeason) : 'NULL'}, '${block.status}', ${escapeJson(block.currentDay)}, ${escapeJson(block.throwing)}, ${escapeJson(block.movement)}, ${escapeJson(block.lifting)}, ${escapeJson(block.conditioning)}, ${block.lastModification ? `'${block.lastModification}'` : 'NULL'}, '${block.createdAt}', '${block.updatedAt}')`);
+      blockValues.push(`('${block.id}', '${block.athleteId}', '${block.phaseId}', ${block.blockNumber}, ${escapeString(block.name)}, '${block.startDate}', '${block.endDate}', ${block.duration}, '${block.season}', ${block.subSeason ? escapeString(block.subSeason) : 'NULL'}, '${block.status}', ${escapeJson(block.currentDay)}, ${escapeJson(block.throwing)}, ${escapeJson(block.movement)}, ${escapeJson(block.lifting)}, ${escapeJson(block.conditioning)}, ${block.lastModification ? `'${block.lastModification}'` : 'NULL'}, ${block.lastSubmission ? `'${block.lastSubmission}'` : 'NULL'}, ${block.nextBlockDue ? `'${block.nextBlockDue}'` : 'NULL'}, '${block.createdAt}', '${block.updatedAt}')`);
     });
   });
   sql += blockValues.join(',\n') + "\n";

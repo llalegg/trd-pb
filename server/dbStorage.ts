@@ -198,6 +198,12 @@ export class DbStorage implements IStorage {
         lastModification: blockData.lastModification
           ? new Date(blockData.lastModification)
           : null,
+        lastSubmission: blockData.lastSubmission
+          ? new Date(blockData.lastSubmission)
+          : null,
+        nextBlockDue: blockData.nextBlockDue
+          ? new Date(blockData.nextBlockDue)
+          : null,
         createdAt: now,
         updatedAt: now,
       })
@@ -231,6 +237,14 @@ export class DbStorage implements IStorage {
     if (updates.lastModification !== undefined)
       updateData.lastModification = updates.lastModification
         ? new Date(updates.lastModification)
+        : null;
+    if (updates.lastSubmission !== undefined)
+      updateData.lastSubmission = updates.lastSubmission
+        ? new Date(updates.lastSubmission)
+        : null;
+    if (updates.nextBlockDue !== undefined)
+      updateData.nextBlockDue = updates.nextBlockDue
+        ? new Date(updates.nextBlockDue)
         : null;
 
     const result = await db
@@ -281,6 +295,7 @@ export class DbStorage implements IStorage {
       photo: dbAthlete.photo ?? undefined,
       status: dbAthlete.status as Athlete["status"],
       currentPhaseId: dbAthlete.currentPhaseId ?? undefined,
+      team: dbAthlete.team ?? undefined,
       phases: phasesList,
     };
   }
@@ -315,6 +330,8 @@ export class DbStorage implements IStorage {
       lifting: dbBlock.lifting as Block["lifting"],
       conditioning: dbBlock.conditioning as Block["conditioning"],
       lastModification: dbBlock.lastModification?.toISOString(),
+      lastSubmission: dbBlock.lastSubmission?.toISOString(),
+      nextBlockDue: dbBlock.nextBlockDue?.toISOString(),
       createdAt: dbBlock.createdAt.toISOString(),
       updatedAt: dbBlock.updatedAt.toISOString(),
     };

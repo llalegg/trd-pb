@@ -26,6 +26,7 @@ export const athletes = pgTable("athletes", {
   photo: text("photo"),
   status: varchar("status", { length: 50 }), // "injured" | "rehabbing" | "lingering-issues" | null
   currentPhaseId: varchar("current_phase_id"),
+  team: text("team"), // Current athlete team
 });
 
 // Phases table
@@ -57,6 +58,8 @@ export const blocks = pgTable("blocks", {
   lifting: jsonb("lifting"), // { split: string, emphasis: string, variability: string, scheme: string }
   conditioning: jsonb("conditioning"), // { coreEmphasis: string, adaptation: string, method: string }
   lastModification: timestamp("last_modification"),
+  lastSubmission: timestamp("last_submission"), // When athlete last submitted data
+  nextBlockDue: timestamp("next_block_due"), // When next block needs to be reviewed/approved
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -131,6 +134,8 @@ export interface Block {
   createdAt: string;
   updatedAt: string;
   lastModification?: string;
+  lastSubmission?: string; // ISO date string - when athlete last submitted data
+  nextBlockDue?: string; // ISO date string - when next block needs to be reviewed/approved
 }
 
 export interface Phase {
@@ -148,6 +153,7 @@ export interface Athlete {
   photo?: string; // URL or path to athlete photo
   status?: "injured" | "rehabbing" | "lingering-issues" | null; // Only shown when relevant
   currentPhaseId?: string;
+  team?: string; // Current athlete team
   phases?: Phase[];
 }
 

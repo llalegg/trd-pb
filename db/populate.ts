@@ -473,6 +473,7 @@ async function populateDatabase() {
         photo: athlete.photo ?? null,
         status: athlete.status ?? null,
         currentPhaseId: athlete.currentPhaseId ?? null,
+        team: athlete.team ?? null,
       }).onConflictDoNothing();
       console.log(`Inserted athlete: ${athlete.name} (${athlete.id})`);
 
@@ -510,6 +511,8 @@ async function populateDatabase() {
           lifting: block.lifting ?? null,
           conditioning: block.conditioning ?? null,
           lastModification: block.lastModification ? new Date(block.lastModification) : null,
+          lastSubmission: block.lastSubmission ? new Date(block.lastSubmission) : null,
+          nextBlockDue: block.nextBlockDue ? new Date(block.nextBlockDue) : null,
           createdAt: new Date(block.createdAt),
           updatedAt: new Date(block.updatedAt),
         }).onConflictDoNothing();
