@@ -10,6 +10,14 @@ const external = [
   ...Object.keys(pkg.devDependencies || {}),
   ...Object.keys(pkg.peerDependencies || {}),
   ...Object.keys(pkg.optionalDependencies || {}),
+  // Explicitly exclude build-time only packages from runtime bundle
+  'rollup',
+  '@rollup/rollup-linux-x64-gnu',
+  '@rollup/rollup-darwin-x64',
+  '@rollup/rollup-darwin-arm64',
+  '@rollup/rollup-win32-x64-msvc',
+  'vite',
+  '@vitejs/plugin-react',
 ];
 
 function buildApiFile(entryFile, outputFile) {

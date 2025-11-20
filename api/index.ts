@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "../server/routes";
-import { serveStatic } from "../server/vite";
+import fs from "fs";
+import path from "path";
 
 const app = express();
 app.use(express.json());
@@ -59,10 +60,17 @@ async function initializeApp() {
   });
 
   // In production (Vercel), serve static files
-  // Note: serveStatic looks for dist/public relative to server/vite.ts
-  // In Vercel, the build output is in dist/public relative to project root
+  // Note: Vercel handles static files automatically via outputDirectory config
+  // This is just a fallback - Vercel will serve static assets from dist/public
   try {
-    serveStatic(app);
+    const distPath = path.resolve(process.cwd(), "dist", "public");
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      // Fall through to index.html if the file doesn't exist
+      app.use("*", (_req, res) => {
+        res.sendFile(path.resolve(distPath, "index.html"));
+      });
+    }
   } catch (error) {
     // If static files aren't found, that's okay - Vercel will handle static assets
     console.warn("Static files not found, Vercel will serve them:", error);
