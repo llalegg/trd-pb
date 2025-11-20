@@ -1,13 +1,65 @@
 import { DbStorage } from "../server/dbStorage";
 import { generateSeedAthletes } from "./seed";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is required");
+import { getDatabaseUrl } from "./connection";
+
+// Support both DATABASE_URL and POSTGRES_URL (Supabase uses POSTGRES_URL)
+const databaseUrl = getDatabaseUrl();
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL or POSTGRES_URL environment variable is required");
+}
+
+// Helper function to retry database operations
+async function retryOperation<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  delayMs = 2000
+): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      if (i === maxRetries - 1) throw error;
+      if (error?.code === 'ETIMEDOUT' || error?.message?.includes('fetch failed')) {
+        console.log(`Connection timeout, retrying in ${delayMs}ms... (attempt ${i + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error("Max retries exceeded");
 }
 
 async function populateDatabase() {
   console.log("Connecting to database...");
-  const storage = new DbStorage(process.env.DATABASE_URL!);
+  console.log("Note: If database is paused, it may take a moment to wake up...");
+  
+  // Test connection first with retry
+  try {
+    const { getSqlClient } = await import("./connection");
+    const sql = await getSqlClient();
+    const dbUrl = getDatabaseUrl();
+    const isNeon = dbUrl.includes('neon.tech');
+    
+    await retryOperation(async () => {
+      if (isNeon) {
+        await sql`SELECT 1`;
+      } else {
+        await sql.query('SELECT 1');
+      }
+      console.log("✅ Database connection successful!");
+    });
+  } catch (error) {
+    console.error("❌ Failed to connect to database after retries.");
+    console.error("Please ensure:");
+    console.error("1. The database is accessible (check Supabase dashboard)");
+    console.error("2. Your network can reach Supabase servers");
+    console.error("3. The DATABASE_URL or POSTGRES_URL is correct");
+    throw error;
+  }
+  
+  const storage = new DbStorage(databaseUrl);
 
   console.log("Populating athletes, phases, and blocks from seed data...");
   const seedAthletes = generateSeedAthletes();
@@ -92,7 +144,7 @@ async function populateDatabase() {
     {
       id: "1",
       programId: "P123456",
-      athleteId: "1",
+      athleteId: "athlete-1",
       athleteName: "Marcus Johnson",
       startDate: startDate1.toISOString().split('T')[0],
       endDate: futureDate1.toISOString().split('T')[0],
@@ -111,8 +163,8 @@ async function populateDatabase() {
     {
       id: "2",
       programId: "P789012",
-      athleteId: "2",
-      athleteName: "Michael Chen",
+      athleteId: "athlete-2",
+      athleteName: "Samuel Chen",
       startDate: startDate2.toISOString().split('T')[0],
       endDate: futureDate2.toISOString().split('T')[0],
       routineTypes: ["lifting", "nutrition"],
@@ -130,8 +182,8 @@ async function populateDatabase() {
     {
       id: "3",
       programId: "P345678",
-      athleteId: "3",
-      athleteName: "Alexander Rodriguez",
+      athleteId: "athlete-3",
+      athleteName: "James Rodriguez",
       startDate: startDate3.toISOString().split('T')[0],
       endDate: futureDate3.toISOString().split('T')[0],
       routineTypes: ["movement", "throwing", "lifting", "nutrition"],
@@ -149,8 +201,8 @@ async function populateDatabase() {
     {
       id: "4",
       programId: "P901234",
-      athleteId: "4",
-      athleteName: "James Williams",
+      athleteId: "athlete-4",
+      athleteName: "Casey Davis",
       startDate: startDate4.toISOString().split('T')[0],
       endDate: futureDate4.toISOString().split('T')[0],
       routineTypes: ["throwing", "lifting"],
@@ -168,8 +220,8 @@ async function populateDatabase() {
     {
       id: "5",
       programId: "P456789",
-      athleteId: "5",
-      athleteName: "Ryan Martinez",
+      athleteId: "athlete-5",
+      athleteName: "Alex Thompson",
       startDate: startDate5.toISOString().split('T')[0],
       endDate: futureDate5.toISOString().split('T')[0],
       routineTypes: ["movement", "lifting"],
@@ -187,8 +239,8 @@ async function populateDatabase() {
     {
       id: "6",
       programId: "P567890",
-      athleteId: "6",
-      athleteName: "Ethan Thompson",
+      athleteId: "athlete-6",
+      athleteName: "Michael Lee",
       startDate: startDate6.toISOString().split('T')[0],
       endDate: futureDate6.toISOString().split('T')[0],
       routineTypes: ["throwing", "movement", "nutrition"],
@@ -206,8 +258,8 @@ async function populateDatabase() {
     {
       id: "9",
       programId: "P234567",
-      athleteId: "9",
-      athleteName: "Noah Anderson",
+      athleteId: "athlete-9",
+      athleteName: "Ethan Martinez",
       startDate: startDate7.toISOString().split('T')[0],
       endDate: futureDate7.toISOString().split('T')[0],
       routineTypes: ["lifting", "movement"],
@@ -225,8 +277,8 @@ async function populateDatabase() {
     {
       id: "10",
       programId: "P345123",
-      athleteId: "10",
-      athleteName: "Lucas Garcia",
+      athleteId: "athlete-10",
+      athleteName: "Tyler Brown",
       startDate: startDate8.toISOString().split('T')[0],
       endDate: futureDate8.toISOString().split('T')[0],
       routineTypes: ["throwing", "nutrition"],
@@ -244,8 +296,8 @@ async function populateDatabase() {
     {
       id: "11",
       programId: "P456234",
-      athleteId: "11",
-      athleteName: "Mason Taylor",
+      athleteId: "athlete-11",
+      athleteName: "Robert Martinez",
       startDate: startDate9.toISOString().split('T')[0],
       endDate: futureDate9.toISOString().split('T')[0],
       routineTypes: ["movement", "throwing", "lifting"],
@@ -263,8 +315,8 @@ async function populateDatabase() {
     {
       id: "12",
       programId: "P567345",
-      athleteId: "12",
-      athleteName: "Aiden Wilson",
+      athleteId: "athlete-12",
+      athleteName: "Christopher Wilson",
       startDate: startDate10.toISOString().split('T')[0],
       endDate: futureDate10.toISOString().split('T')[0],
       routineTypes: ["lifting", "nutrition"],
@@ -282,8 +334,8 @@ async function populateDatabase() {
     {
       id: "7",
       programId: "P111111",
-      athleteId: "7",
-      athleteName: "David Lee",
+      athleteId: "athlete-7",
+      athleteName: "David Kim",
       startDate: "2024-11-01",
       endDate: "2024-12-31",
       routineTypes: ["lifting"],
@@ -301,8 +353,8 @@ async function populateDatabase() {
     {
       id: "8",
       programId: "P222222",
-      athleteId: "8",
-      athleteName: "Thomas Brown",
+      athleteId: "athlete-8",
+      athleteName: "Jordan Williams",
       startDate: "2024-10-15",
       endDate: "2024-12-15",
       routineTypes: ["movement", "throwing"],
@@ -320,7 +372,7 @@ async function populateDatabase() {
     {
       id: "13",
       programId: "P333333",
-      athleteId: "13",
+      athleteId: "athlete-13",
       athleteName: "Christopher Davis",
       startDate: "2024-09-01",
       endDate: "2024-11-30",
@@ -339,7 +391,7 @@ async function populateDatabase() {
     {
       id: "14",
       programId: "P444444",
-      athleteId: "14",
+      athleteId: "athlete-14",
       athleteName: "Daniel Moore",
       startDate: "2024-08-15",
       endDate: "2024-10-15",
@@ -358,7 +410,7 @@ async function populateDatabase() {
     {
       id: "15",
       programId: "P555555",
-      athleteId: "15",
+      athleteId: "athlete-15",
       athleteName: "Matthew Jackson",
       startDate: "2024-07-01",
       endDate: "2024-09-30",
@@ -377,12 +429,10 @@ async function populateDatabase() {
   ];
 
   // Insert athletes, phases, blocks, and programs using direct Drizzle
-  const { drizzle } = await import("drizzle-orm/neon-http");
-  const { neon } = await import("@neondatabase/serverless");
+  const { getDatabaseConnection } = await import("./connection");
   const { athletes, phases, blocks, programs: programsTable } = await import("../shared/schema");
   
-  const sql = neon(process.env.DATABASE_URL!);
-  const db = drizzle(sql);
+  const db = await getDatabaseConnection();
 
   // Insert programs directly to preserve specific IDs and programIds
   console.log("Populating programs...");

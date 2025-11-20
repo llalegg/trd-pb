@@ -1,24 +1,37 @@
-import { neon } from "@neondatabase/serverless";
-
-const databaseUrl = process.env.DATABASE_URL || "postgresql://neondb_owner:npg_wc8Rx9uQgTGm@ep-wandering-block-ahresvbh-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require";
+import { getDatabaseUrl, getSqlClient } from "./connection";
 
 async function testConnection() {
-  console.log("Testing connection to Neon database...");
-  console.log("Connection string:", databaseUrl.replace(/:[^:@]+@/, ':****@'));
+  console.log("Environment variables:");
+  console.log("  DATABASE_URL:", process.env.DATABASE_URL ? "set" : "not set");
+  console.log("  POSTGRES_URL:", process.env.POSTGRES_URL ? "set" : "not set");
+  console.log("  POSTGRES_URL_NON_POOLING:", process.env.POSTGRES_URL_NON_POOLING ? "set" : "not set");
+  
+  const databaseUrl = getDatabaseUrl();
+  if (!databaseUrl) {
+    console.error("❌ No database URL found. Set DATABASE_URL or POSTGRES_URL");
+    return false;
+  }
+  
+  console.log("\nTesting database connection...");
+  console.log(`Connecting to: ${databaseUrl.replace(/:[^:@]+@/, ":****@")}`);
   
   try {
-    const sql = neon(databaseUrl);
-    const result = await sql`SELECT NOW() as current_time, version() as pg_version`;
-    console.log("✅ Connection successful!");
-    console.log("Current time:", result[0].current_time);
-    console.log("PostgreSQL version:", result[0].pg_version.split(' ')[0] + " " + result[0].pg_version.split(' ')[1]);
-    return true;
-  } catch (error: any) {
-    console.error("❌ Connection failed:");
-    console.error("Error:", error.message);
-    if (error.cause) {
-      console.error("Cause:", error.cause);
+    const sql = await getSqlClient();
+    const isNeon = databaseUrl.includes('neon.tech');
+    
+    if (isNeon) {
+      // Neon uses tagged template
+      const result = await sql`SELECT 1 as test`;
+      console.log("✅ Connection successful!", result);
+    } else {
+      // Standard PostgreSQL uses query method
+      const result = await sql.query('SELECT 1 as test');
+      console.log("✅ Connection successful!", result);
     }
+    
+    return true;
+  } catch (error) {
+    console.error("❌ Connection failed:", error);
     return false;
   }
 }
@@ -26,4 +39,3 @@ async function testConnection() {
 testConnection().then(success => {
   process.exit(success ? 0 : 1);
 });
-
