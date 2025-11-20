@@ -1,12 +1,15 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { Search, Filter, CheckCircle2 } from "lucide-react";
+import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Activity, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Sheet,
   SheetContent,
@@ -14,10 +17,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { type AthleteWithPhase, type Block } from "@shared/schema";
-import AthleteProgramCard from "@/components/AthleteRow";
 import { cn } from "@/lib/utils";
+import { format, formatDistanceToNow } from "date-fns";
 
-type SortField = "athleteName" | "nextActionDate" | "lastActivity" | "phaseProgress";
+type SortField = "athleteName" | "phaseNumber" | "blockStatus" | "season" | "nextActionDate" | "lastActivity";
 type SortDirection = "asc" | "desc";
 
 interface FilterState {
@@ -51,6 +54,156 @@ const URGENCY_OPTIONS = [
   { value: "no-active-block", label: "No active block" },
 ];
 
+// Helper Functions
+const getStatusIcon = (status?: "injured" | "rehabbing" | "lingering-issues" | null) => {
+  if (!status) return null;
+  const bgClass = status === "injured" ? "bg-red-500/10" : status === "rehabbing" ? "bg-blue-500/10" : "bg-amber-500/10";
+  switch (status) {
+    case "injured":
+      return (
+        <div className={cn("p-1.5 rounded-full", bgClass)}>
+          <AlertTriangle className="h-5 w-5 text-red-500" />
+        </div>
+      );
+    case "rehabbing":
+      return (
+        <div className={cn("p-1.5 rounded-full", bgClass)}>
+          <Activity className="h-5 w-5 text-blue-500" />
+        </div>
+      );
+    case "lingering-issues":
+      return (
+        <div className={cn("p-1.5 rounded-full", bgClass)}>
+          <AlertCircle className="h-5 w-5 text-amber-500" />
+        </div>
+      );
+    default:
+      return null;
+  }
+};
+
+const getStatusTooltip = (status?: "injured" | "rehabbing" | "lingering-issues" | null) => {
+  if (!status) return "";
+  switch (status) {
+    case "injured":
+      return "Injured - needs medical clearance";
+    case "rehabbing":
+      return "Currently in rehab protocol";
+    case "lingering-issues":
+      return "Has lingering issues";
+    default:
+      return "";
+  }
+};
+
+const getAvatarBorderClass = (status?: "injured" | "rehabbing" | "lingering-issues" | null) => {
+  switch (status) {
+    case "injured":
+      return "ring-2 ring-red-500/40";
+    case "rehabbing":
+      return "ring-2 ring-blue-500/40";
+    case "lingering-issues":
+      return "ring-2 ring-amber-500/40";
+    default:
+      return "ring-1 ring-[#292928]";
+  }
+};
+
+const getSeasonBadgeStyle = (season?: string | null): string => {
+  const s = (season || "").toLowerCase();
+  if (s.includes("in") && s.includes("season")) return "bg-green-500/20 text-green-400 border-green-500/30";
+  if (s.includes("pre")) return "bg-amber-500/20 text-amber-400 border-amber-500/30";
+  if (s.includes("post")) return "bg-purple-500/20 text-purple-400 border-purple-500/30";
+  if (s.includes("off")) return "bg-[#171716] text-[#979795] border-[#292928]";
+  return "bg-[#171716] text-[#979795] border-[#292928]";
+};
+
+const getSeasonDisplayText = (season?: string | null, subSeason?: string | null): string => {
+  const main = (season || "").trim();
+  const sub = (subSeason || "").trim();
+  if (main && sub) return `${main} • ${sub}`;
+  return main || sub || "Season";
+};
+
+const getBlockStatusBadge = (status: Block["status"]) => {
+  const variants: Record<Exclude<Block["status"], undefined>, { label: string; className: string }> = {
+    active: { label: "Active", className: "bg-green-500/20 text-green-400 border-green-500/30" },
+    complete: { label: "Complete", className: "bg-[#979795]/5 text-[#979795] border-transparent" },
+    draft: { label: "Draft", className: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
+    planned: { label: "Planned", className: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  };
+  const v = variants[status as Exclude<Block["status"], undefined>];
+  return (
+    <Badge variant="outline" className={cn("text-xs font-['Montserrat'] flex items-center gap-1", v.className)}>
+      {v.label}
+    </Badge>
+  );
+};
+
+const getCurrentBlock = (blocks: Block[]): Block | null => {
+  const sorted = [...blocks].sort((a, b) => a.blockNumber - b.blockNumber);
+  return sorted.find((b) => b.status === "active") || null;
+};
+
+const getNextAction = (blocks: Block[]): { text: string | null; urgency: "overdue" | "today" | "thisWeek" | "later" | null; date: Date | null } => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const next = blocks.filter(b => b.nextBlockDue).sort((a, b) => new Date(a.nextBlockDue!).getTime() - new Date(b.nextBlockDue!).getTime())[0];
+  if (!next || !next.nextBlockDue) return { text: null, urgency: null, date: null };
+  const due = new Date(next.nextBlockDue);
+  due.setHours(0, 0, 0, 0);
+  const d = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  let label = ""; 
+  let urgency: "overdue" | "today" | "thisWeek" | "later" = "later";
+  if (d < 0) { 
+    label = `${Math.abs(d)}d ago`; 
+    urgency = "overdue"; 
+  } else if (d === 0) { 
+    label = "Today"; 
+    urgency = "today"; 
+  } else if (d === 1) { 
+    label = "Tomorrow"; 
+    urgency = "today"; 
+  } else if (d <= 7) { 
+    label = `${d}d`; 
+    urgency = "thisWeek"; 
+  } else { 
+    label = format(due, "MMM d");
+  }
+  return { text: label, urgency, date: due };
+};
+
+const getNextActionColor = (urgency: "overdue" | "today" | "thisWeek" | "later" | null): string => {
+  switch (urgency) {
+    case "overdue": return "text-red-500";
+    case "today": return "text-amber-500";
+    case "thisWeek": return "text-amber-500";
+    default: return "text-[#979795]";
+  }
+};
+
+const getLastActivity = (blocks: Block[]): { text: string; date: Date | null } => {
+  const activityDates: Date[] = [];
+  blocks.forEach(block => {
+    if (block.lastModification) {
+      activityDates.push(new Date(block.lastModification));
+    }
+    if (block.lastSubmission) {
+      activityDates.push(new Date(block.lastSubmission));
+    }
+  });
+  
+  if (activityDates.length === 0) {
+    return { text: "–", date: null };
+  }
+  
+  const mostRecent = new Date(Math.max(...activityDates.map(d => d.getTime())));
+  return {
+    text: formatDistanceToNow(mostRecent, { addSuffix: true }),
+    date: mostRecent
+  };
+};
+
 export default function Programs() {
   const [, setLocation] = useLocation();
   const [status, setStatus] = useState<"current" | "past">("current");
@@ -58,7 +211,7 @@ export default function Programs() {
   const [sortField, setSortField] = useState<SortField>("nextActionDate");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
-  const [expandedAthletes, setExpandedAthletes] = useState<Set<string>>(new Set());
+  const [hoveredSortField, setHoveredSortField] = useState<SortField | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     athleteStatuses: [],
     blockStatuses: [],
@@ -132,6 +285,7 @@ export default function Programs() {
             status: "active",
             createdAt: daysAgo(35),
             updatedAt: daysAgo(1),
+            nextBlockDue: daysFromNow(5),
           },
         ],
       },
@@ -180,6 +334,7 @@ export default function Programs() {
             status: "active",
             createdAt: daysAgo(65),
             updatedAt: daysAgo(1),
+            nextBlockDue: daysFromNow(10),
           },
         ],
       },
@@ -213,6 +368,7 @@ export default function Programs() {
             status: "active",
             createdAt: daysAgo(48),
             updatedAt: daysAgo(1),
+            nextBlockDue: daysFromNow(3),
           },
         ],
       },
@@ -261,6 +417,7 @@ export default function Programs() {
             status: "active",
             createdAt: daysAgo(65),
             updatedAt: daysAgo(1),
+            nextBlockDue: daysFromNow(15),
           },
         ],
       },
@@ -294,6 +451,7 @@ export default function Programs() {
             status: "active",
             createdAt: daysAgo(35),
             updatedAt: daysAgo(1),
+            nextBlockDue: daysFromNow(7),
           },
         ],
       },
@@ -303,18 +461,6 @@ export default function Programs() {
   // Use hardcoded data instead of API
   const athletesData = hardcodedAthletes;
   const isLoading = false;
-  
-  const toggleAthleteExpanded = (athleteId: string) => {
-    setExpandedAthletes((prev) => {
-      const isOpen = prev.has(athleteId);
-      const next = new Set<string>();
-      if (!isOpen) {
-        // Only one expanded at a time: open the clicked one and collapse others
-        next.add(athleteId);
-      }
-      return next;
-    });
-  };
 
   // Filter and sort athletes
   const filteredAndSortedAthletes = useMemo(() => {
@@ -341,18 +487,10 @@ export default function Programs() {
           const endDate = new Date(block.endDate);
           endDate.setHours(0, 0, 0, 0);
           const isActive = block.status === "active" && endDate >= today;
-          if (!isActive && block.status === "active") {
-            console.log(`[Programs] Block ${block.name} filtered out: status=${block.status}, endDate=${block.endDate}, endDateObj=${endDate.toISOString()}, today=${today.toISOString()}, comparison=${endDate >= today}`);
-          }
           return isActive;
         });
-        if (!hasActiveBlock) {
-          console.log(`[Programs] Athlete ${athlete.name} filtered out: no active blocks matching current filter`);
-          return false;
-        }
+        if (!hasActiveBlock) return false;
       } else if (status === "past") {
-        // Past: Only athletes with NO active or planned (draft) blocks
-        // All blocks must be complete and ended in the past
         const hasActiveOrPlanned = blocks.some(block => {
           const endDate = new Date(block.endDate);
           endDate.setHours(0, 0, 0, 0);
@@ -362,7 +500,6 @@ export default function Programs() {
         });
         if (hasActiveOrPlanned) return false;
         
-        // Must have at least one complete block that ended in the past
         const hasPastCompleteBlock = blocks.some(block => {
           const endDate = new Date(block.endDate);
           endDate.setHours(0, 0, 0, 0);
@@ -395,10 +532,9 @@ export default function Programs() {
         if (!hasMatchingSubSeason) return false;
       }
 
-      // Filter by last activity (coach modification OR athlete submission) - check if ANY block matches
+      // Filter by last activity
       if (filters.lastActivityStart || filters.lastActivityEnd) {
         const hasMatchingActivity = blocks.some(block => {
-          // Get the most recent activity date (either modification or submission)
           const activityDates: Date[] = [];
           if (block.lastModification) {
             activityDates.push(new Date(block.lastModification));
@@ -427,7 +563,7 @@ export default function Programs() {
         if (!hasMatchingActivity) return false;
       }
 
-      // Filter by next block due - check if ANY block matches
+      // Filter by next block due
       if (filters.nextBlockDueStart || filters.nextBlockDueEnd) {
         const hasMatchingBlock = blocks.some(block => {
           if (!block.nextBlockDue) return false;
@@ -448,7 +584,7 @@ export default function Programs() {
         if (!hasMatchingBlock) return false;
       }
 
-      // Filter by urgency - check if ANY block matches
+      // Filter by urgency
       if (filters.urgency.length > 0) {
         const hasMatchingUrgency = filters.urgency.some(urgencyType => {
           if (urgencyType === "no-active-block") {
@@ -456,7 +592,6 @@ export default function Programs() {
             return !hasActiveBlock;
           }
           
-          // For "due-this-week" and "overdue", check nextBlockDue dates
           const matchingBlocks = blocks.filter(block => {
             if (!block.nextBlockDue) return false;
             const dueDate = new Date(block.nextBlockDue);
@@ -489,68 +624,36 @@ export default function Programs() {
           aValue = a.athlete.name;
           bValue = b.athlete.name;
           break;
+        case "phaseNumber":
+          aValue = a.currentPhase?.phaseNumber || 0;
+          bValue = b.currentPhase?.phaseNumber || 0;
+          break;
+        case "blockStatus": {
+          const aBlock = getCurrentBlock(a.blocks);
+          const bBlock = getCurrentBlock(b.blocks);
+          aValue = aBlock?.status || "";
+          bValue = bBlock?.status || "";
+          break;
+        }
+        case "season": {
+          const aBlock = getCurrentBlock(a.blocks);
+          const bBlock = getCurrentBlock(b.blocks);
+          aValue = aBlock?.season || "";
+          bValue = bBlock?.season || "";
+          break;
+        }
         case "nextActionDate": {
-          // Get earliest block needing attention (nextBlockDue dates)
-          const getNextActionDate = (blocks: Block[]): number => {
-            const actionDates: number[] = [];
-            
-            // Get nextBlockDue dates
-            blocks.forEach(block => {
-              if (block.nextBlockDue) {
-                actionDates.push(new Date(block.nextBlockDue).getTime());
-              }
-            });
-            
-            return actionDates.length > 0 ? Math.min(...actionDates) : Number.MAX_SAFE_INTEGER;
-          };
-          
-          aValue = getNextActionDate(a.blocks);
-          bValue = getNextActionDate(b.blocks);
+          const aNext = getNextAction(a.blocks);
+          const bNext = getNextAction(b.blocks);
+          aValue = aNext.date ? aNext.date.getTime() : Number.MAX_SAFE_INTEGER;
+          bValue = bNext.date ? bNext.date.getTime() : Number.MAX_SAFE_INTEGER;
           break;
         }
         case "lastActivity": {
-          // Get most recent activity (modification OR submission) from all blocks
-          const getLastActivity = (blocks: Block[]): number => {
-            const activityDates: number[] = [];
-            blocks.forEach(block => {
-              if (block.lastModification) {
-                activityDates.push(new Date(block.lastModification).getTime());
-              }
-              if (block.lastSubmission) {
-                activityDates.push(new Date(block.lastSubmission).getTime());
-              }
-            });
-            return activityDates.length > 0 
-              ? Math.max(...activityDates)
-              : Number.MAX_SAFE_INTEGER;
-          };
-          
-          aValue = getLastActivity(a.blocks);
-          bValue = getLastActivity(b.blocks);
-          break;
-        }
-        case "phaseProgress": {
-          // Calculate phase progress (% complete) from current phase blocks
-          const getPhaseProgress = (athleteData: AthleteWithPhase): number => {
-            if (!athleteData.currentPhase || athleteData.currentPhase.blocks.length === 0) {
-              return 0;
-            }
-            
-            const phaseBlocks = athleteData.currentPhase.blocks;
-            let totalDaysComplete = 0;
-            let totalDaysAvailable = 0;
-            
-            phaseBlocks.forEach(block => {
-              totalDaysComplete += block.daysComplete ?? 0;
-              totalDaysAvailable += block.daysAvailable ?? 0;
-            });
-            
-            if (totalDaysAvailable === 0) return 0;
-            return (totalDaysComplete / totalDaysAvailable) * 100;
-          };
-          
-          aValue = getPhaseProgress(a);
-          bValue = getPhaseProgress(b);
+          const aActivity = getLastActivity(a.blocks);
+          const bActivity = getLastActivity(b.blocks);
+          aValue = aActivity.date ? aActivity.date.getTime() : 0;
+          bValue = bActivity.date ? bActivity.date.getTime() : 0;
           break;
         }
         default:
@@ -569,94 +672,25 @@ export default function Programs() {
     return filtered;
   }, [athletesData, status, searchQuery, sortField, sortDirection, filters]);
 
-  // Helper function to check if a block matches the current filters
-  const blockMatchesFilters = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    return (block: Block): boolean => {
-      // Check block status filter
-      if (filters.blockStatuses.length > 0) {
-        if (!filters.blockStatuses.includes(block.status)) return false;
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
     }
+  };
 
-      // Check season filter
-      if (filters.seasons.length > 0) {
-        if (!filters.seasons.includes(block.season)) return false;
-      }
-
-      // Check sub-season filter
-      if (filters.subSeasons.length > 0) {
-        if (!block.subSeason || !filters.subSeasons.includes(block.subSeason)) return false;
-      }
-
-      // Check urgency filter
-      if (filters.urgency.length > 0) {
-        const matchesUrgency = filters.urgency.some(urgencyType => {
-          if (urgencyType === "overdue" || urgencyType === "due-this-week") {
-            if (!block.nextBlockDue) return false;
-            const dueDate = new Date(block.nextBlockDue);
-            dueDate.setHours(0, 0, 0, 0);
-            const daysDiff = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-            
-            if (urgencyType === "overdue") {
-              return daysDiff < 0;
-            } else if (urgencyType === "due-this-week") {
-              return daysDiff >= 0 && daysDiff <= 7;
-            }
-          }
-          return false;
-        });
-        if (!matchesUrgency) return false;
-      }
-
-      // Check next block due filter
-      if (filters.nextBlockDueStart || filters.nextBlockDueEnd) {
-        if (!block.nextBlockDue) return false;
-        const dueDate = new Date(block.nextBlockDue);
-        dueDate.setHours(0, 0, 0, 0);
-        if (filters.nextBlockDueStart) {
-          const filterStart = new Date(filters.nextBlockDueStart);
-          filterStart.setHours(0, 0, 0, 0);
-          if (dueDate < filterStart) return false;
-        }
-        if (filters.nextBlockDueEnd) {
-          const filterEnd = new Date(filters.nextBlockDueEnd);
-          filterEnd.setHours(23, 59, 59, 999);
-          if (dueDate > filterEnd) return false;
-        }
-      }
-
-      // Check last activity filter
-      if (filters.lastActivityStart || filters.lastActivityEnd) {
-        const activityDates: Date[] = [];
-        if (block.lastModification) {
-          activityDates.push(new Date(block.lastModification));
-        }
-        if (block.lastSubmission) {
-          activityDates.push(new Date(block.lastSubmission));
-        }
-        
-        if (activityDates.length === 0) return false;
-        
-        const mostRecentActivity = new Date(Math.max(...activityDates.map(d => d.getTime())));
-        mostRecentActivity.setHours(0, 0, 0, 0);
-        
-        if (filters.lastActivityStart) {
-          const filterStart = new Date(filters.lastActivityStart);
-          filterStart.setHours(0, 0, 0, 0);
-          if (mostRecentActivity < filterStart) return false;
-        }
-        if (filters.lastActivityEnd) {
-          const filterEnd = new Date(filters.lastActivityEnd);
-          filterEnd.setHours(23, 59, 59, 999);
-          if (mostRecentActivity > filterEnd) return false;
-        }
-      }
-
-      return true;
-    };
-  }, [filters]);
+  const getSortIcon = (field: SortField, isHovered: boolean = false) => {
+    if (!isHovered && sortField !== field) return null;
+    
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 text-[#bcbbb7]" />;
+    }
+    return sortDirection === "asc" ? 
+      <ArrowUp className="w-4 h-4 ml-1 text-[#bcbbb7]" /> : 
+      <ArrowDown className="w-4 h-4 ml-1 text-[#bcbbb7]" />;
+  };
 
   const handleAthleteStatusToggle = (status: string) => {
     setFilters(prev => ({
@@ -731,32 +765,15 @@ export default function Programs() {
     );
   }, [filters]);
 
-  // Auto-expand: open the first relevant card per tab; keep at most one expanded
-  useEffect(() => {
-    let firstId: string | undefined;
-    if (status === "past") {
-      firstId = filteredAndSortedAthletes[0]?.name ? filteredAndSortedAthletes[0]!.athlete.id : undefined;
-    } else if (hasActiveFilters) {
-      const hit = filteredAndSortedAthletes.find((a) => a.blocks.some((b) => blockMatchesFilters(b)));
-      firstId = hit?.athlete.id;
-    }
-    if (firstId) {
-      setExpandedAthletes(new Set([firstId]));
-    } else {
-      setExpandedAthletes(new Set());
-    }
-  }, [status, filteredAndSortedAthletes, hasActiveFilters, blockMatchesFilters]);
-
   return (
     <div className="min-h-screen bg-surface-base">
       <div className="w-full">
-        {/* Header - Figma Style */}
+        {/* Header */}
         <div className="flex items-center justify-between p-5">
           <div className="flex items-center gap-6">
             <h1 className="text-2xl font-semibold text-[#f7f6f2] font-['Montserrat'] leading-[1.32]">
               Programs
             </h1>
-            {/* Active/Completed Toggle */}
             <ToggleGroup
               type="single"
               value={status}
@@ -772,7 +789,6 @@ export default function Programs() {
             </ToggleGroup>
           </div>
           <div className="flex items-center gap-3">
-            {/* Search Field */}
             <div className="relative w-[337px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#979795] pointer-events-none" />
               <Input
@@ -783,7 +799,6 @@ export default function Programs() {
                 className="pl-9"
               />
             </div>
-            {/* Filter Button */}
             <Button
               variant="outline"
               size="sm"
@@ -802,12 +817,10 @@ export default function Programs() {
           </div>
         </div>
 
-        {/* Content Area */}
+        {/* Table Content */}
         <div className="px-5 pb-5 bg-surface-base">
-          {/* Athlete List */}
           {isLoading ? (
             <div className="border border-[#292928] rounded-lg overflow-hidden w-full bg-surface-base">
-              {/* Loading Skeleton */}
               {Array.from({ length: 5 }).map((_, idx) => (
                 <div key={idx} className="border-b border-[#292928] last:border-b-0">
                   <div className="flex items-center gap-4 px-5 py-3">
@@ -833,46 +846,234 @@ export default function Programs() {
                   </h3>
                   <p className="text-sm font-['Montserrat'] text-[#979795] mb-6">
                     {hasActiveFilters 
-                      ? "Try reaching your filters to see more results."
+                      ? "Try adjusting your filters to see more results."
                       : "Use filters or go to an athlete to create the first block."}
                   </p>
                 </div>
               </div>
-              
+            </div>
+          ) : (
+            <div className="w-full overflow-x-auto scrollbar-thin">
+              <div className="bg-[#121210] rounded-2xl overflow-hidden relative" style={{ minWidth: '1400px' }}>
+                {/* Table Header */}
+                <div className="flex h-10 bg-[#121210] text-[#bcbbb7] text-xs font-medium relative">
+                  {/* Athlete Name Column */}
+                  <div className="flex items-center pl-[8px] pr-[16px] w-[300px] min-w-[300px] flex-shrink-0 border-r border-[#292928]">
+                    <button 
+                      onClick={() => handleSort('athleteName')}
+                      onMouseEnter={() => setHoveredSortField('athleteName')}
+                      onMouseLeave={() => setHoveredSortField(null)}
+                      className="flex gap-[4px] items-center flex-1 hover:text-[#f7f6f2] transition-colors pl-[16px]"
+                    >
+                      <span className="font-['Montserrat:Medium',_sans-serif] text-[12px] leading-[1.32] text-[#bcbbb7] whitespace-nowrap overflow-hidden text-ellipsis">
+                        Athlete
+                      </span>
+                      {getSortIcon('athleteName', hoveredSortField === 'athleteName' || sortField === 'athleteName')}
+                    </button>
+                  </div>
+
+                  {/* Scrollable Columns Header */}
+                  <div className="flex items-center h-full" style={{ minWidth: '1100px' }}>
+                    {/* Current Phase */}
+                    <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
+                      <button 
+                        onClick={() => handleSort('phaseNumber')}
+                        onMouseEnter={() => setHoveredSortField('phaseNumber')}
+                        onMouseLeave={() => setHoveredSortField(null)}
+                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Phase</span>
+                        {getSortIcon('phaseNumber', hoveredSortField === 'phaseNumber' || sortField === 'phaseNumber')}
+                      </button>
+                    </div>
+
+                    {/* Current Block */}
+                    <div className="flex items-center pl-4 pr-0 w-[200px] min-w-[200px]">
+                      <button 
+                        onClick={() => handleSort('blockStatus')}
+                        onMouseEnter={() => setHoveredSortField('blockStatus')}
+                        onMouseLeave={() => setHoveredSortField(null)}
+                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Current Block</span>
+                        {getSortIcon('blockStatus', hoveredSortField === 'blockStatus' || sortField === 'blockStatus')}
+                      </button>
+                    </div>
+
+                    {/* Season/Sub-Season */}
+                    <div className="flex items-center pl-4 pr-0 w-[200px] min-w-[200px]">
+                      <button 
+                        onClick={() => handleSort('season')}
+                        onMouseEnter={() => setHoveredSortField('season')}
+                        onMouseLeave={() => setHoveredSortField(null)}
+                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Season</span>
+                        {getSortIcon('season', hoveredSortField === 'season' || sortField === 'season')}
+                      </button>
+                    </div>
+
+                    {/* Next Action Date */}
+                    <div className="flex items-center pl-4 pr-0 w-[200px] min-w-[200px]">
+                      <button 
+                        onClick={() => handleSort('nextActionDate')}
+                        onMouseEnter={() => setHoveredSortField('nextActionDate')}
+                        onMouseLeave={() => setHoveredSortField(null)}
+                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Next Action</span>
+                        {getSortIcon('nextActionDate', hoveredSortField === 'nextActionDate' || sortField === 'nextActionDate')}
+                      </button>
+                    </div>
+
+                    {/* Last Activity */}
+                    <div className="flex items-center pl-4 pr-0 w-[200px] min-w-[200px]">
+                      <button 
+                        onClick={() => handleSort('lastActivity')}
+                        onMouseEnter={() => setHoveredSortField('lastActivity')}
+                        onMouseLeave={() => setHoveredSortField(null)}
+                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Last Activity</span>
+                        {getSortIcon('lastActivity', hoveredSortField === 'lastActivity' || sortField === 'lastActivity')}
+                      </button>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-center pl-4 pr-0 w-[150px] min-w-[150px]">
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Actions</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Table Body */}
+                <div>
+                  {filteredAndSortedAthletes.map((athleteData) => {
+                    const currentBlock = getCurrentBlock(athleteData.blocks);
+                    const nextAction = getNextAction(athleteData.blocks);
+                    const lastActivity = getLastActivity(athleteData.blocks);
+                    const statusIcon = getStatusIcon(athleteData.athlete.status);
+                    const statusTooltip = getStatusTooltip(athleteData.athlete.status);
+
+                    return (
+                      <div
+                        key={athleteData.athlete.id}
+                        className="group flex items-center border-b border-[#292928] h-12 bg-[#1C1C1B] hover:bg-[#2C2C2B] transition-colors cursor-pointer"
+                        onClick={() => setLocation(`/programs/${athleteData.athlete.id}`)}
+                      >
+                        {/* Athlete Name Column */}
+                        <div className="flex gap-[8px] items-center pl-[8px] pr-[16px] py-0 w-[300px] min-w-[300px] flex-shrink-0 border-r border-[#292928]">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {statusIcon && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex-shrink-0">
+                                      {statusIcon}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{statusTooltip}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            <Avatar className={cn("h-8 w-8 flex-shrink-0", getAvatarBorderClass(athleteData.athlete.status))}>
+                              <AvatarImage src={athleteData.athlete.photo} alt={athleteData.athlete.name} />
+                              <AvatarFallback className="bg-[#292928] text-[#f7f6f2] text-xs font-['Montserrat']">
+                                {athleteData.athlete.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-['Montserrat:SemiBold',_sans-serif] text-[14px] text-[#f7f6f2] truncate">
+                              {athleteData.athlete.name}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Scrollable Columns */}
+                        <div className="flex items-center h-full" style={{ minWidth: '1100px' }}>
+                          {/* Current Phase */}
+                          <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
+                            <span className="text-[#f7f6f2] text-sm">
+                              {athleteData.currentPhase ? `Phase ${athleteData.currentPhase.phaseNumber}` : "–"}
+                            </span>
+                          </div>
+
+                          {/* Current Block */}
+                          <div className="flex items-center pl-4 pr-0 w-[200px] min-w-[200px]">
+                            {currentBlock ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[#f7f6f2] text-sm truncate">
+                                  Block {currentBlock.blockNumber}
+                                </span>
+                                {getBlockStatusBadge(currentBlock.status)}
+                              </div>
+                            ) : (
+                              <span className="text-[#979795] text-sm">–</span>
+                            )}
+                          </div>
+
+                          {/* Season/Sub-Season */}
+                          <div className="flex items-center pl-4 pr-0 w-[200px] min-w-[200px]">
+                            {currentBlock ? (
+                              <Badge variant="outline" className={cn("text-xs font-['Montserrat']", getSeasonBadgeStyle(currentBlock.season))}>
+                                {getSeasonDisplayText(currentBlock.season, currentBlock.subSeason)}
+                              </Badge>
+                            ) : (
+                              <span className="text-[#979795] text-sm">–</span>
+                            )}
+                          </div>
+
+                          {/* Next Action Date */}
+                          <div className="flex items-center pl-4 pr-0 w-[200px] min-w-[200px]">
+                            {nextAction.text ? (
+                              <span className={cn("text-sm", getNextActionColor(nextAction.urgency))}>
+                                {nextAction.text}
+                              </span>
+                            ) : (
+                              <span className="text-[#979795] text-sm">–</span>
+                            )}
+                          </div>
+
+                          {/* Last Activity */}
+                          <div className="flex items-center pl-4 pr-0 w-[200px] min-w-[200px]">
+                            <span className="text-[#979795] text-sm">
+                              {lastActivity.text}
+                            </span>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center justify-center pl-4 pr-0 w-[150px] min-w-[150px]">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLocation(`/programs/${athleteData.athlete.id}`);
+                              }}
+                            >
+                              Program
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            ) : (
-              <div className="w-full">
-                {filteredAndSortedAthletes.map((athleteData) => {
-                  // Calculate which blocks match the filters
-                  const matchingBlockIds = new Set(
-                    athleteData.blocks
-                      .filter((block) => blockMatchesFilters(block))
-                      .map((block) => block.id)
-                  );
-                  return (
-                    <AthleteProgramCard
-                      key={athleteData.athlete.id}
-                      athleteData={athleteData}
-                      isExpanded={expandedAthletes.has(athleteData.athlete.id)}
-                      onToggleExpand={() => toggleAthleteExpanded(athleteData.athlete.id)}
-                      matchingBlockIds={matchingBlockIds}
-                    />
-                  );
-                })}
-              </div>
-            )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Filter Sheet */}
       <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
         <SheetContent side="right" className="h-full flex flex-col bg-surface-base border-l border-[#292928] w-full sm:max-w-md p-0">
-          {/* Fixed Header */}
           <SheetHeader className="border-b border-[#292928] pb-4 px-6 pt-6 flex-shrink-0">
             <SheetTitle className="text-xl font-['Montserrat'] text-[#f7f6f2]">Filters</SheetTitle>
           </SheetHeader>
 
-          {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
             {/* Athlete Status */}
             <div className="space-y-3">
