@@ -8,16 +8,9 @@ export function getDatabaseUrl() {
   return process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
 }
 
-// Support both DATABASE_URL and POSTGRES_URL (Supabase uses POSTGRES_URL)
-const databaseUrl = getDatabaseUrl();
-
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL or POSTGRES_URL environment variable is required");
-}
-
-// Detect if it's a Neon connection (contains 'neon.tech') or Supabase/standard PostgreSQL
-const isNeon = databaseUrl.includes('neon.tech');
-const isSupabase = databaseUrl.includes('supabase.co') || databaseUrl.includes('supabase.com');
+// NOTE: Do NOT check for DATABASE_URL at module load time!
+// This module is imported even when using MemStorage, which doesn't need a database.
+// Only check for DATABASE_URL when actually trying to connect (inside the functions below).
 
 export async function getDatabaseConnection() {
   const dbUrl = getDatabaseUrl();

@@ -78,5 +78,6 @@ app.use(async (req, res, next) => {
 });
 
 // Export the Express app for Vercel
+// Express apps are compatible with Vercel's serverless function handler signature
 export default app;
 
