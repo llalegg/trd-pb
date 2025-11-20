@@ -2490,7 +2490,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                             <DropdownMenuTrigger asChild>
                               <Button
                                 type="button"
-                                variant="outline"
+                                variant="secondary"
                                 className="w-full border-dashed text-xs font-medium"
                               >
                                 <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -2560,7 +2560,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                           <DropdownMenuTrigger asChild>
                             <Button
                               type="button"
-                              variant="outline"
+                              variant="secondary"
                               className="w-full border-dashed text-xs font-medium"
                             >
                               <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -2686,7 +2686,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                             <DropdownMenuTrigger asChild>
                               <Button
                                 type="button"
-                                variant="outline"
+                                variant="secondary"
                                 className="w-full border-dashed text-xs font-medium"
                               >
                                 <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -3728,7 +3728,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                             <div className="flex items-center gap-2">
                               <Button
                                 type="button"
-                                variant="outline"
+                                variant="secondary"
                                 size="sm"
                                 onClick={() => {
                                   const newValue = Math.max(MIN_PROGRAM_DURATION, (field.value || DEFAULT_PROGRAM_DURATION) - 1);
@@ -3752,7 +3752,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                               />
                               <Button
                                 type="button"
-                                variant="outline"
+                                variant="secondary"
                                 size="sm"
                                 onClick={() => {
                                   const newValue = Math.min(MAX_PROGRAM_DURATION, (field.value || DEFAULT_PROGRAM_DURATION) + 1);
@@ -3953,7 +3953,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                                     {issue.action && (
                                       <Button
                                         size="sm"
-                                        variant="outline"
+                                        variant="secondary"
                                         className="text-xs"
                                         onClick={() => {
                                           // Handle action based on issue type
@@ -3989,7 +3989,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                                     {warning.action && (
                                       <Button
                                         size="sm"
-                                        variant="outline"
+                                        variant="secondary"
                                         className="text-xs"
                                       >
                                         {warning.action}
@@ -4074,7 +4074,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                                     {warning.action && (
                                       <Button
                                         size="sm"
-                                        variant="outline"
+                                        variant="secondary"
                                         className="text-xs"
                                       >
                                         {warning.action}
@@ -4141,7 +4141,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                                     {issue.action && (
                                       <Button
                                         size="sm"
-                                        variant="outline"
+                                        variant="secondary"
                                         className="text-xs"
                                         onClick={() => {
                                           // Handle action based on issue type
@@ -4180,7 +4180,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                     <h3 className="text-xs font-medium">Program blocks</h3>
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       onClick={() => setAddBlockModalOpen(true)}
                       className="h-7 px-3 text-xs"
@@ -4223,7 +4223,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                               </p>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-[11px] px-2 py-0.5">
+                              <Badge variant="secondary" className="text-[11px] px-2 py-0.5">
                                 {duration} week{duration !== 1 ? "s" : ""}
                               </Badge>
                               {isActiveBlock && (
@@ -4442,7 +4442,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                                       {format(event.date, "MMM d, yyyy")}
                                     </span>
                                     <Badge
-                                      variant="outline"
+                                      variant="secondary"
                                       className={cn(
                                         "text-xs px-2 py-0.5",
                                         typeColors[event.type] || "bg-gray-500/20 text-gray-400 border-gray-500/30"
@@ -4559,7 +4559,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                                       {format(assessment.date, "MMM d, yyyy")}
                                     </span>
                                     <Badge
-                                      variant="outline"
+                                      variant="secondary"
                                       className="text-xs px-2 py-0.5 bg-amber-500/20 text-amber-400 border-amber-500/30"
                                     >
                                       {assessment.type}
@@ -4644,7 +4644,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                                         {format(injury.date, "MMM d, yyyy")}
                                       </span>
                                       <Badge
-                                        variant="outline"
+                                        variant="secondary"
                                         className={cn(
                                           "text-xs px-2 py-0.5",
                                           typeColors[injury.type] || "bg-gray-500/20 text-gray-400 border-gray-500/30"
@@ -5630,7 +5630,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
                                         ))}
                                         <Button
                                           type="button"
-                                          variant="outline"
+                                          variant="secondary"
                                           size="sm"
                                           className="w-full border-dashed text-xs font-medium mt-1"
                                         >
@@ -5980,7 +5980,7 @@ export default function AddProgram({ athleteId: athleteIdProp, headerOffset = 0,
               </div>
               <div className="flex justify-end gap-2">
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => {
                     setSelectedExerciseForEdit(null);
                     setExerciseEditModalOpen(false);

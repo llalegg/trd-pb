@@ -104,16 +104,9 @@ const getStatusTooltip = (status?: "injured" | "rehabbing" | "lingering-issues" 
 };
 
 const getAvatarBorderClass = (status?: "injured" | "rehabbing" | "lingering-issues" | null) => {
-  switch (status) {
-    case "injured":
-      return "ring-2 ring-red-500/40";
-    case "rehabbing":
-      return "ring-2 ring-blue-500/40";
-    case "lingering-issues":
-      return "ring-2 ring-amber-500/40";
-    default:
-      return "ring-1 ring-[#292928]";
-  }
+  // Remove border states for injured/rehab/lingering-issues status
+  // Also remove default Avatar border
+  return "after:border-0";
 };
 
 const getSeasonBadgeStyle = (season?: string | null): string => {
@@ -226,11 +219,11 @@ const getBlockProgress = (blocks: Block[]): { daysRemaining: number | null; text
   const daysRemaining = differenceInDays(endDate, today);
   
   if (daysRemaining < 0) {
-    return { daysRemaining: 0, text: "in 0 day(s)", needsAction: true };
+    return { daysRemaining: 0, text: "In 0 d", needsAction: true };
   }
   
   const needsAction = daysRemaining <= 3;
-  const text = daysRemaining === 1 ? "in 1 day" : `in ${daysRemaining} day(s)`;
+  const text = daysRemaining === 1 ? "In 1 d" : `In ${daysRemaining} d`;
   
   return { daysRemaining, text, needsAction };
 };
@@ -319,30 +312,30 @@ const getProgramStatus = (blocks: Block[]): { status: "active" | "pending" | "dr
     if (hasDraft) {
       return {
         status: "draft",
-        badge: <Badge variant="outline" className="text-xs font-['Montserrat'] bg-amber-500/20 text-amber-400 border-amber-500/30">Draft</Badge>
+        badge: <Badge variant="outline" className="text-xs font-['Montserrat'] bg-amber-500/20 text-amber-400">Draft</Badge>
       };
     }
     return {
       status: "pending",
-      badge: <Badge variant="outline" className="text-xs font-['Montserrat'] bg-blue-500/20 text-blue-400 border-blue-500/30">Pending</Badge>
+      badge: <Badge variant="outline" className="text-xs font-['Montserrat'] bg-blue-500/20 text-blue-400">Pending</Badge>
     };
   }
   
   if (currentBlock.status === "active") {
     return {
       status: "active",
-      badge: <Badge variant="outline" className="text-xs font-['Montserrat'] bg-green-500/20 text-green-400 border-green-500/30">Active</Badge>
+      badge: <Badge variant="outline" className="text-xs font-['Montserrat'] bg-green-500/20 text-green-400">Active</Badge>
     };
   } else if (currentBlock.status === "draft") {
     return {
       status: "draft",
-      badge: <Badge variant="outline" className="text-xs font-['Montserrat'] bg-amber-500/20 text-amber-400 border-amber-500/30">Draft</Badge>
+      badge: <Badge variant="outline" className="text-xs font-['Montserrat'] bg-amber-500/20 text-amber-400">Draft</Badge>
     };
   }
   
   return {
     status: "pending",
-    badge: <Badge variant="outline" className="text-xs font-['Montserrat'] bg-blue-500/20 text-blue-400 border-blue-500/30">Pending</Badge>
+    badge: <Badge variant="outline" className="text-xs font-['Montserrat'] bg-blue-500/20 text-blue-400">Pending</Badge>
   };
 };
 
@@ -825,10 +818,9 @@ export default function Programs() {
               />
             </div>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               className={cn(
-                "h-8 px-3 rounded-full border-[#292928] bg-surface-base text-[#979795] hover:bg-[#1a1a19] font-['Montserrat']",
                 hasActiveFilters && "border-primary"
               )}
               onClick={() => setFilterSheetOpen(true)}
@@ -892,7 +884,7 @@ export default function Programs() {
                       onMouseLeave={() => setHoveredSortField(null)}
                       className="flex gap-[4px] items-center flex-1 hover:text-[#f7f6f2] transition-colors pl-[16px]"
                     >
-                      <span className="font-['Montserrat:Medium',_sans-serif] text-[12px] leading-[1.32] text-[#bcbbb7] whitespace-nowrap overflow-hidden text-ellipsis">
+                      <span className="font-['Montserrat'] font-medium text-[12px] leading-[1.32] text-[#bcbbb7] whitespace-nowrap overflow-hidden text-ellipsis">
                         Athlete name
                       </span>
                       {getSortIcon('athleteName', hoveredSortField === 'athleteName' || sortField === 'athleteName')}
@@ -1010,7 +1002,7 @@ export default function Programs() {
                                 {athleteData.athlete.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-['Montserrat:SemiBold',_sans-serif] text-[14px] text-[#f7f6f2] truncate">
+                            <span className="font-['Montserrat'] font-semibold text-[14px] text-[#f7f6f2] truncate">
                               {athleteData.athlete.name}
                             </span>
                             {isActionableInjury(athleteData.athlete.status) && (
@@ -1046,11 +1038,12 @@ export default function Programs() {
                             {(() => {
                               const subSeasonStatus = getSubSeasonStatus(athleteData.blocks);
                               return subSeasonStatus !== "–" ? (
-                                <Badge variant="outline" className={cn(
-                                  "text-xs font-['Montserrat']",
-                                  subSeasonStatus === "In-Season" ? "bg-green-500/20 text-green-400 border-green-500/30" :
-                                  "bg-[#171716] text-[#979795] border-[#292928]"
-                                )}>
+                                <Badge 
+                                  variant={subSeasonStatus === "In-Season" ? "outline" : "neutral"}
+                                  className={cn(
+                                    subSeasonStatus === "In-Season" && "bg-green-500/20 text-green-400"
+                                  )}
+                                >
                                   {subSeasonStatus}
                                 </Badge>
                               ) : (
@@ -1067,12 +1060,13 @@ export default function Programs() {
                                 return <span className="text-[#979795] text-sm">–</span>;
                               }
                               return (
-                                <Badge variant="outline" className={cn(
-                                  "text-xs font-['Montserrat']",
-                                  progress.needsAction ? "bg-red-500/20 text-red-400 border-red-500/30" :
-                                  progress.daysRemaining <= 7 ? "bg-amber-500/20 text-amber-400 border-amber-500/30" : 
-                                  "bg-[#171716] text-[#979795] border-[#292928]"
-                                )}>
+                                <Badge 
+                                  variant={progress.needsAction || progress.daysRemaining <= 7 ? "outline" : "neutral"}
+                                  className={cn(
+                                    progress.needsAction && "bg-red-500/20 text-red-400",
+                                    !progress.needsAction && progress.daysRemaining <= 7 && "bg-amber-500/20 text-amber-400"
+                                  )}
+                                >
                                   {progress.text}
                                 </Badge>
                               );

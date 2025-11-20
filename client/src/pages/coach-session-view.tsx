@@ -344,7 +344,7 @@ export default function CoachSessionView() {
                   </div>
                 </div>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={completeAllExercises}
                   className="border-[#292928] text-[#f7f6f2] hover:bg-[#171716] h-7 px-2 text-xs font-['Montserrat']"
@@ -458,7 +458,7 @@ export default function CoachSessionView() {
                     )}
                   </div>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     className="border-[#292928] text-[#f7f6f2] hover:bg-[#171716] font-['Montserrat'] h-7 px-2 text-xs"
                     onClick={() => setLocation("/vault")}

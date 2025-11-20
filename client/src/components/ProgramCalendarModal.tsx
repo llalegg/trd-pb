@@ -160,7 +160,7 @@ export default function ProgramCalendarModal({ onClose, onWeekSelect }: ProgramC
       {/* Calendar Navigation */}
       <div className="flex items-center justify-between p-4">
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={() => setCurrentDate(subMonths(currentDate, 1))}
         >
@@ -170,7 +170,7 @@ export default function ProgramCalendarModal({ onClose, onWeekSelect }: ProgramC
           {format(currentDate, "MMMM yyyy")}
         </h2>
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={() => setCurrentDate(addMonths(currentDate, 1))}
         >

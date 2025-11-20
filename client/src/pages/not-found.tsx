@@ -38,7 +38,7 @@ export default function NotFound() {
               </Button>
               
               <Button 
-                variant="outline"
+                variant="secondary"
                 onClick={() => window.history.back()}
                 className="border-border bg-background text-foreground hover:bg-accent h-10 rounded-full w-full"
               >

@@ -401,7 +401,7 @@ export default function ExecutionView() {
                           Enter results
                         </Button>
                         <Button 
-                          variant="outline"
+                          variant="secondary"
                           onClick={() => handleViewDetailsForExercise(exercise.id)}
                           data-testid={`view-details-button-${exercise.id}`}
                         >
@@ -428,21 +428,21 @@ export default function ExecutionView() {
             <PlayCircle className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => {/* TODO: Open camera */}}
           >
             <Camera className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => {/* TODO: Open notes */}}
           >
             <FileText className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={handleFinishRoutine}
             className="ml-auto"
@@ -463,7 +463,7 @@ export default function ExecutionView() {
                 </div>
                 <div className="flex gap-1">
                   <Button 
-                    variant="outline" 
+                    variant="secondary" 
                     size="sm" 
                     onClick={toggleTimer}
                     className="h-6 px-2 text-xs"
@@ -471,7 +471,7 @@ export default function ExecutionView() {
                     Pause
                   </Button>
                   <Button 
-                    variant="outline" 
+                    variant="secondary" 
                     size="sm" 
                     onClick={resetTimer}
                     className="h-6 px-2 text-xs"

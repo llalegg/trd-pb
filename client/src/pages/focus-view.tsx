@@ -745,7 +745,7 @@ export default function FocusView() {
               </Button>
             )}
             <Button 
-              variant="outline"
+              variant="secondary"
               className="w-full h-12 text-sm font-semibold bg-transparent border-[#292928] text-[#f7f6f2] hover:bg-[#171716] font-['Montserrat']"
               onClick={handleBackToSession}
             >

@@ -168,7 +168,7 @@ export default function EnterResultsModal({
 
           <div className="flex gap-2 pt-4">
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={onCancel}
               className="flex-1"
             >

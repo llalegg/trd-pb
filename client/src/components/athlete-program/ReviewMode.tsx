@@ -377,7 +377,7 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="secondary"
                       onClick={() =>
                         openEntryModal({
                           source: `Block ${blockNumber} • ${block.name}`,
@@ -756,7 +756,7 @@ export default function ReviewMode({ athleteId }: ReviewModeProps) {
         </div>
       </div>
           <DialogFooter>
-            <Button variant="outline" onClick={closeEntryModal}>
+            <Button variant="secondary" onClick={closeEntryModal}>
               Cancel
             </Button>
             <Button onClick={handleEntrySubmit}>Save results</Button>

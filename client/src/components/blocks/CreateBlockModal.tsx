@@ -341,7 +341,7 @@ export default function CreateBlockModal({
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
-                          variant="outline"
+                          variant="secondary"
                           className={cn(
                             "w-full justify-start text-left font-normal bg-[#171716] border-[#292928] text-[#f7f6f2] hover:bg-[#1a1a19]",
                             !field.value && "text-[#979795]"
@@ -464,7 +464,7 @@ export default function CreateBlockModal({
           <DialogFooter className="mt-6">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={onClose}
               className="border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
               disabled={isSubmitting}

@@ -41,6 +41,46 @@ const subSeasons = ["Early", "Mid", "Late", "General Off-Season (GOS)"] as const
 const statuses = ["draft", "active", "planned", "complete"] as const;
 const athleteStatuses = [null, "injured", "rehabbing", "lingering-issues"] as const;
 const teams = ["Varsity", "JV", "Freshman", "Redshirt", "Transfer"] as const;
+
+// Generate Unsplash photo URL for young male athlete
+// Using Unsplash Source API with curated photo IDs for young male athletes/sports
+const unsplashPhotoIds = [
+  "1507003211169-0a1dd7228f2d", // Young male athlete
+  "1531427182901-8c149bcceb19", // Young male portrait
+  "1500648767791-00dcc994a43e", // Young male athlete
+  "1492562080023-4313ab04b1be", // Young male portrait
+  "1506794778202-cad84cf45f1d", // Young male athlete
+  "1539571696357-5a69c17a67c6", // Young male portrait
+  "1500648767791-00dcc994a43e", // Young male athlete
+  "1531427182901-8c149bcceb19", // Young male portrait
+  "1507003211169-0a1dd7228f2d", // Young male athlete
+  "1492562080023-4313ab04b1be", // Young male portrait
+  "1506794778202-cad84cf45f1d", // Young male athlete
+  "1539571696357-5a69c17a67c6", // Young male portrait
+  "1500648767791-00dcc994a43e", // Young male athlete
+  "1531427182901-8c149bcceb19", // Young male portrait
+  "1507003211169-0a1dd7228f2d", // Young male athlete
+  "1492562080023-4313ab04b1be", // Young male portrait
+  "1506794778202-cad84cf45f1d", // Young male athlete
+  "1539571696357-5a69c17a67c6", // Young male portrait
+  "1500648767791-00dcc994a43e", // Young male athlete
+  "1531427182901-8c149bcceb19", // Young male portrait
+  "1507003211169-0a1dd7228f2d", // Young male athlete
+  "1492562080023-4313ab04b1be", // Young male portrait
+  "1506794778202-cad84cf45f1d", // Young male athlete
+  "1539571696357-5a69c17a67c6", // Young male portrait
+  "1500648767791-00dcc994a43e", // Young male athlete
+  "1531427182901-8c149bcceb19", // Young male portrait
+  "1507003211169-0a1dd7228f2d", // Young male athlete
+  "1492562080023-4313ab04b1be", // Young male portrait
+  "1506794778202-cad84cf45f1d", // Young male athlete
+  "1539571696357-5a69c17a67c6", // Young male portrait
+];
+
+const generatePhotoUrl = (index: number): string => {
+  const photoId = unsplashPhotoIds[index % unsplashPhotoIds.length];
+  return `https://images.unsplash.com/photo-${photoId}?w=400&h=400&fit=crop&crop=faces&auto=format&q=80`;
+};
 const xRoles = ["Starter", "Reliever"] as const;
 const intensities = ["Low", "Moderate", "High"] as const;
 const volumes = ["Low", "Moderate", "High"] as const;
@@ -163,7 +203,7 @@ export function generateSeedAthletes(): AthleteWithPhase[] {
     const athlete: Athlete = {
       id: athleteId,
       name,
-      photo: undefined,
+      photo: generatePhotoUrl(i),
       status: random(athleteStatuses),
       currentPhaseId: phaseId,
       team: random(teams),

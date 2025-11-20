@@ -122,7 +122,7 @@ const getBlockStatusBadge = (status: Block["status"]) => {
   };
   const v = variants[status as Exclude<Block["status"], undefined>];
   return (
-    <Badge variant="outline" className={cn("text-xs font-['Montserrat'] flex items-center gap-1", v.className)}>
+    <Badge variant="secondary" className={cn("text-xs font-['Montserrat'] flex items-center gap-1", v.className)}>
       {v.icon}
       {v.label}
     </Badge>
@@ -138,7 +138,7 @@ const getCurrentBlockStatus = (blocks: Block[]): { text: React.ReactNode; color:
       text: (
         <>
           <span className="text-[#f7f6f2]">{`${season} (Block ${active.blockNumber})`}</span>
-          <Badge variant="outline" className="text-xs font-['Montserrat'] ml-2 bg-green-500/20 text-green-500 border-green-500/30">Active</Badge>
+          <Badge variant="secondary" className="text-xs font-['Montserrat'] ml-2 bg-green-500/20 text-green-500 border-green-500/30">Active</Badge>
         </>
       ),
       color: "",
@@ -376,35 +376,35 @@ const formatPhaseSummary = (blocks: Block[], currentPhase?: Phase): React.ReactN
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {phaseInfo && (
-        <Badge variant="outline" className="text-xs font-['Montserrat'] bg-[#171716] text-[#979795] border-[#292928]">
+        <Badge variant="secondary" className="text-xs font-['Montserrat'] bg-[#171716] text-[#979795] border-[#292928]">
           {phaseInfo.trim().replace(/ •$/, '')}
         </Badge>
       )}
       {timeline && (
-        <Badge variant="outline" className="text-xs font-['Montserrat'] bg-[#171716] text-[#979795] border-[#292928]">
+        <Badge variant="secondary" className="text-xs font-['Montserrat'] bg-[#171716] text-[#979795] border-[#292928]">
           {timeline}
         </Badge>
       )}
-      <Badge variant="outline" className="text-xs font-['Montserrat'] bg-[#171716] text-[#979795] border-[#292928]">
+      <Badge variant="secondary" className="text-xs font-['Montserrat'] bg-[#171716] text-[#979795] border-[#292928]">
         {counts.total} blocks
       </Badge>
       {counts.complete > 0 && (
-        <Badge variant="outline" className="text-xs font-['Montserrat'] bg-[#171716] text-[#979795] border-[#292928]">
+        <Badge variant="secondary" className="text-xs font-['Montserrat'] bg-[#171716] text-[#979795] border-[#292928]">
           {counts.complete} complete
         </Badge>
       )}
       {counts.active > 0 && (
-        <Badge variant="outline" className="text-xs font-['Montserrat'] bg-green-500/20 text-green-400 border-green-500/30">
+        <Badge variant="secondary" className="text-xs font-['Montserrat'] bg-green-500/20 text-green-400 border-green-500/30">
           {counts.active} active
         </Badge>
       )}
       {counts.planned > 0 && (
-        <Badge variant="outline" className="text-xs font-['Montserrat'] bg-blue-500/20 text-blue-400 border-blue-500/30">
+        <Badge variant="secondary" className="text-xs font-['Montserrat'] bg-blue-500/20 text-blue-400 border-blue-500/30">
           {counts.planned} planned
         </Badge>
       )}
       {counts.draft > 0 && (
-        <Badge variant="outline" className="text-xs font-['Montserrat'] bg-[#171716] text-[#979795] border-[#292928]">
+        <Badge variant="secondary" className="text-xs font-['Montserrat'] bg-[#171716] text-[#979795] border-[#292928]">
           {counts.draft} draft
         </Badge>
       )}
@@ -650,7 +650,7 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
               No blocks for this athlete yet
             </p>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
@@ -686,7 +686,7 @@ export default function AthleteProgramCard({ athleteData, isExpanded, onToggleEx
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* Season Phase Badge */}
-                      <Badge variant="outline" className={cn("text-xs font-['Montserrat']", getSeasonBadgeStyle(block.season))}>
+                      <Badge variant="secondary" className={cn("text-xs font-['Montserrat']", getSeasonBadgeStyle(block.season))}>
                         {getSeasonDisplayText(block.season, block.subSeason)}
                       </Badge>
                       

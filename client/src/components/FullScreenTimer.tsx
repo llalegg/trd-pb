@@ -237,7 +237,7 @@ export default function FullScreenTimer({
         {/* Control Buttons */}
         <div className="flex items-center gap-4">
           <Button
-            variant="outline"
+            variant="secondary"
             size="lg"
             onClick={handleReset}
             className="bg-transparent border-white text-white hover:bg-white/10"
@@ -265,7 +265,7 @@ export default function FullScreenTimer({
           </Button>
           
           <Button
-            variant="outline"
+            variant="secondary"
             size="lg"
             onClick={handleStop}
             className="bg-transparent border-white text-white hover:bg-white/10"

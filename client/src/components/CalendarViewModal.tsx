@@ -143,7 +143,7 @@ export default function CalendarViewModal({ onClose, onDateSelect, selectedDate 
           {/* Month Navigation */}
           <div className="flex items-center justify-between">
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={handlePrevMonth}
             >
@@ -153,7 +153,7 @@ export default function CalendarViewModal({ onClose, onDateSelect, selectedDate 
               {format(currentMonth, "MMMM yyyy")}
             </h3>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={handleNextMonth}
             >

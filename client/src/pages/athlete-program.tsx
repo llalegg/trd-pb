@@ -309,7 +309,7 @@ export default function AthleteProgramPage() {
 										</div>
 										<p className="mt-2 text-sm text-muted-foreground">{alert.detail}</p>
 									</div>
-									<Button size="sm" variant="outline" className="text-xs" onClick={alert.action}>
+									<Button size="sm" variant="secondary" className="text-xs" onClick={alert.action}>
 										{alert.actionLabel}
 										<ArrowRight className="ml-1.5 h-3 w-3" />
 									</Button>

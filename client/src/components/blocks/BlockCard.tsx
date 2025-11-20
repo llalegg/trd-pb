@@ -141,7 +141,7 @@ export default function BlockCard({
           {blockTitle}
         </h3>
         <Badge
-          variant="outline"
+          variant="secondary"
           className={cn(
             "text-xs font-['Montserrat'] flex items-center gap-1",
             statusConfig.badgeClass
@@ -196,7 +196,7 @@ export default function BlockCard({
         {block.status === "active" && (
           <>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={onView}
               className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
@@ -205,7 +205,7 @@ export default function BlockCard({
               View Details
             </Button>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={onEdit}
               className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
@@ -215,7 +215,7 @@ export default function BlockCard({
             </Button>
             {onViewPerformance && (
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={onViewPerformance}
                 className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
@@ -230,7 +230,7 @@ export default function BlockCard({
         {block.status === "complete" && (
           <>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={onView}
               className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
@@ -240,7 +240,7 @@ export default function BlockCard({
             </Button>
             {onCopy && (
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={onCopy}
                 className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
@@ -256,7 +256,7 @@ export default function BlockCard({
         {block.status === "draft" && (
           <>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={onEdit}
               className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
@@ -266,7 +266,7 @@ export default function BlockCard({
             </Button>
             {onDelete && (
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={onDelete}
                 className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
