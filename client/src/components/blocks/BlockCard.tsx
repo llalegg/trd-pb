@@ -202,7 +202,7 @@ export default function BlockCard({
               className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
             >
               <Eye className="h-4 w-4 mr-1" />
-              View Details
+              View details
             </Button>
             <Button
               variant="secondary"
@@ -211,7 +211,7 @@ export default function BlockCard({
               className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
             >
               <Edit className="h-4 w-4 mr-1" />
-              Edit Block
+              Edit block
             </Button>
             {onViewPerformance && (
               <Button
@@ -220,7 +220,7 @@ export default function BlockCard({
                 onClick={onViewPerformance}
                 className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
               >
-                View Performance
+                View performance
               </Button>
             )}
           </>
@@ -236,7 +236,7 @@ export default function BlockCard({
               className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
             >
               <Eye className="h-4 w-4 mr-1" />
-              View Details
+              View details
             </Button>
             {onCopy && (
               <Button
@@ -246,7 +246,7 @@ export default function BlockCard({
                 className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
               >
                 <Copy className="h-4 w-4 mr-1" />
-                Copy to New Block
+                Copy to new block
               </Button>
             )}
           </>
@@ -262,7 +262,7 @@ export default function BlockCard({
               className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
             >
               <Edit className="h-4 w-4 mr-1" />
-              Edit Block
+              Edit block
             </Button>
             {onDelete && (
               <Button
@@ -272,7 +272,7 @@ export default function BlockCard({
                 className="h-9 px-3 text-xs font-['Montserrat'] border-[#292928] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1a1a19]"
               >
                 <Trash2 className="h-4 w-4 mr-1" />
-                Delete Draft
+                Delete draft
               </Button>
             )}
           </>

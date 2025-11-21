@@ -67,7 +67,7 @@ export default function AthleteInfoSidebar({ athlete, currentPhase, blocks, clas
         className
       )}
     >
-      <div className="px-4 pb-4 space-y-6">
+      <div className="px-4 pt-4 pb-4 space-y-6">
         {/* Athlete Header */}
         <div>
           <h2 className="text-base font-semibold text-[#f7f6f2] font-['Montserrat'] mb-1">

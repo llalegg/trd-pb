@@ -77,7 +77,7 @@ export default function EnterResultsModal({
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-lg">Enter Results</CardTitle>
+              <CardTitle className="text-lg">Enter results</CardTitle>
               <CardDescription>{exerciseName}</CardDescription>
             </div>
             <Button

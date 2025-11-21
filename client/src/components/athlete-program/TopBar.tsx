@@ -9,7 +9,6 @@ interface TopBarProps {
 	onBack: () => void;
 	phaseTitle?: string;
 	onOpenAthleteDetails?: () => void;
-	leftOffset?: number;
 	athleteDetailsOpen?: boolean;
 }
 
@@ -19,7 +18,6 @@ export default function TopBar({
 	onBack,
 	phaseTitle,
 	onOpenAthleteDetails,
-	leftOffset = 0,
 	athleteDetailsOpen = false,
 }: TopBarProps) {
 	const displayPhaseTitle = phaseTitle?.replace(/[()]/g, "").trim();
@@ -29,7 +27,7 @@ export default function TopBar({
 		? displayPhaseTitle?.slice(phasePrimaryMatch[0].length).trim()
 		: "";
 	return (
-		<div className="fixed top-0 right-0 z-50 border-b border-[#292928] bg-surface-base" style={{ left: leftOffset }}>
+		<div className="fixed top-0 left-0 right-0 z-50 border-b border-[#292928] bg-surface-base">
 			<div className="h-14 flex items-center px-4">
 				{/* Left: Back + Profile + Phase title */}
 				<div className="flex items-center gap-3">

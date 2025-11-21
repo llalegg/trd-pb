@@ -197,22 +197,23 @@ export default function ProgramPage() {
         onBack={() => setLocation(`/programs/${blockData.athlete.id}`)}
         phaseTitle="Phase 1 (25-26)"
         onOpenAthleteDetails={() => setDetailsOpen((prev) => !prev)}
-        leftOffset={detailsOpen ? detailsPanelWidth : 0}
         athleteDetailsOpen={detailsOpen}
       />
 
       {detailsOpen && (
         <div
-          className="fixed inset-y-0 left-0 z-40 bg-[#0d0d0c]"
-          style={{ width: detailsPanelWidth }}
+          className="fixed left-0 z-40 bg-[#0d0d0c] border-r border-[#292928]"
+          style={{ 
+            width: detailsPanelWidth,
+            top: '56px', // Below TopBar (h-14 = 56px)
+            bottom: 0
+          }}
         >
-          <div className="pt-14 h-full">
-            <AthleteInfoSidebar
-              athlete={blockData.athlete}
-              currentPhase={undefined}
-              blocks={allBlocksWithAthlete.filter(item => item.athleteId === blockData.athleteId).map(item => item.block)}
-            />
-          </div>
+          <AthleteInfoSidebar
+            athlete={blockData.athlete}
+            currentPhase={undefined}
+            blocks={allBlocksWithAthlete.filter(item => item.athleteId === blockData.athleteId).map(item => item.block)}
+          />
         </div>
       )}
 
