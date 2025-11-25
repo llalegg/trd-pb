@@ -15,8 +15,8 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-// Re-export setupVite from separate file to avoid bundling Vite code
-export { setupVite } from "./vite-setup";
+// setupVite is not exported from this file to prevent bundling
+// Import it directly from vite-setup.ts when needed
 
 export function serveStatic(app: Express) {
   const distPath = path.resolve(import.meta.dirname, "public");
