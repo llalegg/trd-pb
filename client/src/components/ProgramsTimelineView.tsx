@@ -21,37 +21,58 @@ export default function ProgramsTimelineView({ athletes }: ProgramsTimelineViewP
   const days = eachDayOfInterval({ start: startDate, end: endDate });
   
   const getBlockColor = (block: Block): string => {
-    if (block.status === "active") return "bg-green-500/20 border-green-500/30";
-    if (block.status === "complete") return "bg-[#979795]/10 border-[#292928]";
-    if (block.status === "draft") return "bg-amber-500/20 border-amber-500/30";
+    // All regular block days use uniform blue color
     return "bg-blue-500/20 border-blue-500/30";
   };
 
   return (
     <div className="w-full overflow-x-auto">
       <div className="min-w-[1200px] bg-[#121210] rounded-2xl overflow-hidden">
+        {/* Legend */}
+        <div className="border-b border-[#292928] p-4 bg-[#171716]">
+          <div className="flex items-center gap-6 text-xs font-['Montserrat']">
+            <span className="text-[#bcbbb7]">Legend:</span>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-blue-500/20 border border-blue-500/30"></div>
+              <span className="text-[#979795]">Regular block day</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-[#1C1C1B] border border-[#292928]"></div>
+              <span className="text-[#979795]">Today</span>
+            </div>
+          </div>
+        </div>
         {/* Header with dates */}
         <div className="flex border-b border-[#292928]">
           <div className="w-[300px] min-w-[300px] flex-shrink-0 border-r border-[#292928] p-3">
             <span className="text-[#bcbbb7] text-xs font-medium font-['Montserrat']">Athlete</span>
           </div>
           <div className="flex-1 flex">
-            {days.map((day, idx) => (
-              <div
-                key={idx}
-                className={cn(
-                  "flex-1 min-w-[40px] p-2 text-center border-r border-[#292928] last:border-r-0",
-                  format(day, "d") === format(today, "d") && "bg-[#1C1C1B]"
-                )}
-              >
-                <div className="text-[#bcbbb7] text-xs font-medium font-['Montserrat']">
-                  {format(day, "d")}
+            {days.map((day, idx) => {
+              const isToday = format(day, "yyyy-MM-dd") === format(today, "yyyy-MM-dd");
+              return (
+                <div
+                  key={idx}
+                  className={cn(
+                    "flex-1 min-w-[40px] p-2 text-center border-r border-[#292928] last:border-r-0",
+                    isToday && "bg-[#1C1C1B] ring-2 ring-[#292928]"
+                  )}
+                >
+                  <div className={cn(
+                    "text-xs font-medium font-['Montserrat']",
+                    isToday ? "text-[#f7f6f2]" : "text-[#bcbbb7]"
+                  )}>
+                    {format(day, "d")}
+                  </div>
+                  <div className={cn(
+                    "text-[10px] font-['Montserrat']",
+                    isToday ? "text-[#f7f6f2]" : "text-[#979795]"
+                  )}>
+                    {format(day, "EEE")}
+                  </div>
                 </div>
-                <div className="text-[#979795] text-[10px] font-['Montserrat']">
-                  {format(day, "EEE")}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -86,13 +107,14 @@ export default function ProgramsTimelineView({ athletes }: ProgramsTimelineViewP
                       const blockEnd = new Date(block.endDate);
                       return isWithinInterval(day, { start: blockStart, end: blockEnd });
                     });
+                    const isToday = format(day, "yyyy-MM-dd") === format(today, "yyyy-MM-dd");
                     
                     return (
                       <div
                         key={dayIdx}
                         className={cn(
                           "flex-1 min-w-[40px] border-r border-[#292928] last:border-r-0 relative",
-                          format(day, "d") === format(today, "d") && "bg-[#1C1C1B]/50"
+                          isToday && "bg-[#1C1C1B] ring-2 ring-[#292928]"
                         )}
                       >
                         {blocksOnThisDay.map((block, blockIdx) => {

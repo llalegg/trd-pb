@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Activity, AlertCircle, Circle, ChevronRight, ChevronDown, List, Calendar, MoreVertical } from "lucide-react";
+import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Activity, AlertCircle, Circle, ChevronRight, ChevronDown, List, Calendar, MoreVertical, CheckCircle2, Hammer, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -69,23 +69,22 @@ const URGENCY_OPTIONS = [
 // Helper Functions
 const getStatusIcon = (status?: "injured" | "rehabbing" | "lingering-issues" | null) => {
   if (!status) return null;
-  const bgClass = status === "injured" ? "bg-red-500/10" : status === "rehabbing" ? "bg-blue-500/10" : "bg-amber-500/10";
   switch (status) {
     case "injured":
       return (
-        <div className={cn("p-1.5 rounded-full", bgClass)}>
+        <div className="p-1.5 rounded-full">
           <AlertTriangle className="h-5 w-5 text-red-500" />
         </div>
       );
     case "rehabbing":
       return (
-        <div className={cn("p-1.5 rounded-full", bgClass)}>
+        <div className="p-1.5 rounded-full">
           <Activity className="h-5 w-5 text-blue-500" />
         </div>
       );
     case "lingering-issues":
       return (
-        <div className={cn("p-1.5 rounded-full", bgClass)}>
+        <div className="p-1.5 rounded-full">
           <AlertCircle className="h-5 w-5 text-amber-500" />
         </div>
       );
@@ -123,7 +122,7 @@ const getAvatarBorderClass = (status?: "injured" | "rehabbing" | "lingering-issu
 
 const getSeasonBadgeStyle = (season?: string | null): string => {
   const s = (season || "").toLowerCase();
-  if (s.includes("in") && s.includes("season")) return "bg-green-500/20 text-green-400 border-green-500/30";
+  if (s.includes("in") && s.includes("season")) return "bg-[#292928] text-[#f7f6f2] border-[#292928]";
   if (s.includes("pre")) return "bg-amber-500/20 text-amber-400 border-amber-500/30";
   if (s.includes("post")) return "bg-purple-500/20 text-purple-400 border-purple-500/30";
   if (s.includes("off")) return "bg-[#171716] text-[#979795] border-[#292928]";
@@ -139,7 +138,7 @@ const getSeasonDisplayText = (season?: string | null, subSeason?: string | null)
 
 const getBlockStatusBadge = (status: Block["status"]) => {
   const variants: Record<Exclude<Block["status"], undefined>, { label: string; className: string }> = {
-    active: { label: "Active", className: "bg-green-500/20 text-green-400 border-green-500/30" },
+    active: { label: "Active", className: "bg-[#292928] text-[#f7f6f2] border-[#292928]" },
     complete: { label: "Complete", className: "bg-[#979795]/5 text-[#979795] border-transparent" },
     draft: { label: "Draft", className: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
     planned: { label: "Planned", className: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
@@ -336,7 +335,7 @@ const getProgramStatus = (blocks: Block[]): { status: "active" | "pending" | "dr
   if (currentBlock.status === "active") {
     return {
       status: "active",
-      badge: <Badge variant="outline" className="text-xs font-['Montserrat'] bg-green-500/20 text-green-400 border-green-500/30">Active</Badge>
+      badge: <Badge variant="outline" className="text-xs font-['Montserrat'] bg-[#292928] text-[#f7f6f2] border-[#292928]">Active</Badge>
     };
   } else if (currentBlock.status === "draft") {
     return {
@@ -1059,7 +1058,7 @@ export default function Programs() {
                     </div>
 
                     {/* Column 3: Program */}
-                    <div className="flex items-center pl-4 pr-0 w-[180px] min-w-[180px]">
+                    <div className="flex items-center pl-4 pr-0 w-[220px] min-w-[220px]">
                       <span className="whitespace-nowrap overflow-hidden text-ellipsis">Program</span>
                     </div>
 
@@ -1274,31 +1273,81 @@ export default function Programs() {
                                 })()}
                               </div>
                             </div>
-                            {/* Authorize button - left of status icon */}
-                            {(() => {
-                              const signOff = getSignOffStatus(athleteData.blocks);
-                              if (signOff.hasPending) {
+                            {/* Action buttons - aligned right */}
+                            <div className="flex-shrink-0 ml-auto flex items-center justify-end gap-1 w-[100px] min-w-[100px]" onClick={(e) => e.stopPropagation()}>
+                              {(() => {
+                                const signOff = getSignOffStatus(athleteData.blocks);
                                 return (
-                                  <div className="flex-shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
-                                    <Button
-                                      variant="secondary"
-                                      size="sm"
-                                      className="h-7 px-2 text-xs bg-[#292928] text-[#979795] hover:bg-[#3a3a39] border-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // Handle authorize
-                                      }}
-                                    >
-                                      Authorize
-                                    </Button>
-                                  </div>
+                                  <>
+                                    {signOff.hasPending && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="default"
+                                              size="sm"
+                                              className="h-8 w-8 p-0"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                // Handle authorize
+                                              }}
+                                            >
+                                              <CheckCircle2 className="h-4 w-4" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Authorize this block</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 hover:bg-[#292928]"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              // Handle build
+                                            }}
+                                          >
+                                            <Hammer className="h-4 w-4 text-[#979795]" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>A new program [a single block or series of blocks] that needs to be prepared</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 w-8 p-0 hover:bg-[#292928]"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              // Handle review
+                                            }}
+                                          >
+                                            <Eye className="h-4 w-4 text-[#979795]" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Changes that an edit-enabled Collaborator made</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </>
                                 );
-                              }
-                              return null;
-                            })()}
-                            {/* Status column moved here */}
-                            {statusIcon && (
-                              <div className="flex-shrink-0 ml-2">
+                              })()}
+                            </div>
+                            {/* Status column moved here - right of button container - always reserve space */}
+                            <div className="flex-shrink-0 ml-2 w-5 min-w-[20px]">
+                              {statusIcon && (
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1309,8 +1358,8 @@ export default function Programs() {
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -1327,7 +1376,7 @@ export default function Programs() {
                               return (
                                 <Badge variant="outline" className={cn(
                                   "text-xs font-['Montserrat']",
-                                  season.includes("In-Season") ? "bg-green-500/20 text-green-400 border-green-500/30" :
+                                  season.includes("In-Season") ? "bg-[#292928] text-[#f7f6f2] border-[#292928]" :
                                   "bg-[#171716] text-[#979795] border-[#292928]"
                                 )}>
                                   {displayText}
@@ -1337,7 +1386,7 @@ export default function Programs() {
                           </div>
 
                           {/* Column 3: Program */}
-                          <div className="flex items-center pl-4 pr-0 w-[180px] min-w-[180px]">
+                          <div className="flex items-center pl-4 pr-0 w-[220px] min-w-[220px] gap-1">
                             {(() => {
                               const currentBlock = getCurrentBlock(athleteData.blocks);
                               if (!currentBlock || !athleteData.currentPhase) return <span className="text-[#979795] text-sm">–</span>;
@@ -1349,9 +1398,20 @@ export default function Programs() {
                               const day = currentBlock.currentDay?.day || 1;
                               
                               return (
-                                <span className="text-[#979795] text-sm font-mono">
-                                  P{phaseNum} | B{blockNum}({totalBlocksInPhase}), W{week} / D{day}
-                                </span>
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  <Badge variant="outline" className="text-xs font-mono text-[#979795] bg-[#171716] border-[#292928]">
+                                    P{phaseNum}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs font-mono text-[#979795] bg-[#171716] border-[#292928]">
+                                    B{blockNum}({totalBlocksInPhase})
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs font-mono text-[#979795] bg-[#171716] border-[#292928]">
+                                    W{week}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs font-mono text-[#979795] bg-[#171716] border-[#292928]">
+                                    D{day}
+                                  </Badge>
+                                </div>
                               );
                             })()}
                           </div>
@@ -1368,7 +1428,7 @@ export default function Programs() {
                                 ? "bg-red-500/20 text-red-400 border-red-500/30"
                                 : daysInfo.days <= 7
                                 ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                                : "bg-green-500/20 text-green-400 border-green-500/30";
+                                : "bg-[#292928] text-[#f7f6f2] border-[#292928]";
                               return (
                                 <Badge variant="outline" className={cn("text-xs font-['Montserrat']", badgeColor)}>
                                   {daysInfo.text}
@@ -1392,9 +1452,9 @@ export default function Programs() {
                           </div>
 
                           {/* Column 6: Today's session */}
-                          <div className="flex items-center pl-4 pr-0 w-[180px] min-w-[180px]">
+                          <div className="flex items-center pl-4 pr-0 w-[180px] min-w-[180px] gap-1">
                             {(() => {
-                              const TodaysSessionTextCell = () => {
+                              const TodaysSessionIconCell = () => {
                                 const [sessionData, setSessionData] = useState<{ throwing: string | null; lifting: string | null; throwingIntensity?: string; liftingIntensity?: string } | null>(null);
                                 useEffect(() => {
                                   getTodaysSession(athleteData.athlete.id).then(setSessionData);
@@ -1402,46 +1462,53 @@ export default function Programs() {
                                 
                                 if (!sessionData) return <span className="text-[#979795] text-sm">–</span>;
                                 
-                                const parts: string[] = [];
+                                const parts: React.ReactNode[] = [];
                                 
-                                // Add throwing types
+                                // Add throwing icon
                                 if (sessionData.throwing) {
-                                  const throwingType = sessionData.throwing === "drill-set" ? "Throwing - Drill Set" : 
-                                                     sessionData.throwing === "competitive" ? "Throwing - Competitive" : 
-                                                     sessionData.throwing;
-                                  parts.push(throwingType);
+                                  parts.push(
+                                    <TooltipProvider key="throwing">
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="flex items-center cursor-help">
+                                            <Target className="h-4 w-4 text-[#979795]" />
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Throwing {sessionData.throwingIntensity ? `(${sessionData.throwingIntensity})` : ''}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  );
                                 }
                                 
-                                // Add lifting
+                                // Add lifting icon
                                 if (sessionData.lifting) {
-                                  parts.push(sessionData.lifting);
+                                  parts.push(
+                                    <TooltipProvider key="lifting">
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="flex items-center cursor-help">
+                                            <Dumbbell className="h-4 w-4 text-[#979795]" />
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Lifting {sessionData.liftingIntensity ? `(${sessionData.liftingIntensity})` : ''}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  );
                                 }
                                 
                                 if (parts.length === 0) return <span className="text-[#979795] text-sm">–</span>;
                                 
-                                // Format: [Throwing - Drill Set] / [Throwing - Competitive] | [Lifting]
-                                const throwingParts = parts.filter(p => p.includes("Throwing"));
-                                const liftingParts = parts.filter(p => !p.includes("Throwing"));
-                                
-                                let displayText = "";
-                                if (throwingParts.length > 0) {
-                                  displayText = throwingParts.join(" / ");
-                                }
-                                if (liftingParts.length > 0) {
-                                  if (displayText) {
-                                    displayText += " | " + liftingParts.join(" | ");
-                                  } else {
-                                    displayText = liftingParts.join(" | ");
-                                  }
-                                }
-                                
                                 return (
-                                  <span className="text-[#979795] text-sm">
-                                    {displayText}
-                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    {parts}
+                                  </div>
                                 );
                               };
-                              return <TodaysSessionTextCell />;
+                              return <TodaysSessionIconCell />;
                             })()}
                           </div>
 
@@ -1465,11 +1532,15 @@ export default function Programs() {
                                 return <span className="text-[#979795] text-sm">–</span>;
                               }
                               const compliance = currentBlock.compliance;
-                              const color = compliance >= 90 ? "text-green-400" : compliance >= 75 ? "text-yellow-400" : "text-red-400";
+                              const badgeColor = compliance >= 90 
+                                ? "bg-[#292928] text-[#f7f6f2] border-[#292928]"
+                                : compliance >= 75 
+                                ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                : "bg-red-500/20 text-red-400 border-red-500/30";
                               return (
-                                <span className={`text-sm font-['Montserrat'] ${color}`}>
+                                <Badge variant="outline" className={cn("text-xs font-['Montserrat']", badgeColor)}>
                                   {compliance}%
-                                </span>
+                                </Badge>
                               );
                             })()}
                           </div>
@@ -1483,14 +1554,14 @@ export default function Programs() {
                               }
                               const trend = currentBlock.trend;
                               const trendConfig = {
-                                up: { icon: "↑", color: "text-green-400", label: "Up" },
-                                down: { icon: "↓", color: "text-red-400", label: "Down" },
-                                stable: { icon: "→", color: "text-[#979795]", label: "Stable" },
+                                up: { icon: "↑", color: "text-[#f7f6f2]" },
+                                down: { icon: "↓", color: "text-red-400" },
+                                stable: { icon: "→", color: "text-[#979795]" },
                               };
                               const config = trendConfig[trend] || trendConfig.stable;
                               return (
-                                <span className={`text-sm font-['Montserrat'] ${config.color}`}>
-                                  {config.icon} {config.label}
+                                <span className={`text-lg font-['Montserrat'] ${config.color}`}>
+                                  {config.icon}
                                 </span>
                               );
                             })()}
@@ -1535,25 +1606,79 @@ export default function Programs() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="bg-[#171716] border-[#292928] z-[100]">
-                                <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                                  Preview
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                                  Add note
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                                  Edit
-                                </DropdownMenuItem>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                        Preview
+                                      </DropdownMenuItem>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>A quick snapshot into current block</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                        Add note
+                                      </DropdownMenuItem>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>A quick reference note that will be tagged</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                        Edit
+                                      </DropdownMenuItem>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>A quick edit function for current block</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                                 <DropdownMenuSeparator className="bg-[#292928]" />
-                                <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                                  Share
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                                  Print
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                                  Progress Report
-                                </DropdownMenuItem>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                        Share
+                                      </DropdownMenuItem>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>An embedded direct message in chat</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                        Print
+                                      </DropdownMenuItem>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>A quick print function</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                        Progress Report
+                                      </DropdownMenuItem>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>A pop-up to create/view a report</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
