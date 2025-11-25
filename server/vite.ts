@@ -1,13 +1,9 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config";
-import { nanoid } from "nanoid";
 
-const viteLogger = createLogger();
-
+// log function doesn't depend on Vite, so it can be exported directly
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -19,7 +15,17 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
+// setupVite uses dynamic import to avoid loading Vite/Rollup in production
 export async function setupVite(app: Express, server: Server) {
+  // Dynamic import only happens when this function is called (development mode)
+  const { createServer: createViteServer, createLogger } = await import("vite");
+  // Dynamically import vite config to avoid bundling Vite imports in production
+  const viteConfigModule = await import("../vite.config");
+  const viteConfig = viteConfigModule.default;
+  const { nanoid } = await import("nanoid");
+
+  const viteLogger = createLogger();
+
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
