@@ -91,6 +91,3 @@ app.use((req, res, next) => {
     log("Running on Vercel - app exported for serverless function");
   }
 })();
-
-// Export app for Vercel serverless function wrapper
-export { app };
