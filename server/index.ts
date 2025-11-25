@@ -56,9 +56,15 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
-    // Dynamic import to avoid loading Vite/Rollup in production builds
-    const { setupVite } = await import("./vite");
-    await setupVite(app, server);
+    try {
+      // Dynamic import to avoid loading Vite/Rollup in production builds
+      const { setupVite } = await import("./vite");
+      await setupVite(app, server);
+    } catch (error) {
+      // If Vite can't be loaded (e.g., in production), fall back to static serving
+      console.warn("Failed to load Vite, falling back to static serving:", error);
+      serveStatic(app);
+    }
   } else {
     serveStatic(app);
   }
