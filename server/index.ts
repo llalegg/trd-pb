@@ -57,10 +57,10 @@ app.use((req, res, next) => {
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     try {
-      // Dynamic import to avoid loading Vite/Rollup in production builds
-      // Import from vite-setup.ts directly to avoid bundling vite.ts module
-      const { setupVite } = await import("./vite-setup");
-      await setupVite(app, server);
+      // Use string-based dynamic import to prevent esbuild from analyzing/bundling
+      // This ensures vite-setup.ts is not initialized until actually imported
+      const viteSetupModule = await import(/* @vite-ignore */ "./vite-setup.js");
+      await viteSetupModule.setupVite(app, server);
     } catch (error) {
       // If Vite can't be loaded (e.g., in production), fall back to static serving
       console.warn("Failed to load Vite, falling back to static serving:", error);
