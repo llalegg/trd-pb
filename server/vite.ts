@@ -19,9 +19,7 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   // Dynamic import only happens when this function is called (development mode)
   const { createServer: createViteServer, createLogger } = await import("vite");
-  // Dynamically import vite config to avoid bundling Vite imports in production
-  const viteConfigModule = await import("../vite.config");
-  const viteConfig = viteConfigModule.default;
+  const { default: react } = await import("@vitejs/plugin-react");
   const { nanoid } = await import("nanoid");
 
   const viteLogger = createLogger();
@@ -30,6 +28,46 @@ export async function setupVite(app: Express, server: Server) {
     middlewareMode: true,
     hmr: { server },
     allowedHosts: true as const,
+  };
+
+  // Inline Vite configuration to avoid importing vite.config.ts
+  // which would cause Rollup to be loaded at module evaluation time
+  const viteConfig = {
+    plugins: [
+      react(),
+      ...(process.env.NODE_ENV !== "production" &&
+      process.env.REPL_ID !== undefined
+        ? [
+            await import("@replit/vite-plugin-runtime-error-modal").then((m) =>
+              m.default(),
+            ),
+            await import("@replit/vite-plugin-cartographer").then((m) =>
+              m.cartographer(),
+            ),
+            await import("@replit/vite-plugin-dev-banner").then((m) =>
+              m.devBanner(),
+            ),
+          ]
+        : []),
+    ],
+    resolve: {
+      alias: {
+        "@": path.resolve(import.meta.dirname, "..", "client", "src"),
+        "@shared": path.resolve(import.meta.dirname, "..", "shared"),
+        "@assets": path.resolve(import.meta.dirname, "..", "attached_assets"),
+      },
+    },
+    root: path.resolve(import.meta.dirname, "..", "client"),
+    build: {
+      outDir: path.resolve(import.meta.dirname, "..", "dist", "public"),
+      emptyOutDir: true,
+    },
+    server: {
+      fs: {
+        strict: true,
+        deny: ["**/.*"],
+      },
+    },
   };
 
   const vite = await createViteServer({
