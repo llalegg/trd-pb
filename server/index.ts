@@ -40,13 +40,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize the app and export it for Vercel
-let initializedApp = app;
-let initializedServer: any = null;
-
 (async () => {
   const server = await registerRoutes(app);
-  initializedServer = server;
 
   interface ErrorWithStatus extends Error {
     status?: number;
