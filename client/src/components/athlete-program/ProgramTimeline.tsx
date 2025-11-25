@@ -24,6 +24,24 @@ const getRoutineLetter = (type: string): string => {
   return "";
 };
 
+// Get tooltip text for routine type letters
+const getRoutineTooltip = (letter: string): string => {
+  switch (letter) {
+    case "M":
+      return "Movement";
+    case "T":
+      return "Throwing";
+    case "H":
+      return "Heavy / Strength & Conditioning";
+    case "S":
+      return "Speed";
+    case "R":
+      return "Recovery";
+    default:
+      return "";
+  }
+};
+
 // Get routine intensity color
 const getRoutineIntensityColor = (routine: any): string => {
   if (routine.intensity === "High Intensity" || routine.intensity === "Heavy") {
@@ -36,6 +54,44 @@ const getRoutineIntensityColor = (routine: any): string => {
     return "bg-green-300";
   }
   return "bg-blue-400";
+};
+
+// Mock special events (same for all athletes, only for this view)
+const getMockSpecialEvents = (): Array<{ date: Date; label: string; type: string }> => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  return [
+    {
+      date: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000), // 3 days from today
+      label: "Game vs. Red Sox",
+      type: "game"
+    },
+    {
+      date: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days from today
+      label: "Movement Assessment",
+      type: "assessment"
+    },
+    {
+      date: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000), // 14 days from today
+      label: "Game vs. Yankees",
+      type: "game"
+    },
+    {
+      date: new Date(today.getTime() + 21 * 24 * 60 * 60 * 1000), // 21 days from today
+      label: "Velocity Testing",
+      type: "assessment"
+    },
+    {
+      date: new Date(today.getTime() + 28 * 24 * 60 * 60 * 1000), // 28 days from today
+      label: "Game vs. Blue Jays",
+      type: "game"
+    },
+  ].map(event => {
+    const date = new Date(event.date);
+    date.setHours(0, 0, 0, 0);
+    return { ...event, date };
+  });
 };
 
 export default function ProgramTimeline({
@@ -51,6 +107,13 @@ export default function ProgramTimeline({
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
+
+  // Combine keyEvents with mock special events
+  const mockEvents = useMemo(() => getMockSpecialEvents(), []);
+  const allEvents = useMemo(() => {
+    const combined = [...keyEvents.map(e => ({ ...e, type: "other" })), ...mockEvents];
+    return combined.sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [keyEvents, mockEvents]);
 
   // Calculate date range from blocks
   const dateRange = useMemo(() => {
@@ -111,11 +174,12 @@ export default function ProgramTimeline({
     return weekGroups;
   }, [allDays]);
 
-  // Get week number for a day
-  const getWeekNumber = (day: Date): number | null => {
+  // Get week number for a day (calculated per block)
+  const getWeekNumber = (day: Date, block: Block | null): number | null => {
+    if (!block) return null;
+    const blockStart = startOfWeek(new Date(block.startDate), { weekStartsOn: 1 });
     const weekStart = startOfWeek(day, { weekStartsOn: 1 });
-    const programStart = startOfWeek(dateRange.start, { weekStartsOn: 1 });
-    const diffInMs = weekStart.getTime() - programStart.getTime();
+    const diffInMs = weekStart.getTime() - blockStart.getTime();
     const diffInWeeks = Math.floor(diffInMs / (7 * 24 * 60 * 60 * 1000));
     return diffInWeeks >= 0 ? diffInWeeks + 1 : null;
   };
@@ -218,11 +282,11 @@ export default function ProgramTimeline({
         <div className="relative pt-12">
           <div className="flex gap-0 min-w-max">
             {weeks.map((weekDays, weekIndex) => {
-              const weekNumber = getWeekNumber(weekDays[0]);
+              const currentWeekBlock = getBlockForDay(weekDays[0]);
+              const weekNumber = getWeekNumber(weekDays[0], currentWeekBlock);
               const isFirstWeek = weekIndex === 0;
               const prevWeek = weekIndex > 0 ? weeks[weekIndex - 1] : null;
               const prevWeekBlock = prevWeek ? getBlockForDay(prevWeek[0]) : null;
-              const currentWeekBlock = getBlockForDay(weekDays[0]);
               const showBlockTransition = prevWeekBlock && currentWeekBlock && prevWeekBlock.id !== currentWeekBlock.id;
 
               return (
@@ -237,7 +301,7 @@ export default function ProgramTimeline({
                     const isSelected = selectedDay && isSameDay(day, selectedDay);
                     const isToday = isSameDay(day, today);
                     const sessionData = getDaySessionData(day);
-                    const hasKeyEvent = keyEvents.some((event) => isSameDay(day, event.date));
+                    const hasKeyEvent = allEvents.some((event) => isSameDay(day, event.date));
                     const dayBlock = getBlockForDay(day);
                     const isWeekStart = dayIndex === 0;
                     const isBlockStart = isBlockTransition(day);
@@ -287,6 +351,7 @@ export default function ProgramTimeline({
                             {sessionData.routines.slice(0, 3).map((routine, routineIdx) => {
                               const letter = getRoutineLetter(routine.type);
                               const color = getRoutineIntensityColor(routine);
+                              const tooltipText = letter ? `${getRoutineTooltip(letter)}: ${routine.name}` : routine.name;
                               return (
                                 <div
                                   key={routineIdx}
@@ -294,7 +359,7 @@ export default function ProgramTimeline({
                                     "h-4 rounded text-[10px] flex items-center justify-center text-black font-semibold",
                                     color
                                   )}
-                                  title={routine.name}
+                                  title={tooltipText}
                                 >
                                   {letter}
                                 </div>
@@ -323,7 +388,7 @@ export default function ProgramTimeline({
 
                           {/* Key Event Star */}
                           {hasKeyEvent && (
-                            <div className="absolute top-1 right-1">
+                            <div className="absolute bottom-1 right-1">
                               <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
                             </div>
                           )}
@@ -349,19 +414,42 @@ export default function ProgramTimeline({
           {showLegend ? 'Hide' : 'Show'} Legend
         </Button>
         {showLegend && (
-          <div className="flex items-center gap-4 text-xs text-[#979795] font-['Montserrat']">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-[#292928] rounded" />
-              <span>Block 1 (expired)</span>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 text-xs text-[#979795] font-['Montserrat']">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-[#292928] rounded" />
+                <span>Block 1 (expired)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-blue-500 rounded" />
+                <span>Block 2 (current)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-blue-400 rounded" />
+                <span>Block 3 (upcoming)</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-500 rounded" />
-              <span>Block 2 (current)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-400 rounded" />
-              <span>Block 3 (upcoming)</span>
-            </div>
+            
+            {/* Special Events List */}
+            {allEvents.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-[#f7f6f2] font-['Montserrat'] uppercase tracking-wide">
+                  Special Events
+                </h4>
+                <div className="space-y-1.5">
+                  {allEvents.map((event, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 text-xs text-[#979795] font-['Montserrat']"
+                    >
+                      <Star className="h-3 w-3 text-yellow-400 fill-yellow-400 flex-shrink-0" />
+                      <span className="text-[#f7f6f2]">{event.label}</span>
+                      <span className="ml-auto">{format(event.date, "MMM d")}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
