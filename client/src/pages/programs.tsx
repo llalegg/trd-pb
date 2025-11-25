@@ -1,13 +1,15 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Activity, AlertCircle, Circle, ChevronRight, ChevronDown } from "lucide-react";
+import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Activity, AlertCircle, Circle, ChevronRight, ChevronDown, List, Calendar, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -21,12 +23,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type AthleteWithPhase, type Block } from "@shared/schema";
+import ProgramsTimelineView from "@/components/ProgramsTimelineView";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow, differenceInDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
+import { Target, Dumbbell } from "lucide-react";
 
-type TabView = "all" | "pending" | "current" | "upcoming";
+type TabView = "all" | "open" | "pending" | "upcoming";
 type SortField = "athleteName" | "team" | "subSeasonStatus" | "blockProgress" | "programStatus" | "lastEntryDay" | "lastModificationDay";
 type SortDirection = "asc" | "desc";
 
@@ -376,6 +381,114 @@ const getTaskCount = (athleteId: string): number => {
   return mockCounts[athleteId] || 0;
 };
 
+// Get program position in "P1 B3(4) W2 D2" format
+const getProgramPosition = (blocks: Block[], currentPhase?: { phaseNumber: number }): string => {
+  const currentBlock = getCurrentBlock(blocks);
+  if (!currentBlock || !currentPhase) return "–";
+  
+  const totalBlocksInPhase = blocks.length;
+  const phaseNum = currentPhase.phaseNumber;
+  const blockNum = currentBlock.blockNumber;
+  const week = currentBlock.currentDay?.week || 1;
+  const day = currentBlock.currentDay?.day || 1;
+  
+  return `P${phaseNum} B${blockNum}(${totalBlocksInPhase}) W${week} D${day}`;
+};
+
+// Get today's session data (throwing/lifting with intensity)
+const getTodaysSession = async (athleteId: string): Promise<{ throwing: string | null; lifting: string | null; throwingIntensity?: string; liftingIntensity?: string }> => {
+  try {
+    const response = await fetch(`/api/athletes/${athleteId}/today-session`);
+    if (!response.ok) return { throwing: null, lifting: null };
+    const data = await response.json();
+    return {
+      throwing: data.throwing ? data.throwing.type : null,
+      lifting: data.lifting ? data.lifting.type : null,
+      throwingIntensity: data.throwing?.intensity,
+      liftingIntensity: data.lifting?.intensity,
+    };
+  } catch {
+    return { throwing: null, lifting: null };
+  }
+};
+
+// Get days until block end with color coding
+const getDaysUntilBlockEnd = (blocks: Block[]): { days: number | null; text: string; colorClass: string } => {
+  const progress = getBlockProgress(blocks);
+  if (progress.daysRemaining === null) {
+    return { days: null, text: "–", colorClass: "text-[#979795]" };
+  }
+  
+  const days = progress.daysRemaining;
+  let colorClass = "text-[#979795]"; // default (good)
+  
+  if (days <= 0) {
+    colorClass = "text-red-500"; // urgent (light red)
+  } else if (days <= 3) {
+    colorClass = "text-red-400"; // urgent (light red)
+  } else if (days <= 7) {
+    colorClass = "text-yellow-500"; // warning (yellow)
+  } else if (days <= 14) {
+    colorClass = "text-gray-400"; // warning (gray)
+  }
+  
+  return {
+    days,
+    text: days === 1 ? "1 day" : `${days} days`,
+    colorClass,
+  };
+};
+
+// Get collaborators for an athlete
+const getCollaborators = async (athleteId: string): Promise<Array<{ id: string; userId: string; permissionLevel: string }>> => {
+  try {
+    const response = await fetch(`/api/athletes/${athleteId}/collaborators`);
+    if (!response.ok) {
+      // Return mock data for now - at least 1-2 collaborators per athlete
+      const mockUsers = ["Coach", "Trainer", "Physio", "Manager"];
+      const mockLevels = ["read", "write", "admin"];
+      const count = Math.floor(Math.random() * 2) + 1; // 1-2 collaborators
+      return Array.from({ length: count }, (_, i) => ({
+        id: `${athleteId}-collab-${i}`,
+        userId: mockUsers[Math.floor(Math.random() * mockUsers.length)],
+        permissionLevel: mockLevels[Math.floor(Math.random() * mockLevels.length)],
+      }));
+    }
+    const data = await response.json();
+    // If empty, return mock data
+    if (data.length === 0) {
+      const mockUsers = ["Coach", "Trainer", "Physio", "Manager"];
+      const mockLevels = ["read", "write", "admin"];
+      const count = Math.floor(Math.random() * 2) + 1;
+      return Array.from({ length: count }, (_, i) => ({
+        id: `${athleteId}-collab-${i}`,
+        userId: mockUsers[Math.floor(Math.random() * mockUsers.length)],
+        permissionLevel: mockLevels[Math.floor(Math.random() * mockLevels.length)],
+      }));
+    }
+    return data;
+  } catch {
+    // Return mock data on error
+    const mockUsers = ["Coach", "Trainer", "Physio", "Manager"];
+    const mockLevels = ["read", "write", "admin"];
+    const count = Math.floor(Math.random() * 2) + 1;
+    return Array.from({ length: count }, (_, i) => ({
+      id: `${athleteId}-collab-${i}`,
+      userId: mockUsers[Math.floor(Math.random() * mockUsers.length)],
+      permissionLevel: mockLevels[Math.floor(Math.random() * mockLevels.length)],
+    }));
+  }
+};
+
+// Get sign-off status
+const getSignOffStatus = (blocks: Block[]): { hasPending: boolean; pendingBlockId?: string } => {
+  const pendingBlock = blocks.find(b => b.signOffStatus === "pending");
+  return {
+    hasPending: !!pendingBlock,
+    pendingBlockId: pendingBlock?.id,
+  };
+};
+
 // Check if item needs attention (actionable)
 const needsAttention = (blocks: Block[], athleteId: string, tabView: TabView): boolean => {
   if (tabView === "pending") {
@@ -405,6 +518,7 @@ const needsAttention = (blocks: Block[], athleteId: string, tabView: TabView): b
 export default function Programs() {
   const [, setLocation] = useLocation();
   const [tabView, setTabView] = useState<TabView>("all");
+  const [viewMode, setViewMode] = useState<"list" | "timeline">("list");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>("athleteName");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -471,8 +585,8 @@ export default function Programs() {
         const taskCount = getTaskCount(athlete.id);
         
         if (!hasOverdue && !pacingWarning && taskCount === 0) return false;
-      } else if (tabView === "current") {
-        // Current: Live, reviewed programs (active blocks)
+      } else if (tabView === "open") {
+        // Open: Live, reviewed programs (active blocks)
         const hasActiveBlock = blocks.some(block => {
           const endDate = new Date(block.endDate);
           endDate.setHours(0, 0, 0, 0);
@@ -765,55 +879,62 @@ export default function Programs() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="secondary"
-                  className="h-8 px-3 rounded-lg border-[#292928] bg-surface-base text-[#f7f6f2] hover:bg-[#1a1a19] font-['Montserrat']"
-                >
-                  {tabView === "all" ? "All" : tabView === "pending" ? "Pending" : tabView === "current" ? "Current" : "Upcoming"}
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="bg-[#171716] border-[#292928] min-w-[120px]">
-                <DropdownMenuItem
-                  className={cn(
-                    "cursor-pointer text-sm font-['Montserrat'] focus:bg-[#1C1C1B] focus:text-[#f7f6f2]",
-                    tabView === "all" ? "bg-[#1C1C1B] text-[#f7f6f2]" : "text-[#979795]"
-                  )}
-                  onClick={() => setTabView("all")}
+            <Tabs value={tabView} onValueChange={(v) => setTabView(v as TabView)}>
+              <TabsList className="bg-[#171716] border border-[#292928] h-8">
+                <TabsTrigger 
+                  value="all" 
+                  className="data-[state=active]:bg-[#1C1C1B] data-[state=active]:text-[#f7f6f2] text-[#979795] px-3 text-xs font-['Montserrat']"
                 >
                   All
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className={cn(
-                    "cursor-pointer text-sm font-['Montserrat'] focus:bg-[#1C1C1B] focus:text-[#f7f6f2]",
-                    tabView === "pending" ? "bg-[#1C1C1B] text-[#f7f6f2]" : "text-[#979795]"
-                  )}
-                  onClick={() => setTabView("pending")}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="open" 
+                  className="data-[state=active]:bg-[#1C1C1B] data-[state=active]:text-[#f7f6f2] text-[#979795] px-3 text-xs font-['Montserrat']"
+                >
+                  Open
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="pending" 
+                  className="data-[state=active]:bg-[#1C1C1B] data-[state=active]:text-[#f7f6f2] text-[#979795] px-3 text-xs font-['Montserrat']"
                 >
                   Pending
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className={cn(
-                    "cursor-pointer text-sm font-['Montserrat'] focus:bg-[#1C1C1B] focus:text-[#f7f6f2]",
-                    tabView === "current" ? "bg-[#1C1C1B] text-[#f7f6f2]" : "text-[#979795]"
-                  )}
-                  onClick={() => setTabView("current")}
-                >
-                  Current
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className={cn(
-                    "cursor-pointer text-sm font-['Montserrat'] focus:bg-[#1C1C1B] focus:text-[#f7f6f2]",
-                    tabView === "upcoming" ? "bg-[#1C1C1B] text-[#f7f6f2]" : "text-[#979795]"
-                  )}
-                  onClick={() => setTabView("upcoming")}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="upcoming" 
+                  className="data-[state=active]:bg-[#1C1C1B] data-[state=active]:text-[#f7f6f2] text-[#979795] px-3 text-xs font-['Montserrat']"
                 >
                   Upcoming
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div className="flex items-center gap-1 border border-[#292928] rounded-lg bg-[#171716] p-0.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-7 px-2 rounded-md font-['Montserrat']",
+                  viewMode === "list" 
+                    ? "bg-[#1C1C1B] text-[#f7f6f2]" 
+                    : "text-[#979795] hover:text-[#f7f6f2]"
+                )}
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-7 px-2 rounded-md font-['Montserrat']",
+                  viewMode === "timeline" 
+                    ? "bg-[#1C1C1B] text-[#f7f6f2]" 
+                    : "text-[#979795] hover:text-[#f7f6f2]"
+                )}
+                onClick={() => setViewMode("timeline")}
+              >
+                <Calendar className="h-4 w-4" />
+              </Button>
+            </div>
             <div className="relative w-[337px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#979795] pointer-events-none" />
               <Input
@@ -844,7 +965,9 @@ export default function Programs() {
 
         {/* Table Content */}
         <div className="px-5 pb-5 bg-surface-base">
-          {isLoading ? (
+          {viewMode === "timeline" ? (
+            <ProgramsTimelineView athletes={filteredAndSortedAthletes} />
+          ) : isLoading ? (
             <div className="border border-[#292928] rounded-lg overflow-hidden w-full bg-surface-base">
               {Array.from({ length: 5 }).map((_, idx) => (
                 <div key={idx} className="border-b border-[#292928] last:border-b-0">
@@ -867,7 +990,7 @@ export default function Programs() {
                     <Search className="h-8 w-8 text-[#979795]" />
                   </div>
                   <h3 className="text-lg font-semibold font-['Montserrat'] text-[#f7f6f2] mb-2">
-                    No {tabView === "all" ? "" : tabView === "pending" ? "pending" : tabView === "current" ? "current" : "upcoming"} athletes found
+                    No {tabView === "all" ? "" : tabView === "pending" ? "pending" : tabView === "open" ? "open" : "upcoming"} athletes found
                   </h3>
                   <p className="text-sm font-['Montserrat'] text-[#979795] mb-6">
                     {hasActiveFilters 
@@ -881,18 +1004,18 @@ export default function Programs() {
             </div>
           ) : (
             <div className="w-full overflow-x-auto scrollbar-thin">
-              <div className="bg-[#121210] rounded-2xl overflow-hidden relative" style={{ minWidth: '1600px' }}>
+              <div className="bg-[#121210] rounded-2xl overflow-x-auto overflow-y-hidden relative">
                 {/* Table Header */}
-                <div className="flex h-10 bg-[#121210] text-[#bcbbb7] text-xs font-medium relative">
-                  {/* Athlete Name Column */}
-                  <div className="flex items-center pl-[8px] pr-[16px] w-[300px] min-w-[300px] flex-shrink-0 border-r border-[#292928]">
+                <div className="flex h-10 bg-[#121210] text-[#bcbbb7] text-xs font-medium relative w-full">
+                  {/* Column 1: Athlete Name */}
+                  <div className="flex items-center pl-[8px] pr-[16px] w-[400px] min-w-[400px] flex-shrink-0 border-r border-[#292928]">
                     <button 
                       onClick={() => handleSort('athleteName')}
                       onMouseEnter={() => setHoveredSortField('athleteName')}
                       onMouseLeave={() => setHoveredSortField(null)}
                       className="flex gap-[4px] items-center flex-1 hover:text-[#f7f6f2] transition-colors pl-[16px]"
                     >
-                      <span className="font-['Montserrat:Medium',_sans-serif] text-[12px] leading-[1.32] text-[#bcbbb7] whitespace-nowrap overflow-hidden text-ellipsis">
+                      <span className="font-['Montserrat',_sans-serif] font-medium text-[12px] leading-[1.32] text-[#bcbbb7] whitespace-nowrap overflow-hidden text-ellipsis">
                         Athlete name
                       </span>
                       {getSortIcon('athleteName', hoveredSortField === 'athleteName' || sortField === 'athleteName')}
@@ -900,74 +1023,73 @@ export default function Programs() {
                   </div>
 
                   {/* Scrollable Columns Header */}
-                  <div className="flex items-center h-full" style={{ minWidth: '1300px' }}>
-                    {/* Team */}
-                    <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
-                      <button 
-                        onClick={() => handleSort('team')}
-                        onMouseEnter={() => setHoveredSortField('team')}
-                        onMouseLeave={() => setHoveredSortField(null)}
-                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
-                      >
-                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Team</span>
-                        {getSortIcon('team', hoveredSortField === 'team' || sortField === 'team')}
-                      </button>
-                    </div>
-
-                    {/* Sub-Season Status */}
-                    <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
+                  <div className="flex items-center h-full bg-[#121210] flex-1">
+                    {/* Column 2: Season (Subseason) */}
+                    <div className="flex items-center pl-4 pr-0 w-[160px] min-w-[160px]">
                       <button 
                         onClick={() => handleSort('subSeasonStatus')}
                         onMouseEnter={() => setHoveredSortField('subSeasonStatus')}
                         onMouseLeave={() => setHoveredSortField(null)}
                         className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
                       >
-                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Sub-season status</span>
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Season</span>
                         {getSortIcon('subSeasonStatus', hoveredSortField === 'subSeasonStatus' || sortField === 'subSeasonStatus')}
                       </button>
                     </div>
 
-                    {/* Block End */}
+                    {/* Column 3: Program */}
                     <div className="flex items-center pl-4 pr-0 w-[180px] min-w-[180px]">
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Program</span>
+                    </div>
+
+                    {/* Column 4: Block due */}
+                    <div className="flex items-center pl-4 pr-0 w-[110px] min-w-[110px]">
                       <button 
                         onClick={() => handleSort('blockProgress')}
                         onMouseEnter={() => setHoveredSortField('blockProgress')}
                         onMouseLeave={() => setHoveredSortField(null)}
                         className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
                       >
-                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Block end</span>
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Block due</span>
                         {getSortIcon('blockProgress', hoveredSortField === 'blockProgress' || sortField === 'blockProgress')}
                       </button>
                     </div>
 
-                    {/* Program Status */}
-                    <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
-                      <button 
-                        onClick={() => handleSort('programStatus')}
-                        onMouseEnter={() => setHoveredSortField('programStatus')}
-                        onMouseLeave={() => setHoveredSortField(null)}
-                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
-                      >
-                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Program status</span>
-                        {getSortIcon('programStatus', hoveredSortField === 'programStatus' || sortField === 'programStatus')}
-                      </button>
+                    {/* Column 5: Program end date */}
+                    <div className="flex items-center pl-4 pr-0 w-[120px] min-w-[120px]">
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Program end</span>
                     </div>
 
-                    {/* Last Entry Day */}
+                    {/* Column 6: Today's session */}
                     <div className="flex items-center pl-4 pr-0 w-[180px] min-w-[180px]">
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Today's session</span>
+                    </div>
+
+                    {/* Column 7: Last entry */}
+                    <div className="flex items-center pl-4 pr-0 w-[110px] min-w-[110px]">
                       <button 
                         onClick={() => handleSort('lastEntryDay')}
                         onMouseEnter={() => setHoveredSortField('lastEntryDay')}
                         onMouseLeave={() => setHoveredSortField(null)}
                         className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
                       >
-                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Last entry day</span>
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Last entry</span>
                         {getSortIcon('lastEntryDay', hoveredSortField === 'lastEntryDay' || sortField === 'lastEntryDay')}
                       </button>
                     </div>
 
-                    {/* Recent Edit */}
-                    <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
+                    {/* Column 8: Compliance */}
+                    <div className="flex items-center pl-4 pr-0 w-[100px] min-w-[100px]">
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Compliance</span>
+                    </div>
+
+                    {/* Column 9: Trend */}
+                    <div className="flex items-center pl-4 pr-0 w-[100px] min-w-[100px]">
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Trend</span>
+                    </div>
+
+                    {/* Column 10: Recent edit */}
+                    <div className="flex items-center pl-4 pr-0 w-[110px] min-w-[110px]">
                       <button 
                         onClick={() => handleSort('lastModificationDay')}
                         onMouseEnter={() => setHoveredSortField('lastModificationDay')}
@@ -979,9 +1101,14 @@ export default function Programs() {
                       </button>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
-                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Actions</span>
+                    {/* Column 11: Collaborators */}
+                    <div className="flex items-center pl-4 pr-0 w-[120px] min-w-[120px]">
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Collaborators</span>
+                    </div>
+
+                    {/* Column 12: Menu */}
+                    <div className="flex items-center pl-4 pr-0 w-[50px] min-w-[50px]">
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis"></span>
                     </div>
                   </div>
                 </div>
@@ -994,15 +1121,104 @@ export default function Programs() {
                     const lastActivity = getLastActivity(athleteData.blocks);
                     const statusIcon = getStatusIcon(athleteData.athlete.status);
                     const statusTooltip = getStatusTooltip(athleteData.athlete.status);
+                    
+                    // Component for today's session
+                    const TodaysSessionCell = () => {
+                      const [sessionData, setSessionData] = useState<{ throwing: string | null; lifting: string | null; throwingIntensity?: string; liftingIntensity?: string } | null>(null);
+                      useEffect(() => {
+                        getTodaysSession(athleteData.athlete.id).then(setSessionData);
+                      }, [athleteData.athlete.id]);
+                      
+                      if (!sessionData) return <span className="text-[#979795] text-sm">–</span>;
+                      
+                      const parts: React.ReactNode[] = [];
+                      if (sessionData.throwing) {
+                        const intensityColor = sessionData.throwingIntensity === "High" ? "text-red-400" : "text-green-400";
+                        parts.push(
+                          <TooltipProvider key="throwing">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className={cn("flex items-center cursor-help", intensityColor)}>
+                                  <Target className="h-4 w-4" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Throwing {sessionData.throwingIntensity ? `(${sessionData.throwingIntensity})` : ''}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      }
+                      if (sessionData.lifting) {
+                        const intensityColor = sessionData.liftingIntensity === "Heavy" ? "text-red-400" : sessionData.liftingIntensity === "Light" ? "text-green-400" : "text-yellow-400";
+                        parts.push(
+                          <TooltipProvider key="lifting">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className={cn("flex items-center cursor-help", intensityColor)}>
+                                  <Dumbbell className="h-4 w-4" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Lifting {sessionData.liftingIntensity ? `(${sessionData.liftingIntensity})` : ''}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      }
+                      
+                      return parts.length > 0 ? (
+                        <div className="flex gap-2 items-center">
+                          {parts}
+                        </div>
+                      ) : (
+                        <span className="text-[#979795] text-sm">–</span>
+                      );
+                    };
+                    
+                    // Component for collaborators
+                    const CollaboratorsCell = () => {
+                      const [collaborators, setCollaborators] = useState<Array<{ id: string; userId: string; permissionLevel: string }>>([]);
+                      useEffect(() => {
+                        getCollaborators(athleteData.athlete.id).then(setCollaborators);
+                      }, [athleteData.athlete.id]);
+                      
+                      if (collaborators.length === 0) return <span className="text-[#979795] text-sm">–</span>;
+                      
+                      return (
+                        <Popover>
+                          <PopoverTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <div className="flex -space-x-2 cursor-pointer">
+                              {collaborators.slice(0, 3).map((collab, idx) => (
+                                <Avatar key={collab.id} className="h-6 w-6 border-2 border-[#292928]">
+                                  <AvatarFallback className="bg-[#292928] text-[#f7f6f2] text-xs">
+                                    {collab.userId.substring(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ))}
+                            </div>
+                          </PopoverTrigger>
+                          <PopoverContent className="bg-[#171716] border-[#292928]">
+                            <div className="space-y-2">
+                              {collaborators.map(collab => (
+                                <div key={collab.id} className="text-sm text-[#f7f6f2]">
+                                  User {collab.userId}: {collab.permissionLevel}
+                                </div>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    };
 
                     return (
                       <div
                         key={athleteData.athlete.id}
-                        className="group flex items-center border-b border-[#292928] h-12 bg-[#1C1C1B] hover:bg-[#2C2C2B] transition-colors cursor-pointer"
+                        className="group flex items-center border-b-2 border-[#121210] h-12 bg-[#1C1C1B] hover:bg-[#2C2C2B] transition-colors cursor-pointer w-full"
                         onClick={() => setLocation(`/programs/${athleteData.athlete.id}`)}
                       >
-                        {/* Athlete Name Column */}
-                        <div className="flex gap-[8px] items-center pl-[8px] pr-[16px] py-0 w-[300px] min-w-[300px] flex-shrink-0 border-r border-[#292928]">
+                        {/* Column 1: Athlete Name + Position + Team */}
+                        <div className="flex gap-[8px] items-center pl-[8px] pr-[16px] py-0 w-[400px] min-w-[400px] flex-shrink-0 border-r border-[#292928]">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <Avatar className={cn("h-8 w-8 flex-shrink-0", getAvatarBorderClass(athleteData.athlete.status))}>
                               <AvatarImage src={athleteData.athlete.photo} alt={athleteData.athlete.name} />
@@ -1010,17 +1226,62 @@ export default function Programs() {
                                 {athleteData.athlete.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-['Montserrat:SemiBold',_sans-serif] text-[14px] text-[#f7f6f2] truncate">
-                              {athleteData.athlete.name}
-                            </span>
-                            {isActionableInjury(athleteData.athlete.status) && (
-                              <div className="ml-auto flex-shrink-0">
+                            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                              <div className="flex items-center gap-1 flex-nowrap min-w-0">
+                                <span className="font-['Montserrat',_sans-serif] font-semibold text-[14px] text-[#f7f6f2] flex-shrink-0">
+                                  {athleteData.athlete.name}
+                                </span>
+                                {(athleteData.athlete.primaryPosition || athleteData.athlete.secondaryPosition) && (
+                                  <>
+                                    <span className="text-[#979795] text-xs font-['Montserrat'] flex-shrink-0">|</span>
+                                    <span className="text-[#979795] text-xs font-['Montserrat'] flex-shrink-0 whitespace-nowrap">
+                                      {athleteData.athlete.primaryPosition || '–'}
+                                      {athleteData.athlete.secondaryPosition ? `/${athleteData.athlete.secondaryPosition}` : ''}
+                                    </span>
+                                  </>
+                                )}
+                                {(() => {
+                                  const teamDisplay = athleteData.athlete.team || (athleteData.athlete.level === "Free Agent" ? "Free Agent" : null);
+                                  return teamDisplay ? (
+                                    <>
+                                      <span className="text-[#979795] text-xs font-['Montserrat'] flex-shrink-0">,</span>
+                                      <span className="text-[#979795] text-xs font-['Montserrat'] truncate min-w-0">
+                                        {teamDisplay}
+                                      </span>
+                                    </>
+                                  ) : null;
+                                })()}
+                              </div>
+                            </div>
+                            {/* Authorize button - left of status icon */}
+                            {(() => {
+                              const signOff = getSignOffStatus(athleteData.blocks);
+                              if (signOff.hasPending) {
+                                return (
+                                  <div className="flex-shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
+                                    <Button
+                                      variant="secondary"
+                                      size="sm"
+                                      className="h-7 px-2 text-xs bg-[#292928] text-[#979795] hover:bg-[#3a3a39] border-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Handle authorize
+                                      }}
+                                    >
+                                      Authorize
+                                    </Button>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+                            {/* Status column moved here */}
+                            {statusIcon && (
+                              <div className="flex-shrink-0 ml-2">
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <div>
-                                        {statusIcon}
-                                      </div>
+                                      <div>{statusIcon}</div>
                                     </TooltipTrigger>
                                     <TooltipContent>
                                       <p>{statusTooltip}</p>
@@ -1033,146 +1294,247 @@ export default function Programs() {
                         </div>
 
                         {/* Scrollable Columns */}
-                        <div className="flex items-center h-full" style={{ minWidth: '1300px' }}>
-                          {/* Team */}
-                          <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
-                            <span className="text-[#f7f6f2] text-sm">
-                              {athleteData.athlete.team || "–"}
-                            </span>
-                          </div>
-
-                          {/* Sub-Season Status */}
-                          <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
+                        <div className="flex items-center h-full bg-[#1C1C1B] group-hover:bg-[#2C2C2B] flex-1">
+                          {/* Column 2: Season (Subseason) */}
+                          <div className="flex items-center pl-4 pr-0 w-[160px] min-w-[160px]">
                             {(() => {
-                              const subSeasonStatus = getSubSeasonStatus(athleteData.blocks);
-                              return subSeasonStatus !== "–" ? (
+                              const currentBlock = getCurrentBlock(athleteData.blocks);
+                              if (!currentBlock) return <span className="text-[#979795] text-sm">–</span>;
+                              const season = currentBlock.season || "";
+                              const subSeason = currentBlock.subSeason || "";
+                              const displayText = subSeason ? `${season} (${subSeason.substring(0, 3)})` : season;
+                              return (
                                 <Badge variant="outline" className={cn(
                                   "text-xs font-['Montserrat']",
-                                  subSeasonStatus === "In-Season" ? "bg-green-500/20 text-green-400 border-green-500/30" :
+                                  season.includes("In-Season") ? "bg-green-500/20 text-green-400 border-green-500/30" :
                                   "bg-[#171716] text-[#979795] border-[#292928]"
                                 )}>
-                                  {subSeasonStatus}
+                                  {displayText}
                                 </Badge>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Column 3: Program */}
+                          <div className="flex items-center pl-4 pr-0 w-[180px] min-w-[180px]">
+                            {(() => {
+                              const currentBlock = getCurrentBlock(athleteData.blocks);
+                              if (!currentBlock || !athleteData.currentPhase) return <span className="text-[#979795] text-sm">–</span>;
+                              
+                              const phaseNum = athleteData.currentPhase.phaseNumber;
+                              const blockNum = currentBlock.blockNumber;
+                              const totalBlocksInPhase = athleteData.blocks.length;
+                              const week = currentBlock.currentDay?.week || 1;
+                              const day = currentBlock.currentDay?.day || 1;
+                              
+                              return (
+                                <span className="text-[#979795] text-sm font-mono">
+                                  P{phaseNum} | B{blockNum}({totalBlocksInPhase}), W{week} / D{day}
+                                </span>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Column 4: Block due */}
+                          <div className="flex items-center pl-4 pr-0 w-[110px] min-w-[110px]">
+                            {(() => {
+                              const daysInfo = getDaysUntilBlockEnd(athleteData.blocks);
+                              if (daysInfo.days === null) {
+                                return <span className="text-[#979795] text-sm">–</span>;
+                              }
+                              // Use badge for days until end
+                              const badgeColor = daysInfo.days === 0 
+                                ? "bg-red-500/20 text-red-400 border-red-500/30"
+                                : daysInfo.days <= 7
+                                ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                : "bg-green-500/20 text-green-400 border-green-500/30";
+                              return (
+                                <Badge variant="outline" className={cn("text-xs font-['Montserrat']", badgeColor)}>
+                                  {daysInfo.text}
+                                </Badge>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Column 5: Program end date */}
+                          <div className="flex items-center pl-4 pr-0 w-[120px] min-w-[120px]">
+                            {(() => {
+                              const endDate = athleteData.currentPhase?.endDate;
+                              return endDate ? (
+                                <span className="text-[#979795] text-sm">
+                                  {format(new Date(endDate), "MMM d, yyyy")}
+                                </span>
                               ) : (
                                 <span className="text-[#979795] text-sm">–</span>
                               );
                             })()}
                           </div>
 
-                          {/* Block End */}
+                          {/* Column 6: Today's session */}
                           <div className="flex items-center pl-4 pr-0 w-[180px] min-w-[180px]">
                             {(() => {
-                              const progress = getBlockProgress(athleteData.blocks);
-                              if (progress.daysRemaining === null) {
-                                return <span className="text-[#979795] text-sm">–</span>;
-                              }
-                              return (
-                                <Badge variant="outline" className={cn(
-                                  "text-xs font-['Montserrat']",
-                                  progress.needsAction ? "bg-red-500/20 text-red-400 border-red-500/30" :
-                                  progress.daysRemaining <= 7 ? "bg-amber-500/20 text-amber-400 border-amber-500/30" : 
-                                  "bg-[#171716] text-[#979795] border-[#292928]"
-                                )}>
-                                  {progress.text}
-                                </Badge>
-                              );
+                              const TodaysSessionTextCell = () => {
+                                const [sessionData, setSessionData] = useState<{ throwing: string | null; lifting: string | null; throwingIntensity?: string; liftingIntensity?: string } | null>(null);
+                                useEffect(() => {
+                                  getTodaysSession(athleteData.athlete.id).then(setSessionData);
+                                }, [athleteData.athlete.id]);
+                                
+                                if (!sessionData) return <span className="text-[#979795] text-sm">–</span>;
+                                
+                                const parts: string[] = [];
+                                
+                                // Add throwing types
+                                if (sessionData.throwing) {
+                                  const throwingType = sessionData.throwing === "drill-set" ? "Throwing - Drill Set" : 
+                                                     sessionData.throwing === "competitive" ? "Throwing - Competitive" : 
+                                                     sessionData.throwing;
+                                  parts.push(throwingType);
+                                }
+                                
+                                // Add lifting
+                                if (sessionData.lifting) {
+                                  parts.push(sessionData.lifting);
+                                }
+                                
+                                if (parts.length === 0) return <span className="text-[#979795] text-sm">–</span>;
+                                
+                                // Format: [Throwing - Drill Set] / [Throwing - Competitive] | [Lifting]
+                                const throwingParts = parts.filter(p => p.includes("Throwing"));
+                                const liftingParts = parts.filter(p => !p.includes("Throwing"));
+                                
+                                let displayText = "";
+                                if (throwingParts.length > 0) {
+                                  displayText = throwingParts.join(" / ");
+                                }
+                                if (liftingParts.length > 0) {
+                                  if (displayText) {
+                                    displayText += " | " + liftingParts.join(" | ");
+                                  } else {
+                                    displayText = liftingParts.join(" | ");
+                                  }
+                                }
+                                
+                                return (
+                                  <span className="text-[#979795] text-sm">
+                                    {displayText}
+                                  </span>
+                                );
+                              };
+                              return <TodaysSessionTextCell />;
                             })()}
                           </div>
 
-                          {/* Program Status */}
-                          <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
-                            {getProgramStatus(athleteData.blocks).badge}
-                          </div>
-
-                          {/* Last Entry Day */}
-                          <div className="flex items-center pl-4 pr-0 w-[180px] min-w-[180px]">
+                          {/* Column 7: Last entry */}
+                          <div className="flex items-center pl-4 pr-0 w-[110px] min-w-[110px]">
                             {(() => {
                               const lastEntry = getLastEntryDay(athleteData.blocks);
-                              const pacingWarning = hasPacingWarning(athleteData.blocks);
                               return (
-                                <div className="flex items-center gap-2">
-                                  <span className={cn(
-                                    "text-sm",
-                                    lastEntry.daysAgo !== null && lastEntry.daysAgo > 3 ? "text-amber-500" : "text-[#979795]"
-                                  )}>
-                                    {lastEntry.daysAgo === 0 ? lastEntry.text : (lastEntry.formattedDate || lastEntry.text)}
-                                  </span>
-                                  {pacingWarning && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <AlertCircle className="h-4 w-4 text-amber-500" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>Pacing warning: Submitting off-schedule</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  )}
-                                </div>
+                                <span className="text-[#979795] text-sm">
+                                  {lastEntry.text}
+                                </span>
                               );
                             })()}
                           </div>
 
-                          {/* Recent Edit */}
-                          <div className="flex items-center pl-4 pr-0 w-[150px] min-w-[150px]">
-                            <span className="text-[#979795] text-sm">
-                              {getLastModificationDay(athleteData.blocks).text}
-                            </span>
-                          </div>
-
-                          {/* Actions with Indicators */}
-                          <div className="flex items-center gap-2 pl-4 pr-0 w-[150px] min-w-[150px]">
+                          {/* Column 8: Compliance */}
+                          <div className="flex items-center pl-4 pr-0 w-[100px] min-w-[100px]">
                             {(() => {
-                              const taskCount = getTaskCount(athleteData.athlete.id);
-                              const needsAttn = needsAttention(athleteData.blocks, athleteData.athlete.id, tabView);
-                              
+                              const currentBlock = getCurrentBlock(athleteData.blocks);
+                              if (!currentBlock || currentBlock.compliance === undefined) {
+                                return <span className="text-[#979795] text-sm">–</span>;
+                              }
+                              const compliance = currentBlock.compliance;
+                              const color = compliance >= 90 ? "text-green-400" : compliance >= 75 ? "text-yellow-400" : "text-red-400";
                               return (
-                                <>
-                                  {needsAttn && (
-                                    <div className="flex items-center gap-1">
-                                      {taskCount > 0 && (
-                                        <TooltipProvider>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-red-500/20 text-red-400 text-xs font-semibold">
-                                                {taskCount}
-                                              </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              <p>{taskCount} associated task{taskCount !== 1 ? 's' : ''}</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-                                      )}
-                                      {(!taskCount || taskCount === 0) && (
-                                        <TooltipProvider>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Circle className="h-4 w-4 text-red-500 fill-red-500" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              <p>Requires attention</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-                                      )}
-                                    </div>
-                                  )}
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-xs h-8 px-2 hover:bg-[#2C2C2B]"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setLocation(`/programs/${athleteData.athlete.id}`);
-                                    }}
-                                  >
-                                    <ChevronRight className="h-4 w-4" />
-                                  </Button>
-                                </>
+                                <span className={`text-sm font-['Montserrat'] ${color}`}>
+                                  {compliance}%
+                                </span>
                               );
                             })()}
+                          </div>
+
+                          {/* Column 9: Trend */}
+                          <div className="flex items-center pl-4 pr-0 w-[100px] min-w-[100px]">
+                            {(() => {
+                              const currentBlock = getCurrentBlock(athleteData.blocks);
+                              if (!currentBlock || !currentBlock.trend) {
+                                return <span className="text-[#979795] text-sm">–</span>;
+                              }
+                              const trend = currentBlock.trend;
+                              const trendConfig = {
+                                up: { icon: "↑", color: "text-green-400", label: "Up" },
+                                down: { icon: "↓", color: "text-red-400", label: "Down" },
+                                stable: { icon: "→", color: "text-[#979795]", label: "Stable" },
+                              };
+                              const config = trendConfig[trend] || trendConfig.stable;
+                              return (
+                                <span className={`text-sm font-['Montserrat'] ${config.color}`}>
+                                  {config.icon} {config.label}
+                                </span>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Column 10: Recent edit */}
+                          <div className="flex items-center pl-4 pr-0 w-[110px] min-w-[110px]">
+                            {(() => {
+                              const lastMod = getLastModificationDay(athleteData.blocks);
+                              return (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="text-[#979795] text-sm cursor-help">
+                                        {lastMod.text}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Edited by: Coach Name</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Column 11: Collaborators */}
+                          <div className="flex items-center pl-4 pr-0 w-[120px] min-w-[120px]">
+                            <CollaboratorsCell />
+                          </div>
+
+                          {/* Column 12: Dot menu */}
+                          <div className="flex items-center pl-4 pr-0 w-[50px] min-w-[50px]" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0 hover:bg-[#292928]"
+                                >
+                                  <MoreVertical className="h-4 w-4 text-[#979795]" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-[#171716] border-[#292928] z-[100]">
+                                <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                  Preview
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                  Add note
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-[#292928]" />
+                                <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                  Share
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                  Print
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-[#f7f6f2] hover:bg-[#292928] cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                  Progress Report
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       </div>

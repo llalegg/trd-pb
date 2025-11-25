@@ -8,17 +8,6 @@ export function getDatabaseUrl() {
   return process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
 }
 
-// Support both DATABASE_URL and POSTGRES_URL (Supabase uses POSTGRES_URL)
-const databaseUrl = getDatabaseUrl();
-
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL or POSTGRES_URL environment variable is required");
-}
-
-// Detect if it's a Neon connection (contains 'neon.tech') or Supabase/standard PostgreSQL
-const isNeon = databaseUrl.includes('neon.tech');
-const isSupabase = databaseUrl.includes('supabase.co') || databaseUrl.includes('supabase.com');
-
 export async function getDatabaseConnection() {
   const dbUrl = getDatabaseUrl();
   if (!dbUrl) throw new Error("Database URL not found");

@@ -17,7 +17,9 @@ import {
   phases,
   blocks,
   programs,
+  programCollaborators,
 } from "@shared/schema";
+import type { ProgramCollaborator } from "@shared/schema";
 import { getDatabaseConnection } from "../db/connection";
 
 function generateProgramId(): string {
@@ -204,6 +206,11 @@ export class DbStorage implements IStorage {
         nextBlockDue: blockData.nextBlockDue
           ? new Date(blockData.nextBlockDue)
           : null,
+        signOffStatus: blockData.signOffStatus ?? null,
+        signOffBy: blockData.signOffBy ?? null,
+        signOffAt: blockData.signOffAt ? new Date(blockData.signOffAt) : null,
+        compliance: (blockData.compliance !== undefined) ? blockData.compliance : null,
+        trend: (blockData.trend !== undefined) ? blockData.trend : null,
         createdAt: now,
         updatedAt: now,
       })
@@ -246,6 +253,12 @@ export class DbStorage implements IStorage {
       updateData.nextBlockDue = updates.nextBlockDue
         ? new Date(updates.nextBlockDue)
         : null;
+    if (updates.signOffStatus !== undefined) updateData.signOffStatus = updates.signOffStatus ?? null;
+    if (updates.signOffBy !== undefined) updateData.signOffBy = updates.signOffBy ?? null;
+    if (updates.signOffAt !== undefined)
+      updateData.signOffAt = updates.signOffAt ? new Date(updates.signOffAt) : null;
+    if (updates.compliance !== undefined) updateData.compliance = updates.compliance;
+    if (updates.trend !== undefined) updateData.trend = updates.trend;
 
     const result = await db
       .update(blocks)
@@ -296,6 +309,10 @@ export class DbStorage implements IStorage {
       status: dbAthlete.status as Athlete["status"],
       currentPhaseId: dbAthlete.currentPhaseId ?? undefined,
       team: dbAthlete.team ?? undefined,
+      handedness: dbAthlete.handedness as Athlete["handedness"] ?? undefined,
+      level: dbAthlete.level ?? undefined,
+      primaryPosition: dbAthlete.primaryPosition ?? undefined,
+      secondaryPosition: dbAthlete.secondaryPosition ?? undefined,
       phases: phasesList,
     };
   }
@@ -332,9 +349,66 @@ export class DbStorage implements IStorage {
       lastModification: dbBlock.lastModification?.toISOString(),
       lastSubmission: dbBlock.lastSubmission?.toISOString(),
       nextBlockDue: dbBlock.nextBlockDue?.toISOString(),
+      signOffStatus: dbBlock.signOffStatus as Block["signOffStatus"] ?? undefined,
+      signOffBy: dbBlock.signOffBy ?? undefined,
+      signOffAt: dbBlock.signOffAt?.toISOString(),
+      compliance: dbBlock.compliance ?? undefined,
+      trend: dbBlock.trend as Block["trend"] ?? undefined,
       createdAt: dbBlock.createdAt.toISOString(),
       updatedAt: dbBlock.updatedAt.toISOString(),
     };
+  }
+
+  // Collaborator methods
+  async getCollaborators(athleteId: string): Promise<ProgramCollaborator[]> {
+    const db = await this.getDb();
+    const dbCollaborators = await db
+      .select()
+      .from(programCollaborators)
+      .where(eq(programCollaborators.athleteId, athleteId));
+    
+    return dbCollaborators.map(collab => ({
+      id: collab.id,
+      athleteId: collab.athleteId,
+      userId: collab.userId,
+      permissionLevel: collab.permissionLevel as "view" | "edit" | "admin",
+      createdAt: collab.createdAt.toISOString(),
+    }));
+  }
+
+  async addCollaborator(
+    athleteId: string,
+    userId: string,
+    permissionLevel: "view" | "edit" | "admin"
+  ): Promise<ProgramCollaborator> {
+    const db = await this.getDb();
+    const id = randomUUID();
+    const [dbCollaborator] = await db
+      .insert(programCollaborators)
+      .values({
+        id,
+        athleteId,
+        userId,
+        permissionLevel,
+      })
+      .returning();
+    
+    return {
+      id: dbCollaborator.id,
+      athleteId: dbCollaborator.athleteId,
+      userId: dbCollaborator.userId,
+      permissionLevel: dbCollaborator.permissionLevel as "view" | "edit" | "admin",
+      createdAt: dbCollaborator.createdAt.toISOString(),
+    };
+  }
+
+  async removeCollaborator(collaboratorId: string): Promise<boolean> {
+    const db = await this.getDb();
+    const result = await db
+      .delete(programCollaborators)
+      .where(eq(programCollaborators.id, collaboratorId))
+      .returning();
+    return result.length > 0;
   }
 }
 

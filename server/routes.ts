@@ -208,6 +208,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/athletes/:athleteId/today-session
+  app.get("/api/athletes/:athleteId/today-session", async (req, res) => {
+    try {
+      const { athleteId } = req.params;
+      const athletes = await storage.getAthletes();
+      const athleteData = athletes.find(a => a.athlete.id === athleteId);
+      
+      if (!athleteData) {
+        return res.status(404).json({ error: "Athlete not found" });
+      }
+
+      // Find active block
+      const activeBlock = athleteData.blocks.find(b => b.status === "active");
+      if (!activeBlock) {
+        return res.json({ throwing: null, lifting: null });
+      }
+
+      // Get today's session data
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Determine intensity based on block configuration
+      const throwingIntensity = activeBlock.throwing ? "High" : null;
+      const liftingIntensity = activeBlock.lifting?.emphasis === "Strength" || activeBlock.lifting?.emphasis === "Power" 
+        ? "Heavy" 
+        : activeBlock.lifting?.emphasis === "Recovery" || activeBlock.lifting?.emphasis === "Restorative"
+        ? "Light"
+        : "Moderate";
+
+      res.json({
+        throwing: throwingIntensity ? {
+          type: "Throwing",
+          intensity: throwingIntensity,
+        } : null,
+        lifting: activeBlock.lifting ? {
+          type: "Lifting",
+          intensity: liftingIntensity,
+        } : null,
+      });
+    } catch (error) {
+      console.error("[API] Error fetching today's session:", error);
+      res.status(500).json({ error: "Failed to fetch today's session" });
+    }
+  });
+
+  // Collaborator endpoints
+  // GET /api/athletes/:athleteId/collaborators
+  app.get("/api/athletes/:athleteId/collaborators", async (req, res) => {
+    try {
+      const { athleteId } = req.params;
+      const collaborators = await storage.getCollaborators(athleteId);
+      res.json(collaborators);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch collaborators" });
+    }
+  });
+
+  // POST /api/athletes/:athleteId/collaborators
+  app.post("/api/athletes/:athleteId/collaborators", async (req, res) => {
+    try {
+      const { athleteId } = req.params;
+      const { userId, permissionLevel } = req.body;
+      if (!userId || !permissionLevel) {
+        return res.status(400).json({ error: "userId and permissionLevel are required" });
+      }
+      const collaborator = await storage.addCollaborator(athleteId, userId, permissionLevel);
+      res.status(201).json(collaborator);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add collaborator" });
+    }
+  });
+
+  // DELETE /api/collaborators/:collaboratorId
+  app.delete("/api/collaborators/:collaboratorId", async (req, res) => {
+    try {
+      const { collaboratorId } = req.params;
+      const deleted = await storage.removeCollaborator(collaboratorId);
+      if (deleted) {
+        res.status(204).send();
+      } else {
+        res.status(404).json({ error: "Collaborator not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to remove collaborator" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

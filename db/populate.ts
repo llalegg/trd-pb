@@ -463,10 +463,15 @@ async function populateDatabase() {
     }
   }
 
+  // Helper function to generate random handedness and level
+  const getRandomHandedness = (): "R" | "L" => Math.random() > 0.5 ? "R" : "L";
+  const levels = ["College", "High School", "Professional"];
+  const getRandomLevel = (): string => levels[Math.floor(Math.random() * levels.length)];
+
   for (const athleteData of seedAthletes) {
     const athlete = athleteData.athlete;
     try {
-      // Insert athlete
+      // Insert athlete with handedness and level
       await db.insert(athletes).values({
         id: athlete.id,
         name: athlete.name,
@@ -474,6 +479,8 @@ async function populateDatabase() {
         status: athlete.status ?? null,
         currentPhaseId: athlete.currentPhaseId ?? null,
         team: athlete.team ?? null,
+        handedness: athlete.handedness ?? getRandomHandedness(),
+        level: athlete.level ?? getRandomLevel(),
       }).onConflictDoNothing();
       console.log(`Inserted athlete: ${athlete.name} (${athlete.id})`);
 

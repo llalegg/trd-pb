@@ -26,7 +26,11 @@ export const athletes = pgTable("athletes", {
   photo: text("photo"),
   status: varchar("status", { length: 50 }), // "injured" | "rehabbing" | "lingering-issues" | null
   currentPhaseId: varchar("current_phase_id"),
-  team: text("team"), // Current athlete team
+  team: text("team"), // Current athlete team (e.g., "Minnesota Twins (AAA)")
+  handedness: varchar("handedness", { length: 1 }), // "R" | "L"
+  level: varchar("level", { length: 50 }), // "MLB" | "AAA" | "AA" | "A" | "Rookie" | "Free Agent"
+  primaryPosition: varchar("primary_position", { length: 10 }), // "RHP" | "LHP" | "C" | "1B" | "2B" | "SS" | "3B" | "OF"
+  secondaryPosition: varchar("secondary_position", { length: 10 }), // Secondary position
 });
 
 // Phases table
@@ -60,6 +64,11 @@ export const blocks = pgTable("blocks", {
   lastModification: timestamp("last_modification"),
   lastSubmission: timestamp("last_submission"), // When athlete last submitted data
   nextBlockDue: timestamp("next_block_due"), // When next block needs to be reviewed/approved
+  signOffStatus: varchar("sign_off_status", { length: 20 }), // "pending" | "approved" | "rejected"
+  signOffBy: varchar("sign_off_by"), // user_id
+  signOffAt: timestamp("sign_off_at"), // timestamp of sign-off
+  compliance: integer("compliance"), // Compliance percentage (0-100)
+  trend: varchar("trend", { length: 20 }), // "up" | "down" | "stable"
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -83,6 +92,15 @@ export const programs = pgTable("programs", {
   nextBlockDue: timestamp("next_block_due"),
   daysComplete: integer("days_complete"),
   daysAvailable: integer("days_available"),
+});
+
+// Program collaborators table
+export const programCollaborators = pgTable("program_collaborators", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  athleteId: varchar("athlete_id").notNull().references(() => athletes.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  permissionLevel: varchar("permission_level", { length: 20 }).notNull(), // "view" | "edit" | "admin"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export interface Block {
@@ -136,6 +154,11 @@ export interface Block {
   lastModification?: string;
   lastSubmission?: string; // ISO date string - when athlete last submitted data
   nextBlockDue?: string; // ISO date string - when next block needs to be reviewed/approved
+  signOffStatus?: "pending" | "approved" | "rejected";
+  signOffBy?: string; // user_id
+  signOffAt?: string; // ISO date string - timestamp of sign-off
+  compliance?: number; // Compliance percentage (0-100)
+  trend?: "up" | "down" | "stable"; // Trend direction
 }
 
 export interface Phase {
@@ -153,7 +176,11 @@ export interface Athlete {
   photo?: string; // URL or path to athlete photo
   status?: "injured" | "rehabbing" | "lingering-issues" | null; // Only shown when relevant
   currentPhaseId?: string;
-  team?: string; // Current athlete team
+  team?: string; // Current athlete team (e.g., "Minnesota Twins (AAA)")
+  handedness?: "R" | "L"; // Right or Left handed
+  level?: string; // "MLB" | "AAA" | "AA" | "A" | "Rookie" | "Free Agent"
+  primaryPosition?: string; // "RHP" | "LHP" | "C" | "1B" | "2B" | "SS" | "3B" | "OF"
+  secondaryPosition?: string; // Secondary position
   phases?: Phase[];
 }
 
@@ -185,9 +212,20 @@ export interface Program {
 
 export type InsertProgram = Omit<Program, "id" | "programId">;
 
+// Program collaborator interface
+export interface ProgramCollaborator {
+  id: string;
+  athleteId: string;
+  userId: string;
+  permissionLevel: "view" | "edit" | "admin";
+  createdAt: string;
+  user?: User; // Populated user data
+}
+
 // New athlete-centric response type
 export interface AthleteWithPhase {
   athlete: Athlete;
   currentPhase?: Phase;
   blocks: Block[];
+  collaborators?: ProgramCollaborator[];
 }

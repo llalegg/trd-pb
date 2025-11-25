@@ -40,7 +40,23 @@ const seasons = ["Pre-Season", "In-Season", "Off-Season", "Redshirt"] as const;
 const subSeasons = ["Early", "Mid", "Late", "General Off-Season (GOS)"] as const;
 const statuses = ["draft", "active", "planned", "complete"] as const;
 const athleteStatuses = [null, "injured", "rehabbing", "lingering-issues"] as const;
-const teams = ["Varsity", "JV", "Freshman", "Redshirt", "Transfer"] as const;
+
+// MLB Teams (30 teams)
+const mlbTeams = [
+  "Arizona Diamondbacks", "Atlanta Braves", "Baltimore Orioles", "Boston Red Sox", "Chicago Cubs",
+  "Chicago White Sox", "Cincinnati Reds", "Cleveland Guardians", "Colorado Rockies", "Detroit Tigers",
+  "Houston Astros", "Kansas City Royals", "Los Angeles Angels", "Los Angeles Dodgers", "Miami Marlins",
+  "Milwaukee Brewers", "Minnesota Twins", "New York Mets", "New York Yankees", "Oakland Athletics",
+  "Philadelphia Phillies", "Pittsburgh Pirates", "San Diego Padres", "San Francisco Giants", "Seattle Mariners",
+  "St. Louis Cardinals", "Tampa Bay Rays", "Texas Rangers", "Toronto Blue Jays", "Washington Nationals"
+] as const;
+
+// MLB Levels
+const mlbLevels = ["MLB", "AAA", "AA", "A", "Rookie"] as const;
+
+// Baseball Positions
+const primaryPositions = ["RHP", "LHP", "C", "1B", "2B", "SS", "3B", "OF"] as const;
+const secondaryPositions = ["RHP", "LHP", "C", "1B", "2B", "SS", "3B", "OF", null] as const;
 const xRoles = ["Starter", "Reliever"] as const;
 const intensities = ["Low", "Moderate", "High"] as const;
 const volumes = ["Low", "Moderate", "High"] as const;
@@ -53,7 +69,7 @@ const adaptations = ["Aerobic", "Anaerobic"] as const;
 const methods = ["Continuous", "Interval"] as const;
 
 // Helper to get random element from array
-const random = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+const random = <T>(arr: readonly T[] | T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
 // Helper to get random number in range
 const randomInt = (min: number, max: number): number => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -88,8 +104,8 @@ const generateBlocks = (
     const blockEnd = new Date(blockStart);
     blockEnd.setDate(blockEnd.getDate() + daysPerBlock - 1);
 
-    const season = random(seasons);
-    const blockStatus = i === numBlocks - 1 ? "active" : i < numBlocks - 2 ? "complete" : random(statuses);
+    const season = random(seasons) as Block["season"];
+    const blockStatus = i === numBlocks - 1 ? "active" : i < numBlocks - 2 ? "complete" : random(statuses) as Block["status"];
     
     const block: Block = {
       id: `block-${athleteId}-${i + 1}`,
@@ -101,11 +117,11 @@ const generateBlocks = (
       endDate: blockEnd.toISOString().split('T')[0],
       duration: randomInt(4, 6),
       season,
-      subSeason: random(subSeasons),
+      subSeason: random(subSeasons) as Block["subSeason"],
       status: blockStatus as Block["status"],
       currentDay: blockStatus === "active" ? { week: randomInt(1, 4), day: randomInt(1, 7) } : undefined,
       throwing: Math.random() > 0.3 ? {
-        xRole: random(xRoles),
+        xRole: random(xRoles) as string,
         phase: season,
         exclusions: Math.random() > 0.7 ? "None" : undefined,
       } : undefined,
@@ -129,6 +145,10 @@ const generateBlocks = (
       lastModification: daysAgo(randomInt(0, 10)),
       lastSubmission: blockStatus === "active" ? daysAgo(randomInt(0, 7)) : undefined,
       nextBlockDue: blockStatus === "active" && i < numBlocks - 1 ? daysFromNow(randomInt(1, 14)) : undefined,
+      // Add sign-off status for some blocks (20% have pending sign-off)
+      signOffStatus: Math.random() < 0.2 ? "pending" : Math.random() < 0.3 ? "approved" : undefined,
+      signOffBy: Math.random() < 0.3 ? `user-${randomInt(1, 5)}` : undefined,
+      signOffAt: Math.random() < 0.3 ? daysAgo(randomInt(1, 10)) : undefined,
     };
 
     blocks.push(block);
@@ -160,13 +180,50 @@ export function generateSeedAthletes(): AthleteWithPhase[] {
     const numBlocks = randomInt(1, 4);
     const blocks = generateBlocks(athleteId, phaseId, phaseStartDate, phaseEndDate, numBlocks);
     
+    // Generate MLB level
+    const level = random(mlbLevels) as string;
+    
+    // Generate positions
+    const primaryPos = random(primaryPositions) as string;
+    const secondaryPos = random(secondaryPositions) as string | null;
+    
+    // Generate team assignment (80% have teams, 20% are Free Agents)
+    const hasTeam = Math.random() < 0.8;
+    let team: string | undefined;
+    let teamLevel: string | undefined;
+    
+    if (hasTeam) {
+      const teamName = random(mlbTeams) as string;
+      // Format: "Minnesota Twins (AAA)"
+      team = `${teamName} (${level})`;
+      teamLevel = level;
+    } else {
+      team = undefined;
+      teamLevel = "Free Agent";
+    }
+    
+    // Add photos for some athletes (using placeholder images - replace with actual URLs)
+    const photoUrls = [
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces",
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=faces",
+      "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop&crop=faces",
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=faces",
+      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&crop=faces",
+      "https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=150&h=150&fit=crop&crop=faces",
+    ];
+    // Assign photos to ~40% of athletes
+    const photo = Math.random() < 0.4 ? random(photoUrls) : undefined;
+    
     const athlete: Athlete = {
       id: athleteId,
       name,
-      photo: undefined,
-      status: random(athleteStatuses),
+      photo,
+      status: random(athleteStatuses) as Athlete["status"],
       currentPhaseId: phaseId,
-      team: random(teams),
+      team,
+      level: teamLevel,
+      primaryPosition: primaryPos,
+      secondaryPosition: secondaryPos || undefined,
     };
 
     const phase: Phase = {

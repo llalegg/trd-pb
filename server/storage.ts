@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Program, type InsertProgram, type Athlete, type Block, type Phase, type AthleteWithPhase } from "@shared/schema";
+import { type User, type InsertUser, type Program, type InsertProgram, type Athlete, type Block, type Phase, type AthleteWithPhase, type ProgramCollaborator } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { generateSeedAthletes } from "../db/seed";
 import { DbStorage } from "./dbStorage";
@@ -24,6 +24,11 @@ export interface IStorage {
   createBlock(block: Omit<Block, "id" | "createdAt" | "updatedAt">): Promise<Block>;
   updateBlock(blockId: string, updates: Partial<Block>): Promise<Block | undefined>;
   deleteBlock(blockId: string): Promise<boolean>;
+  
+  // Collaborator methods
+  getCollaborators(athleteId: string): Promise<ProgramCollaborator[]>;
+  addCollaborator(athleteId: string, userId: string, permissionLevel: "view" | "edit" | "admin"): Promise<ProgramCollaborator>;
+  removeCollaborator(collaboratorId: string): Promise<boolean>;
 }
 
 function generateProgramId(): string {
@@ -32,12 +37,14 @@ function generateProgramId(): string {
 }
 
 export class MemStorage implements IStorage {
+  private collaborators: Map<string, ProgramCollaborator>;
   private users: Map<string, User>;
   private programs: Map<string, Program>;
   private athletes: Map<string, AthleteWithPhase>;
   private blocks: Map<string, Block>;
 
   constructor() {
+    this.collaborators = new Map();
     this.users = new Map();
     this.programs = new Map();
     this.athletes = new Map();
@@ -514,6 +521,33 @@ export class MemStorage implements IStorage {
     return this.blocks.delete(blockId);
   }
 
+  // Collaborator methods
+  async getCollaborators(athleteId: string): Promise<ProgramCollaborator[]> {
+    return Array.from(this.collaborators.values()).filter(
+      c => c.athleteId === athleteId
+    );
+  }
+
+  async addCollaborator(
+    athleteId: string,
+    userId: string,
+    permissionLevel: "view" | "edit" | "admin"
+  ): Promise<ProgramCollaborator> {
+    const collaborator: ProgramCollaborator = {
+      id: randomUUID(),
+      athleteId,
+      userId,
+      permissionLevel,
+      createdAt: new Date().toISOString(),
+    };
+    this.collaborators.set(collaborator.id, collaborator);
+    return collaborator;
+  }
+
+  async removeCollaborator(collaboratorId: string): Promise<boolean> {
+    return this.collaborators.delete(collaboratorId);
+  }
+
   private determineBlockStatus(program: Program): Block["status"] {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -594,6 +628,15 @@ class StorageProxy implements IStorage {
   }
   deleteBlock(blockId: string): Promise<boolean> {
     return getStorage().deleteBlock(blockId);
+  }
+  getCollaborators(athleteId: string): Promise<ProgramCollaborator[]> {
+    return getStorage().getCollaborators(athleteId);
+  }
+  addCollaborator(athleteId: string, userId: string, permissionLevel: "view" | "edit" | "admin"): Promise<ProgramCollaborator> {
+    return getStorage().addCollaborator(athleteId, userId, permissionLevel);
+  }
+  removeCollaborator(collaboratorId: string): Promise<boolean> {
+    return getStorage().removeCollaborator(collaboratorId);
   }
 }
 
