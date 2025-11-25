@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
+    "prebuild": "npm install --legacy-peer-deps --include=optional @rollup/rollup-linux-x64-gnu || true",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && node build-api.js && rm -f api/index.ts api/populate.ts",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
@@ -109,7 +110,7 @@
     "vite": "^5.4.20"
   },
   "optionalDependencies": {
-    "bufferutil": "^4.0.8",
-    "@rollup/rollup-linux-x64-gnu": "^4.0.0"
+    "@rollup/rollup-linux-x64-gnu": "^4.53.3",
+    "bufferutil": "^4.0.8"
   }
 }
