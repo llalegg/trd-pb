@@ -4,6 +4,9 @@ import { registerRoutes } from "./routes";
 import { serveStatic, log } from "./vite";
 
 const app = express();
+
+// Export app for Vercel serverless function wrapper
+export { app };
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -37,8 +40,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// Initialize the app and export it for Vercel
+let initializedApp = app;
+let initializedServer: any = null;
+
 (async () => {
   const server = await registerRoutes(app);
+  initializedServer = server;
 
   interface ErrorWithStatus extends Error {
     status?: number;
@@ -72,16 +80,22 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 3000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '3000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  // Only start the server if not running on Vercel
+  // Vercel will use the serverless function wrapper in api/index.js
+  if (!process.env.VERCEL) {
+    const port = parseInt(process.env.PORT || '3000', 10);
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`serving on port ${port}`);
+    });
+  } else {
+    // On Vercel, export the app for serverless function wrapper
+    log("Running on Vercel - app exported for serverless function");
+  }
 })();
+
+// Export app for Vercel serverless function wrapper
+export { app };

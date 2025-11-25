@@ -42,11 +42,24 @@ function buildApiFile(entryFile, outputFile) {
   });
 }
 
-// Build both API endpoints
-Promise.all([
-  buildApiFile('api/index.ts', 'api/index.js'),
-  buildApiFile('api/populate.ts', 'api/populate.js'),
-]).then(() => {
+// Build both API endpoints (only if they exist)
+// These are optional - we use Express routes in server/routes.ts instead
+const apiFiles = [
+  { entry: 'api/index.ts', output: 'api/index.js' },
+  { entry: 'api/populate.ts', output: 'api/populate.js' },
+].filter(({ entry }) => {
+  const entryPath = resolve(process.cwd(), entry);
+  return existsSync(entryPath);
+});
+
+if (apiFiles.length === 0) {
+  console.log('ℹ️  No API files found (using Express routes instead)');
+  process.exit(0);
+}
+
+Promise.all(
+  apiFiles.map(({ entry, output }) => buildApiFile(entry, output))
+).then(() => {
   console.log('✅ All API endpoints bundled successfully');
 }).catch((error) => {
   console.error('Build failed:', error);

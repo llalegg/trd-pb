@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
-    "build": "npm install --legacy-peer-deps --include=optional && vite build && esbuild server/index.ts --platform=node --packages=external --external:vite --external:rollup --external:@rollup/* --external:./server/vite-setup --external:./server/vite-setup.ts --bundle --format=esm --outdir=dist && cp server/vite-setup.ts dist/vite-setup.ts 2>/dev/null || true && node build-api.js && rm -f api/index.ts api/populate.ts api/index.js api/populate.js",
+    "build": "npm install --legacy-peer-deps --include=optional && vite build && esbuild server/index.ts --platform=node --packages=external --external:vite --external:rollup --external:@rollup/* --external:./server/vite-setup --external:./server/vite-setup.ts --bundle --format=esm --outdir=dist && cp server/vite-setup.ts dist/vite-setup.ts 2>/dev/null || true && node build-api.js",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
     "db:push": "drizzle-kit push",
