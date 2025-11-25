@@ -1004,11 +1004,21 @@ export default function Programs() {
                     No {tabView === "all" ? "" : tabView === "pending" ? "pending" : tabView === "open" ? "open" : "upcoming"} athletes found
                   </h3>
                   <p className="text-sm font-['Montserrat'] text-[#979795] mb-6">
-                    {hasActiveFilters 
-                      ? "Try adjusting your filters to see more results."
-                      : tabView === "all" 
-                        ? "No athletes found. Check your search or filters."
-                        : "Use filters or go to an athlete to create the first block."}
+                    {athletesError ? (
+                      <>
+                        Error loading athletes. Check console for details.
+                        <br />
+                        <span className="text-xs text-red-400 mt-2 block">
+                          {athletesError instanceof Error ? athletesError.message : "Unknown error"}
+                        </span>
+                      </>
+                    ) : hasActiveFilters ? (
+                      "Try adjusting your filters to see more results."
+                    ) : tabView === "all" ? (
+                      "No athletes found. Check your search or filters."
+                    ) : (
+                      "Use filters or go to an athlete to create the first block."
+                    )}
                   </p>
                 </div>
               </div>
