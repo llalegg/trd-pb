@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { serveStatic, log } from "./vite";
 
@@ -57,12 +58,13 @@ app.use((req, res, next) => {
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     try {
-      // Use string-based dynamic import to prevent esbuild from analyzing/bundling
-      // This ensures vite-setup.ts is not initialized until actually imported
-      const viteSetupModule = await import(/* @vite-ignore */ "./vite-setup.js");
+      // Use absolute path import to prevent esbuild from analyzing/bundling
+      // Import from dist folder at runtime to avoid bundling vite-setup module
+      const viteSetupPath = path.resolve(import.meta.dirname, "vite-setup.js");
+      const viteSetupModule = await import(/* @vite-ignore */ viteSetupPath);
       await viteSetupModule.setupVite(app, server);
     } catch (error) {
-      // If Vite can't be loaded (e.g., in production), fall back to static serving
+      // If Vite can't be loaded (e.g., in production or vite-setup not available), fall back to static serving
       console.warn("Failed to load Vite, falling back to static serving:", error);
       serveStatic(app);
     }
