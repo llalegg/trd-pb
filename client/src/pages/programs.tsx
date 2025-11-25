@@ -108,16 +108,8 @@ const getStatusTooltip = (status?: "injured" | "rehabbing" | "lingering-issues" 
 };
 
 const getAvatarBorderClass = (status?: "injured" | "rehabbing" | "lingering-issues" | null) => {
-  switch (status) {
-    case "injured":
-      return "ring-2 ring-red-500/40";
-    case "rehabbing":
-      return "ring-2 ring-blue-500/40";
-    case "lingering-issues":
-      return "ring-2 ring-amber-500/40";
-    default:
-      return "ring-1 ring-[#292928]";
-  }
+  // Uniform gray border for all avatars
+  return "ring-1 ring-[#292928]";
 };
 
 const getSeasonBadgeStyle = (season?: string | null): string => {
@@ -273,22 +265,25 @@ const getLastEntryDay = (blocks: Block[]): { daysAgo: number | null; text: strin
 };
 
 // Get most recent modification day
-const getLastModificationDay = (blocks: Block[]): { daysAgo: number | null; text: string; formattedDate: string | null } => {
-  const modificationDates: Date[] = [];
+const getLastModificationDay = (blocks: Block[]): { daysAgo: number | null; text: string; formattedDate: string | null; fullDateTime: string | null; blockId: string | null } => {
+  const modificationDates: { date: Date; blockId: string }[] = [];
   blocks.forEach(block => {
     if (block.lastModification) {
-      modificationDates.push(new Date(block.lastModification));
+      modificationDates.push({ date: new Date(block.lastModification), blockId: block.id });
     }
   });
   
   if (modificationDates.length === 0) {
-    return { daysAgo: null, text: "–", formattedDate: null };
+    return { daysAgo: null, text: "–", formattedDate: null, fullDateTime: null, blockId: null };
   }
   
-  const mostRecent = new Date(Math.max(...modificationDates.map(d => d.getTime())));
-  const formattedDate = format(mostRecent, "MMM d");
+  const mostRecent = modificationDates.reduce((prev, current) => 
+    current.date > prev.date ? current : prev
+  );
+  const formattedDate = format(mostRecent.date, "MMM d");
+  const fullDateTime = format(mostRecent.date, "PPpp"); // Full date and time format (e.g., "January 1, 2024 at 12:00 PM")
   
-  return { daysAgo: null, text: formattedDate, formattedDate };
+  return { daysAgo: null, text: formattedDate, formattedDate, fullDateTime, blockId: mostRecent.blockId };
 };
 
 // Get sub-season status (In-Season or Off-Season)
@@ -1571,6 +1566,9 @@ export default function Programs() {
                           <div className="flex items-center pl-4 pr-0 w-[110px] min-w-[110px]">
                             {(() => {
                               const lastMod = getLastModificationDay(athleteData.blocks);
+                              if (!lastMod.fullDateTime) {
+                                return <span className="text-[#979795] text-sm">–</span>;
+                              }
                               return (
                                 <TooltipProvider>
                                   <Tooltip>
@@ -1580,7 +1578,10 @@ export default function Programs() {
                                       </span>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>Edited by: Coach Name</p>
+                                      <div className="flex flex-col gap-1">
+                                        <p>Edited by: Coach</p>
+                                        <p className="text-xs text-[#979795]">{lastMod.fullDateTime}</p>
+                                      </div>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
