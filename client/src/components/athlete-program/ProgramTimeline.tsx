@@ -45,6 +45,7 @@ export default function ProgramTimeline({
   keyEvents = [],
 }: ProgramTimelineProps) {
   const timelineRef = useRef<HTMLDivElement>(null);
+  const [showLegend, setShowLegend] = React.useState(false);
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -199,7 +200,7 @@ export default function ProgramTimeline({
             onClick={() => handleBlockClick(block)}
             className="h-7 px-3 text-xs border-[#292928] bg-[#171716] text-[#979795] hover:text-[#f7f6f2] hover:bg-[#1C1C1B] font-['Montserrat']"
           >
-            {block.name || `Block ${block.blockNumber}`}
+            {`Block ${block.blockNumber}`}
           </Button>
         ))}
         <Button
@@ -213,8 +214,8 @@ export default function ProgramTimeline({
       </div>
 
       {/* Timeline */}
-      <div className="border border-[#292928] rounded-lg bg-[#0d0d0c] overflow-x-auto" ref={timelineRef}>
-        <div className="relative">
+      <div className="border border-[#292928] rounded-lg bg-[#0d0d0c] overflow-x-auto min-h-[200px]" ref={timelineRef}>
+        <div className="relative pt-12">
           <div className="flex gap-0 min-w-max">
             {weeks.map((weekDays, weekIndex) => {
               const weekNumber = getWeekNumber(weekDays[0]);
@@ -226,13 +227,6 @@ export default function ProgramTimeline({
 
               return (
                 <div key={weekIndex} className="flex gap-0 relative">
-                  {/* Week Label */}
-                  {weekNumber && weekIndex === 0 && (
-                    <div className="absolute -top-6 left-0 text-xs text-[#979795] font-['Montserrat'] font-medium">
-                      Week {weekNumber}
-                    </div>
-                  )}
-                  
                   {/* Block Transition Line */}
                   {showBlockTransition && !isFirstWeek && (
                     <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-pink-500 z-10" />
@@ -246,13 +240,26 @@ export default function ProgramTimeline({
                     const hasKeyEvent = keyEvents.some((event) => isSameDay(day, event.date));
                     const dayBlock = getBlockForDay(day);
                     const isWeekStart = dayIndex === 0;
+                    const isBlockStart = isBlockTransition(day);
+                    const prevDay = dayIndex > 0 ? weekDays[dayIndex - 1] : (weekIndex > 0 ? weeks[weekIndex - 1][weeks[weekIndex - 1].length - 1] : null);
+                    const prevDayBlock = prevDay ? getBlockForDay(prevDay) : null;
+                    const showBlockLabel = isBlockStart && dayBlock && (!prevDayBlock || prevDayBlock.id !== dayBlock.id);
 
                     return (
                       <div key={day.toISOString()} className="relative">
-                        {/* Week Label above first day of week */}
+                        {/* Block and Week Labels above first day of week */}
                         {isWeekStart && weekNumber && (
-                          <div className="absolute -top-6 left-0 text-xs text-[#979795] font-['Montserrat'] font-medium whitespace-nowrap">
-                            Week {weekNumber}
+                          <div className="absolute -top-6 left-0 flex items-center gap-2 z-10">
+                            {/* Block Label (if this is a block start) */}
+                            {showBlockLabel && dayBlock && (
+                              <span className="text-xs text-[#979795] font-['Montserrat'] font-medium whitespace-nowrap">
+                                {`Block ${dayBlock.blockNumber}`}
+                              </span>
+                            )}
+                            {/* Week Label with left border */}
+                            <div className="text-xs text-[#f7f6f2] font-['Montserrat'] font-semibold whitespace-nowrap bg-[#0d0d0c] px-1 border-l-2 border-[#292928] pl-2">
+                              Week {weekNumber}
+                            </div>
                           </div>
                         )}
                         
@@ -260,7 +267,7 @@ export default function ProgramTimeline({
                           data-day={day.toISOString()}
                           onClick={() => onDaySelect(day)}
                           className={cn(
-                            "w-[32px] border flex flex-col cursor-pointer transition-all relative",
+                            "w-[32px] border flex flex-col cursor-pointer transition-all relative min-h-[120px]",
                             "bg-[#171716] border-[#292928]",
                             isSelected && "ring-2 ring-primary border-primary",
                             isToday && !isSelected && "ring-1 ring-primary/50",
@@ -332,19 +339,31 @@ export default function ProgramTimeline({
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-xs text-[#979795] font-['Montserrat']">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-[#292928] rounded" />
-          <span>Block 1 (expired)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-500 rounded" />
-          <span>Block 2 (current)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-400 rounded" />
-          <span>Block 3 (upcoming)</span>
-        </div>
+      <div className="space-y-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowLegend(!showLegend)}
+          className="h-7 px-3 text-xs text-[#979795] hover:text-[#f7f6f2] font-['Montserrat']"
+        >
+          {showLegend ? 'Hide' : 'Show'} Legend
+        </Button>
+        {showLegend && (
+          <div className="flex items-center gap-4 text-xs text-[#979795] font-['Montserrat']">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-[#292928] rounded" />
+              <span>Block 1 (expired)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded" />
+              <span>Block 2 (current)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-400 rounded" />
+              <span>Block 3 (upcoming)</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
