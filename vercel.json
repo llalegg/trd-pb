@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install --legacy-peer-deps --include=optional",
+  "installCommand": "npm install --legacy-peer-deps --include=optional --omit=dev",
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
   "framework": null,
