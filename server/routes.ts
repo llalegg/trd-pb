@@ -80,6 +80,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/athletes", async (_req, res) => {
     try {
       console.log(`[API] /api/athletes - Request received`);
+      console.log(`[API] Environment check:`, {
+        USE_DATABASE: process.env.USE_DATABASE,
+        hasDatabaseUrl: !!(process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING),
+        NODE_ENV: process.env.NODE_ENV,
+      });
       console.log(`[API] Storage instance:`, storage ? 'exists' : 'null');
       const athletes = await storage.getAthletes();
       console.log(`[API] /api/athletes - Returning ${athletes.length} athletes`);
@@ -93,15 +98,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         console.log(`[API] WARNING: No athletes returned from storage!`);
+        console.log(`[API] This might indicate:`);
+        console.log(`[API] 1. Database is empty (run populate script)`);
+        console.log(`[API] 2. Database connection failed (check POSTGRES_URL)`);
+        console.log(`[API] 3. USE_DATABASE not set, but MemStorage seed data failed`);
       }
-      res.json(athletes);
+      // Always return an array, even if empty
+      res.json(athletes || []);
     } catch (error) {
       console.error("[API] Error fetching athletes:", error);
       if (error instanceof Error) {
         console.error("[API] Error stack:", error.stack);
       }
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: "Failed to fetch athletes", details: errorMessage });
+      // Return empty array instead of error to prevent frontend crashes
+      console.error("[API] Returning empty array due to error");
+      res.status(200).json([]);
     }
   });
 

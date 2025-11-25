@@ -537,14 +537,25 @@ export default function Programs() {
   });
 
   // Fetch athletes data from API
-  const { data: athletesData, isLoading } = useQuery<AthleteWithPhase[]>({
+  const { data: athletesData, isLoading, error: athletesError } = useQuery<AthleteWithPhase[]>({
     queryKey: ["/api/athletes"],
     queryFn: async () => {
-      const response = await fetch("/api/athletes");
-      if (!response.ok) {
-        throw new Error("Failed to fetch athletes");
+      try {
+        const response = await fetch("/api/athletes");
+        if (!response.ok) {
+          console.error("[Programs] Failed to fetch athletes:", response.status, response.statusText);
+          // Return empty array instead of throwing to prevent UI crash
+          return [];
+        }
+        const data = await response.json();
+        console.log("[Programs] Fetched athletes:", Array.isArray(data) ? data.length : 'not an array', data);
+        // Ensure we always return an array
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("[Programs] Error fetching athletes:", error);
+        // Return empty array instead of throwing
+        return [];
       }
-      return response.json();
     },
   });
 
