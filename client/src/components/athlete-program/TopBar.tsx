@@ -29,7 +29,19 @@ export default function TopBar({
 		? displayPhaseTitle?.slice(phasePrimaryMatch[0].length).trim()
 		: "";
 	return (
-		<div className="fixed top-0 right-0 z-50 border-b border-[#292928] bg-surface-base" style={{ left: leftOffset }}>
+		<div 
+			className="fixed z-50 border-b border-[#292928] bg-surface-base" 
+			style={{ 
+				position: 'fixed',
+				top: 0,
+				left: 0,
+				right: 0,
+				width: '100%',
+				margin: 0,
+				padding: 0,
+				boxSizing: 'border-box'
+			}}
+		>
 			<div className="h-14 flex items-center px-4">
 				{/* Left: Back + Profile + Phase title */}
 				<div className="flex items-center gap-3">
