@@ -3,30 +3,14 @@
   "buildCommand": "npm install --legacy-peer-deps --include=optional && npm run build",
   "outputDirectory": "dist/public",
   "framework": null,
-  "builds": [
-    {
-      "src": "dist/index.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/dist/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/dist/public/$1"
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/dist/index.js"
+      "destination": "/api"
     },
     {
       "source": "/(.*)",
-      "destination": "/dist/public/$1"
+      "destination": "/index.html"
     }
   ]
 }

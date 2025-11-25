@@ -569,33 +569,21 @@ let storageInstance: IStorage | null = null;
 
 export function getStorage(): IStorage {
   if (!storageInstance) {
-    // Set USE_DATABASE=true in environment variables to enable database storage
-    const useDatabase = process.env.USE_DATABASE === "true";
+    // Automatically use database if DATABASE_URL is present
+    // Set USE_DATABASE=false to force using MemStorage (for testing/development)
     const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
+    const forceMemStorage = process.env.USE_DATABASE === "false";
     
-    console.log("[Storage] Initializing storage:", {
-      useDatabase,
-      hasDatabaseUrl: !!databaseUrl,
-      NODE_ENV: process.env.NODE_ENV,
-    });
-    
-    if (useDatabase && databaseUrl) {
+    if (!forceMemStorage && databaseUrl) {
       try {
-        console.log("[Storage] Attempting to use database storage");
+        console.log("Using database storage");
         storageInstance = new DbStorage(databaseUrl);
-        console.log("[Storage] Database storage initialized successfully");
       } catch (error) {
-        console.error("[Storage] Failed to initialize DbStorage, falling back to MemStorage:", error);
+        console.error("Failed to initialize DbStorage, falling back to MemStorage:", error);
         storageInstance = new MemStorage();
       }
     } else {
-      console.log("[Storage] Using in-memory storage (hardcoded data)");
-      if (!useDatabase) {
-        console.log("[Storage] USE_DATABASE not set to 'true', using MemStorage");
-      }
-      if (!databaseUrl) {
-        console.log("[Storage] No database URL found (check DATABASE_URL or POSTGRES_URL)");
-      }
+      console.log("Using in-memory storage (hardcoded data)");
       storageInstance = new MemStorage();
     }
   }
