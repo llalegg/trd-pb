@@ -58,7 +58,8 @@ app.use((req, res, next) => {
   if (app.get("env") === "development") {
     try {
       // Dynamic import to avoid loading Vite/Rollup in production builds
-      const { setupVite } = await import("./vite");
+      // Import from vite-setup.ts directly to avoid bundling vite.ts module
+      const { setupVite } = await import("./vite-setup");
       await setupVite(app, server);
     } catch (error) {
       // If Vite can't be loaded (e.g., in production), fall back to static serving
