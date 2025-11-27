@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CalendarDays, Clock8, ArrowRight, Activity, TrendingUp, MessageSquareMore } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { AlertTriangle, CalendarDays, Clock8, ArrowRight, Activity, TrendingUp, MessageSquareMore, ChevronDown, ChevronUp, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -19,9 +20,18 @@ interface ActivityItem {
   timestamp: string;
 }
 
+interface Collaborator {
+  id: string;
+  name: string;
+  avatar?: string;
+  role: string;
+}
+
 interface SummaryRightSidebarProps {
   alerts?: Alert[];
   activityFeed?: ActivityItem[];
+  collaborators?: Collaborator[];
+  onManagePermissions?: () => void;
 }
 
 const getAlertAccent = (severity: "warning" | "critical" | "info") => {
@@ -61,8 +71,11 @@ const renderActivityIcon = (type: "workout" | "performance" | "coach") => {
 
 export default function SummaryRightSidebar({ 
   alerts = [], 
-  activityFeed = [] 
+  activityFeed = [],
+  collaborators = [],
+  onManagePermissions,
 }: SummaryRightSidebarProps) {
+  const [expandedActivity, setExpandedActivity] = useState(false);
   // Default alerts if none provided
   const defaultAlerts: Alert[] = alerts.length > 0 ? alerts : [
     {
@@ -113,9 +126,56 @@ export default function SummaryRightSidebar({
     },
   ];
 
+  // Default collaborators if none provided
+  const defaultCollaborators: Collaborator[] = collaborators.length > 0 ? collaborators : [
+    { id: "1", name: "John Coach", role: "Head Coach", avatar: undefined },
+    { id: "2", name: "Sarah Trainer", role: "Strength Coach", avatar: undefined },
+    { id: "3", name: "Mike PT", role: "Physical Therapist", avatar: undefined },
+  ];
+
   return (
     <aside className="w-[320px] border-l border-[#292928] bg-[#0d0d0c] h-full overflow-y-auto">
       <div className="p-4 space-y-6">
+        {/* Collaborators Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-[#f7f6f2] font-['Montserrat']">
+              Collaborators
+            </h3>
+            {onManagePermissions && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onManagePermissions}
+                className="h-6 px-2 text-xs text-[#979795] hover:text-[#f7f6f2] font-['Montserrat']"
+              >
+                Manage
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {defaultCollaborators.slice(0, 4).map((collaborator, index) => (
+              <div
+                key={collaborator.id}
+                className="relative"
+                style={{ marginLeft: index > 0 ? '-8px' : '0' }}
+              >
+                <Avatar className="h-8 w-8 border-2 border-[#0d0d0c]">
+                  <AvatarImage src={collaborator.avatar} alt={collaborator.name} />
+                  <AvatarFallback className="bg-[#292928] text-[#f7f6f2] text-xs font-['Montserrat']">
+                    {collaborator.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            ))}
+            {defaultCollaborators.length > 4 && (
+              <div className="h-8 w-8 rounded-full bg-[#292928] border-2 border-[#0d0d0c] flex items-center justify-center text-xs text-[#979795] font-['Montserrat']" style={{ marginLeft: '-8px' }}>
+                +{defaultCollaborators.length - 4}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Alerts & Notifications Section */}
         <div className="space-y-4">
           <div>
@@ -163,9 +223,29 @@ export default function SummaryRightSidebar({
 
         {/* Recent Activity Feed Section */}
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-[#f7f6f2] font-['Montserrat']">
-            Recent activity feed
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-[#f7f6f2] font-['Montserrat']">
+              Recent activity feed
+            </h3>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setExpandedActivity(!expandedActivity)}
+              className="h-6 px-2 text-xs text-[#979795] hover:text-[#f7f6f2] font-['Montserrat']"
+            >
+              {expandedActivity ? (
+                <>
+                  <ChevronUp className="h-3 w-3 mr-1" />
+                  Collapse
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3 w-3 mr-1" />
+                  Expand
+                </>
+              )}
+            </Button>
+          </div>
           <div className="space-y-0">
             {defaultActivityFeed.map((item, index) => (
               <div
@@ -192,6 +272,20 @@ export default function SummaryRightSidebar({
               </div>
             ))}
           </div>
+          {/* Expanded Activity Timeline */}
+          {expandedActivity && (
+            <div className="mt-4 pt-4 border-t border-[#292928]">
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-[#f7f6f2] font-['Montserrat'] uppercase tracking-wide">
+                  Full Timeline
+                </p>
+                <div className="space-y-2 text-xs text-[#979795] font-['Montserrat']">
+                  <p>Athlete entries, system entries, and staff entries displayed in chronological order.</p>
+                  <p className="text-[#979795]/70">Full timeline view coming soon...</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </aside>

@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, PanelLeftOpen, PanelLeftClose } from "lucide-react";
 
@@ -11,6 +12,8 @@ interface TopBarProps {
 	onOpenAthleteDetails?: () => void;
 	leftOffset?: number;
 	athleteDetailsOpen?: boolean;
+	athleteName?: string;
+	programPosition?: { phase: number; block: number; week: number; day: number };
 }
 
 export default function TopBar({
@@ -21,6 +24,8 @@ export default function TopBar({
 	onOpenAthleteDetails,
 	leftOffset = 0,
 	athleteDetailsOpen = false,
+	athleteName,
+	programPosition,
 }: TopBarProps) {
 	const displayPhaseTitle = phaseTitle?.replace(/[()]/g, "").trim();
 	const phasePrimaryMatch = displayPhaseTitle?.match(/^(Phase\s*\d+)/i);
@@ -28,6 +33,10 @@ export default function TopBar({
 	const phaseSecondaryText = phasePrimaryMatch
 		? displayPhaseTitle?.slice(phasePrimaryMatch[0].length).trim()
 		: "";
+	
+	const sidebarWidth = 320;
+	const minimizeButtonLeft = athleteDetailsOpen ? sidebarWidth : 0;
+	
 	return (
 		<div 
 			className="fixed z-50 border-b border-[#292928] bg-surface-base" 
@@ -42,8 +51,8 @@ export default function TopBar({
 				boxSizing: 'border-box'
 			}}
 		>
-			<div className="h-14 flex items-center px-4">
-				{/* Left: Back + Profile + Phase title */}
+			<div className="h-14 flex items-center px-4 relative">
+				{/* Left: Back + Profile + Athlete Name + Program Position */}
 				<div className="flex items-center gap-3">
 					<Button
 						variant="ghost"
@@ -54,35 +63,53 @@ export default function TopBar({
 					>
 						<ArrowLeft className="h-4 w-4" />
 					</Button>
+					
+					{/* Minimize button positioned on sidebar divider */}
 					{onOpenAthleteDetails && (
 						<Button
 							variant="ghost"
 							size="icon"
-						className="h-8 w-8 text-[#979795] hover:text-[#f7f6f2]"
+							className="h-8 w-8 text-[#979795] hover:text-[#f7f6f2] absolute"
+							style={{ left: `${minimizeButtonLeft}px` }}
 							onClick={onOpenAthleteDetails}
 							aria-label={athleteDetailsOpen ? "Hide athlete details" : "Open athlete details"}
 							aria-pressed={athleteDetailsOpen}
 						>
 							{athleteDetailsOpen ? (
-							<PanelLeftClose className="h-4 w-4 text-inherit" />
+								<PanelLeftClose className="h-4 w-4 text-inherit" />
 							) : (
-							<PanelLeftOpen className="h-4 w-4 text-inherit" />
+								<PanelLeftOpen className="h-4 w-4 text-inherit" />
 							)}
 						</Button>
 					)}
-				{displayPhaseTitle && (
-					<div className="flex items-baseline gap-2">
-						{phasePrimaryText && (
-							<span className="text-sm text-primary font-semibold">
-								{phasePrimaryText}
+					
+					{/* Athlete Name - always visible */}
+					{athleteName && (
+						<div className="flex items-center gap-2 ml-12">
+							<span className="text-sm font-semibold text-[#f7f6f2] font-['Montserrat']">
+								{athleteName}
 							</span>
-						)}
-						{phaseSecondaryText && (
-							<span className="text-sm text-[#979795] font-medium">
-								{phaseSecondaryText}
-							</span>
-						)}
-					</div>
+							{programPosition && (
+								<Badge variant="outline" className="text-xs font-mono text-[#979795] bg-[#171716] border-[#292928]">
+									Program {programPosition.phase}.{programPosition.block}.{programPosition.week}.{programPosition.day}
+								</Badge>
+							)}
+						</div>
+					)}
+					
+					{displayPhaseTitle && (
+						<div className="flex items-baseline gap-2">
+							{phasePrimaryText && (
+								<span className="text-sm text-primary font-semibold">
+									{phasePrimaryText}
+								</span>
+							)}
+							{phaseSecondaryText && (
+								<span className="text-sm text-[#979795] font-medium">
+									{phaseSecondaryText}
+								</span>
+							)}
+						</div>
 					)}
 				</div>
 				{/* Center: Tabs */}

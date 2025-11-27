@@ -10,6 +10,7 @@ interface AthleteInfoSidebarProps {
   currentPhase?: Phase;
   blocks: Block[];
   className?: string;
+  keyDates?: Array<{ date: Date; label: string }>;
 }
 
 function getStatusIcon(status?: Athlete["status"]) {
@@ -37,7 +38,7 @@ function formatDateRange(start?: string, end?: string) {
     : `${format(s, "MMM d, yyyy")} - ${format(e, "MMM d, yyyy")}`;
 }
 
-export default function AthleteInfoSidebar({ athlete, currentPhase, blocks, className }: AthleteInfoSidebarProps) {
+export default function AthleteInfoSidebar({ athlete, currentPhase, blocks, className, keyDates = [] }: AthleteInfoSidebarProps) {
   // Mock data for athlete details - in production, these would come from the athlete object
   const athleteDetails = {
     name: athlete.name || "Oliver Martinez",
@@ -232,6 +233,27 @@ export default function AthleteInfoSidebar({ athlete, currentPhase, blocks, clas
             </div>
           </div>
         </div>
+
+        {/* Key Dates Section */}
+        {keyDates.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-[#f7f6f2] font-['Montserrat'] uppercase tracking-wide">
+              Key Dates
+            </h3>
+            <div className="space-y-2.5">
+              {keyDates.map((keyDate, index) => (
+                <div key={index} className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[#979795] font-['Montserrat']">{keyDate.label}</span>
+                    <span className="text-xs text-[#f7f6f2] font-['Montserrat'] font-medium">
+                      {format(keyDate.date, "MMM d, yyyy")}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   );

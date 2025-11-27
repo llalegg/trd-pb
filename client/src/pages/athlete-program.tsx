@@ -100,6 +100,17 @@ export default function AthleteProgramPage() {
 		? `Phase ${athleteData.currentPhase.phaseNumber} (25-'26)`
 		: "Phase 1 (25-'26)";
 
+	// Calculate program position
+	const programPosition = React.useMemo(() => {
+		if (!athleteData) return undefined;
+		const currentBlock = athleteData.blocks.find(b => b.status === "active");
+		const phaseNum = athleteData.currentPhase?.phaseNumber || 1;
+		const blockNum = currentBlock?.blockNumber || 1;
+		const week = currentBlock?.currentDay?.week || 1;
+		const day = currentBlock?.currentDay?.day || 1;
+		return { phase: phaseNum, block: blockNum, week, day };
+	}, [athleteData]);
+
 	// State for selected day in timeline
 	const today = React.useMemo(() => {
 		const d = new Date();
@@ -135,6 +146,8 @@ export default function AthleteProgramPage() {
 				phaseTitle={phaseTitle}
 				onOpenAthleteDetails={() => setDetailsOpen(prev => !prev)}
 				athleteDetailsOpen={detailsOpen}
+				athleteName={athleteData?.athlete.name}
+				programPosition={programPosition}
 			/>
 			{/* Offset content for fixed top bar height (h-14 => 56px) */}
 			<div className="pt-14">
