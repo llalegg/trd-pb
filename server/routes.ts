@@ -20,7 +20,7 @@ const createBlockSchema = z.object({
   startDate: z.string(),
   endDate: z.string(),
   duration: z.number(),
-  season: z.enum(["Pre-Season", "In-Season", "Off-Season", "Redshirt"]),
+  season: z.enum(["Pre-Season", "In-Season", "Off-Season"]),
   subSeason: z.enum(["Early", "Mid", "Late", "General Off-Season (GOS)"]).optional(),
   status: z.enum(["draft", "active", "planned", "complete"]),
   currentDay: z.object({

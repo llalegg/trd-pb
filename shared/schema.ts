@@ -53,7 +53,7 @@ export const blocks = pgTable("blocks", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   duration: integer("duration").notNull(),
-  season: varchar("season", { length: 20 }).notNull(), // "Pre-Season" | "In-Season" | "Off-Season" | "Redshirt"
+  season: varchar("season", { length: 20 }).notNull(), // "Pre-Season" | "In-Season" | "Off-Season"
   subSeason: varchar("sub_season", { length: 50 }), // "Early" | "Mid" | "Late" | "General Off-Season (GOS)"
   status: varchar("status", { length: 20 }).notNull(), // "draft" | "active" | "planned" | "complete"
   currentDay: jsonb("current_day"), // { week: number, day: number }
@@ -116,7 +116,7 @@ export interface Block {
   duration: number; // weeks (2-4)
   
   // Season info
-  season: "Pre-Season" | "In-Season" | "Off-Season" | "Redshirt";
+  season: "Pre-Season" | "In-Season" | "Off-Season";
   subSeason?: "Early" | "Mid" | "Late" | "General Off-Season (GOS)";
   
   // Status

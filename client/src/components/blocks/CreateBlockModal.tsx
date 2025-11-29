@@ -43,7 +43,7 @@ interface CreateBlockModalProps {
 
 const createBlockSchema = z.object({
   name: z.string().min(1, "Block name is required"),
-  season: z.enum(["Pre-Season", "In-Season", "Off-Season", "Redshirt"]),
+  season: z.enum(["Pre-Season", "In-Season", "Off-Season"]),
   subSeason: z.enum(["Early", "Mid", "Late", "General Off-Season (GOS)"]).optional(),
   startDate: z.date({
     required_error: "Start date is required",
@@ -55,12 +55,11 @@ const createBlockSchema = z.object({
 
 type CreateBlockFormData = z.infer<typeof createBlockSchema>;
 
-const SEASON_OPTIONS = ["Pre-Season", "In-Season", "Off-Season", "Redshirt"] as const;
+const SEASON_OPTIONS = ["Pre-Season", "In-Season", "Off-Season"] as const;
 const SUB_SEASON_OPTIONS = ["Early", "Mid", "Late", "General Off-Season (GOS)"] as const;
 const DURATION_OPTIONS = [1, 2, 3, 4] as const;
 
 const getSubSeasonOptions = (season: string): string[] => {
-  if (season === "Redshirt") return [];
   if (season === "Off-Season") {
     return ["Early", "Mid", "Late", "General Off-Season (GOS)"];
   }

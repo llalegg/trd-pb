@@ -36,7 +36,7 @@ const lastNames = [
 ];
 
 // Seasons and sub-seasons
-const seasons = ["Pre-Season", "In-Season", "Off-Season", "Redshirt"] as const;
+const seasons = ["Pre-Season", "In-Season", "Off-Season"] as const;
 const subSeasons = ["Early", "Mid", "Late", "General Off-Season (GOS)"] as const;
 const statuses = ["draft", "active", "planned", "complete"] as const;
 const athleteStatuses = [null, "injured", "rehabbing", "lingering-issues"] as const;

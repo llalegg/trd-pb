@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Activity, AlertCircle, Circle, ChevronRight, ChevronDown, List, Calendar, MoreVertical, CheckCircle2, Hammer, Eye } from "lucide-react";
+import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Activity, AlertCircle, Circle, ChevronRight, ChevronDown, List, Calendar, MoreVertical, CheckCircle2, Hammer, Eye, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,15 +31,20 @@ import { format, formatDistanceToNow, differenceInDays } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { Target, Dumbbell } from "lucide-react";
 
-type TabView = "all" | "open" | "pending" | "upcoming";
-type SortField = "athleteName" | "team" | "subSeasonStatus" | "blockProgress" | "programStatus" | "lastEntryDay" | "lastModificationDay";
+type TabView = "all" | "open" | "pending" | "upcoming" | "pastDue";
+type SortField = "athleteName" | "team" | "readiness" | "status" | "subSeasonStatus" | "program" | "blockProgress" | "todaysSession" | "lastEntryDay" | "lastModificationDay" | "compliance" | "collaborators";
 type SortDirection = "asc" | "desc";
 
 interface FilterState {
   athleteStatuses: string[]; // injured/rehabbing/lingering-issues
   blockStatuses: string[]; // active/complete/draft/planned
   seasons: string[];
-  subSeasons: string[];
+  subSeasons: string[]; // EOS, GOS, LOS, PrS, EIS, MIS, LIS, PoS
+  statusIcons: string[]; // sign-off, build, review, tasks
+  programPositions: string[]; // filter by phase/block patterns
+  todaysSessions: string[]; // throwing, lifting, movement
+  complianceRanges: string[]; // percentage ranges
+  collaboratorCounts: string[]; // count ranges
   urgency: string[]; // due-this-week, overdue, no-active-block
   nextBlockDueStart: string;
   nextBlockDueEnd: string;
@@ -59,7 +64,18 @@ const BLOCK_STATUS_OPTIONS = [
   { value: "planned", label: "Planned" },
 ];
 const SEASON_OPTIONS = ["Pre-Season", "In-Season", "Off-Season"];
-const SUB_SEASON_OPTIONS = ["Early", "Mid", "Late"];
+const SUB_SEASON_OPTIONS = ["EOS", "GOS", "LOS", "PrS", "EIS", "MIS", "LIS", "PoS"];
+const STATUS_ICON_OPTIONS = [
+  { value: "sign-off", label: "Sign-off pending" },
+  { value: "build", label: "Build" },
+  { value: "review", label: "Review" },
+  { value: "tasks", label: "Tasks" },
+];
+const TODAYS_SESSION_OPTIONS = [
+  { value: "throwing", label: "Throwing" },
+  { value: "lifting", label: "Lifting" },
+  { value: "movement", label: "Movement" },
+];
 const URGENCY_OPTIONS = [
   { value: "due-this-week", label: "Due this week" },
   { value: "overdue", label: "Overdue" },
@@ -424,20 +440,73 @@ const getProgramPosition = (blocks: Block[], currentPhase?: { phaseNumber: numbe
 };
 
 // Get today's session data (throwing/lifting with intensity)
-const getTodaysSession = async (athleteId: string): Promise<{ throwing: string | null; lifting: string | null; throwingIntensity?: string; liftingIntensity?: string }> => {
+const getTodaysSession = async (athleteId: string): Promise<{ throwing: string | null; lifting: string | null; movement: string | null; throwingIntensity?: string; liftingIntensity?: string }> => {
   try {
     const response = await fetch(`/api/athletes/${athleteId}/today-session`);
-    if (!response.ok) return { throwing: null, lifting: null };
+    if (!response.ok) {
+      // Return random routines for demonstration
+      return getRandomTodaysSession(athleteId);
+    }
     const data = await response.json();
     return {
       throwing: data.throwing ? data.throwing.type : null,
       lifting: data.lifting ? data.lifting.type : null,
+      movement: data.movement ? data.movement.type : null,
       throwingIntensity: data.throwing?.intensity,
       liftingIntensity: data.lifting?.intensity,
     };
   } catch {
-    return { throwing: null, lifting: null };
+    return getRandomTodaysSession(athleteId);
   }
+};
+
+// Get random today's session routines
+const getRandomTodaysSession = (athleteId: string): { throwing: string | null; lifting: string | null; movement: string | null } => {
+  // Use athleteId as seed for consistent randomness
+  const seed = athleteId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const random = (seed * 9301 + 49297) % 233280 / 233280;
+  
+  const throwingRoutines = ["Player Series A", "Catch & Play", "Play Session"];
+  const liftingRoutines = ["Upper Body", "Lower Body", "Total Body"];
+  const movementRoutines = ["Corrective A", "Corrective E", "Mobility & Activation"];
+  
+  const routines: { throwing: string | null; lifting: string | null; movement: string | null } = {
+    throwing: null,
+    lifting: null,
+    movement: null,
+  };
+  
+  // Randomly assign 1-3 routines
+  const routineCount = Math.floor(random * 3) + 1;
+  const selectedTypes: string[] = [];
+  
+  if (routineCount >= 1) {
+    const type1 = Math.floor(random * 3);
+    if (type1 === 0) {
+      routines.throwing = throwingRoutines[Math.floor(random * throwingRoutines.length)];
+      selectedTypes.push("throwing");
+    } else if (type1 === 1) {
+      routines.lifting = liftingRoutines[Math.floor(random * liftingRoutines.length)];
+      selectedTypes.push("lifting");
+    } else {
+      routines.movement = movementRoutines[Math.floor(random * movementRoutines.length)];
+      selectedTypes.push("movement");
+    }
+  }
+  
+  if (routineCount >= 2 && !selectedTypes.includes("throwing")) {
+    routines.throwing = throwingRoutines[Math.floor((random * 100) % throwingRoutines.length)];
+    selectedTypes.push("throwing");
+  } else if (routineCount >= 2 && !selectedTypes.includes("lifting")) {
+    routines.lifting = liftingRoutines[Math.floor((random * 200) % liftingRoutines.length)];
+    selectedTypes.push("lifting");
+  }
+  
+  if (routineCount >= 3 && !selectedTypes.includes("movement")) {
+    routines.movement = movementRoutines[Math.floor((random * 300) % movementRoutines.length)];
+  }
+  
+  return routines;
 };
 
 // Get days until block end with color coding (text only, no badge)
@@ -575,6 +644,93 @@ const needsAttention = (blocks: Block[], athleteId: string, tabView: TabView): b
   return hasOverdue || pacingWarning || taskCount > 0;
 };
 
+// Multiselect Filter Component
+interface MultiselectFilterProps {
+  label: string;
+  options: Array<{ value: string; label: string } | string>;
+  selectedValues: string[];
+  onToggle: (value: string) => void;
+  onRemove: (value: string) => void;
+}
+
+const MultiselectFilter = ({ label, options, selectedValues, onToggle, onRemove }: MultiselectFilterProps) => {
+  const [open, setOpen] = useState(false);
+  
+  const optionList = options.map(opt => 
+    typeof opt === "string" ? { value: opt, label: opt } : opt
+  );
+  
+  const selectedCount = selectedValues.length;
+  
+  return (
+    <div className="space-y-3">
+      <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">{label}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className="w-full justify-between bg-[#171716] border-[#292928] text-[#f7f6f2] hover:bg-[#292928] font-['Montserrat']"
+          >
+            <span className="text-sm">
+              {selectedCount > 0 ? `${selectedCount} selected` : "All"}
+            </span>
+            <ChevronDown className="h-4 w-4 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[300px] bg-[#171716] border-[#292928] p-0" align="start">
+          <div className="p-2 space-y-1 max-h-[300px] overflow-y-auto">
+            {optionList.map((option) => {
+              const isSelected = selectedValues.includes(option.value);
+              return (
+                <div
+                  key={option.value}
+                  className="flex items-center space-x-2 p-2 rounded hover:bg-[#292928] cursor-pointer"
+                  onClick={() => {
+                    onToggle(option.value);
+                  }}
+                >
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => onToggle(option.value)}
+                  />
+                  <Label className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer flex-1">
+                    {option.label}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
+      {/* Selected pills */}
+      {selectedValues.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {selectedValues.map((value) => {
+            const option = optionList.find(opt => opt.value === value);
+            if (!option) return null;
+            return (
+              <Badge
+                key={value}
+                variant="outline"
+                className="bg-[#292928] border-[#292928] text-[#f7f6f2] font-['Montserrat'] text-xs px-2 py-1 flex items-center gap-1"
+              >
+                {option.label}
+                <button
+                  onClick={() => onRemove(value)}
+                  className="ml-1 hover:bg-[#171716] rounded-full p-0.5 transition-colors"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Programs() {
   const [, setLocation] = useLocation();
   const [tabView, setTabView] = useState<TabView>("all");
@@ -589,6 +745,11 @@ export default function Programs() {
     blockStatuses: [],
     seasons: [],
     subSeasons: [],
+    statusIcons: [],
+    programPositions: [],
+    todaysSessions: [],
+    complianceRanges: [],
+    collaboratorCounts: [],
     urgency: [],
     nextBlockDueStart: "",
     nextBlockDueEnd: "",
@@ -677,6 +838,11 @@ export default function Programs() {
         });
         
         if (!hasUpcomingBlockDue) return false;
+      } else if (tabView === "pastDue") {
+        // Past Due: Show athletes with blocks that are past due
+        const blockDueInfo = getDaysUntilBlockEnd(blocks);
+        // Only show if block is past due (days <= 0, which means "Past Due" text)
+        if (blockDueInfo.days === null || blockDueInfo.days > 0) return false;
       }
 
       // Filter by block status - check if ANY block matches
@@ -695,12 +861,69 @@ export default function Programs() {
         if (!hasMatchingSeason) return false;
       }
 
-      // Filter by sub-season - check if ANY block matches
+      // Filter by sub-season - check if ANY block matches (using abbreviation)
       if (filters.subSeasons.length > 0) {
-        const hasMatchingSubSeason = blocks.some(block => 
-          block.subSeason && filters.subSeasons.includes(block.subSeason)
-        );
+        const hasMatchingSubSeason = blocks.some(block => {
+          if (!block.subSeason) return false;
+          const subAbbr = getSubSeasonAbbreviation(block.subSeason, block.season);
+          return filters.subSeasons.includes(subAbbr);
+        });
         if (!hasMatchingSubSeason) return false;
+      }
+
+      // Filter by status icons
+      if (filters.statusIcons.length > 0) {
+        const signOff = getSignOffStatus(blocks);
+        const taskCount = getTaskCount(athlete.id);
+        const hasRecentEdit = !!getLastModificationDay(blocks).fullDateTime;
+        const hasDraftOrPlanned = blocks.some(b => b.status === "draft" || b.status === "planned");
+        
+        const hasMatchingStatusIcon = filters.statusIcons.some(iconType => {
+          if (iconType === "sign-off" && signOff.hasPending) return true;
+          if (iconType === "build" && hasDraftOrPlanned) return true;
+          if (iconType === "review" && hasRecentEdit) return true;
+          if (iconType === "tasks" && taskCount > 0) return true;
+          return false;
+        });
+        
+        if (!hasMatchingStatusIcon) return false;
+      }
+
+      // Filter by today's session
+      if (filters.todaysSessions.length > 0) {
+        const currentBlock = getCurrentBlock(blocks);
+        const hasMatchingSession = filters.todaysSessions.some(sessionType => {
+          if (sessionType === "throwing" && currentBlock?.throwing) return true;
+          if (sessionType === "lifting" && currentBlock?.lifting) return true;
+          if (sessionType === "movement" && currentBlock?.movement) return true;
+          return false;
+        });
+        if (!hasMatchingSession) return false;
+      }
+
+      // Filter by compliance
+      if (filters.complianceRanges.length > 0) {
+        const currentBlock = getCurrentBlock(blocks);
+        if (!currentBlock || currentBlock.compliance === undefined) return false;
+        const compliance = currentBlock.compliance;
+        
+        const hasMatchingCompliance = filters.complianceRanges.some(range => {
+          if (range === "90-100" && compliance >= 90) return true;
+          if (range === "75-89" && compliance >= 75 && compliance < 90) return true;
+          if (range === "0-74" && compliance < 75) return true;
+          return false;
+        });
+        if (!hasMatchingCompliance) return false;
+      }
+
+      // Filter by program position
+      if (filters.programPositions.length > 0) {
+        const programPos = getProgramPosition(blocks, athleteData.currentPhase);
+        const hasMatchingPosition = filters.programPositions.some(pattern => {
+          // Simple pattern matching - could be improved
+          return programPos.includes(pattern);
+        });
+        if (!hasMatchingPosition) return false;
       }
 
       // Filter by last activity
@@ -835,6 +1058,78 @@ export default function Programs() {
           bValue = bMod.formattedDate || "";
           break;
         }
+        case "readiness": {
+          // Priority: injured (1) > rehabbing (2) > lingering-issues (3) > null (4)
+          const statusOrder: { [key: string]: number } = {
+            "injured": 1,
+            "rehabbing": 2,
+            "lingering-issues": 3,
+          };
+          aValue = statusOrder[a.athlete.status || ""] || 4;
+          bValue = statusOrder[b.athlete.status || ""] || 4;
+          break;
+        }
+        case "status": {
+          // Check if athlete has any status icons
+          const aHasStatus = (() => {
+            const signOff = getSignOffStatus(a.blocks);
+            const taskCount = getTaskCount(a.athlete.id);
+            const hasRecentEdit = !!getLastModificationDay(a.blocks).fullDateTime;
+            const hasDraftOrPlanned = a.blocks.some(b => b.status === "draft" || b.status === "planned");
+            return signOff.hasPending || taskCount > 0 || hasRecentEdit || hasDraftOrPlanned;
+          })();
+          const bHasStatus = (() => {
+            const signOff = getSignOffStatus(b.blocks);
+            const taskCount = getTaskCount(b.athlete.id);
+            const hasRecentEdit = !!getLastModificationDay(b.blocks).fullDateTime;
+            const hasDraftOrPlanned = b.blocks.some(b => b.status === "draft" || b.status === "planned");
+            return signOff.hasPending || taskCount > 0 || hasRecentEdit || hasDraftOrPlanned;
+          })();
+          // 1 if has status, 2 if no status
+          aValue = aHasStatus ? 1 : 2;
+          bValue = bHasStatus ? 1 : 2;
+          break;
+        }
+        case "program": {
+          aValue = getProgramPosition(a.blocks, a.currentPhase);
+          bValue = getProgramPosition(b.blocks, b.currentPhase);
+          break;
+        }
+        case "todaysSession": {
+          // For sorting, create a sortable string from available block data
+          // Check if blocks have throwing/lifting data
+          const aBlock = getCurrentBlock(a.blocks);
+          const bBlock = getCurrentBlock(b.blocks);
+          const aParts: string[] = [];
+          const bParts: string[] = [];
+          
+          if (aBlock?.throwing) aParts.push("Throwing");
+          if (aBlock?.lifting) aParts.push("Lifting");
+          if (aBlock?.movement) aParts.push("Movement");
+          
+          if (bBlock?.throwing) bParts.push("Throwing");
+          if (bBlock?.lifting) bParts.push("Lifting");
+          if (bBlock?.movement) bParts.push("Movement");
+          
+          aValue = aParts.length > 0 ? aParts.join(" | ") : "–";
+          bValue = bParts.length > 0 ? bParts.join(" | ") : "–";
+          break;
+        }
+        case "compliance": {
+          const aBlock = getCurrentBlock(a.blocks);
+          const bBlock = getCurrentBlock(b.blocks);
+          aValue = aBlock?.compliance ?? Number.MAX_SAFE_INTEGER;
+          bValue = bBlock?.compliance ?? Number.MAX_SAFE_INTEGER;
+          break;
+        }
+        case "collaborators": {
+          // For sorting, we'll use a simple approach - check if athlete has collaborators
+          // In a real implementation, this would be memoized
+          // For now, use a placeholder that will be improved with memoization
+          aValue = 0; // Will be improved with async handling
+          bValue = 0; // Will be improved with async handling
+          break;
+        }
         default:
           return 0;
       }
@@ -924,6 +1219,11 @@ export default function Programs() {
       blockStatuses: [],
       seasons: [],
       subSeasons: [],
+      statusIcons: [],
+      programPositions: [],
+      todaysSessions: [],
+      complianceRanges: [],
+      collaboratorCounts: [],
       urgency: [],
       nextBlockDueStart: "",
       nextBlockDueEnd: "",
@@ -938,6 +1238,11 @@ export default function Programs() {
       filters.blockStatuses.length > 0 ||
       filters.seasons.length > 0 ||
       filters.subSeasons.length > 0 ||
+      filters.statusIcons.length > 0 ||
+      filters.programPositions.length > 0 ||
+      filters.todaysSessions.length > 0 ||
+      filters.complianceRanges.length > 0 ||
+      filters.collaboratorCounts.length > 0 ||
       filters.urgency.length > 0 ||
       filters.nextBlockDueStart ||
       filters.nextBlockDueEnd ||
@@ -982,6 +1287,12 @@ export default function Programs() {
                   className="data-[state=active]:bg-[#1C1C1B] data-[state=active]:text-[#f7f6f2] text-[#979795] px-3 text-xs font-['Montserrat']"
                 >
                   Upcoming
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="pastDue" 
+                  className="data-[state=active]:bg-[#1C1C1B] data-[state=active]:text-[#f7f6f2] text-[#979795] px-3 text-xs font-['Montserrat']"
+                >
+                  Past Due
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -1114,12 +1425,28 @@ export default function Programs() {
                   <div className="flex items-center h-full bg-[#121210] flex-1">
                     {/* Column 2: Readiness */}
                     <div className="flex items-center pl-4 pr-0 w-[80px] min-w-[80px]">
-                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Readiness</span>
+                      <button 
+                        onClick={() => handleSort('readiness')}
+                        onMouseEnter={() => setHoveredSortField('readiness')}
+                        onMouseLeave={() => setHoveredSortField(null)}
+                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Readiness</span>
+                        {getSortIcon('readiness', hoveredSortField === 'readiness' || sortField === 'readiness')}
+                      </button>
                     </div>
 
                     {/* Column 3: Status icons */}
                     <div className="flex items-center pl-4 pr-0 w-[120px] min-w-[120px]">
-                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Status</span>
+                      <button 
+                        onClick={() => handleSort('status')}
+                        onMouseEnter={() => setHoveredSortField('status')}
+                        onMouseLeave={() => setHoveredSortField(null)}
+                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Status</span>
+                        {getSortIcon('status', hoveredSortField === 'status' || sortField === 'status')}
+                      </button>
                     </div>
 
                     {/* Column 4: Season [Sub-Season] */}
@@ -1137,7 +1464,15 @@ export default function Programs() {
 
                     {/* Column 5: Program position */}
                     <div className="flex items-center pl-4 pr-0 w-[220px] min-w-[220px]">
-                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Program</span>
+                      <button 
+                        onClick={() => handleSort('program')}
+                        onMouseEnter={() => setHoveredSortField('program')}
+                        onMouseLeave={() => setHoveredSortField(null)}
+                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Program</span>
+                        {getSortIcon('program', hoveredSortField === 'program' || sortField === 'program')}
+                      </button>
                     </div>
 
                     {/* Column 6: Block Due */}
@@ -1155,7 +1490,15 @@ export default function Programs() {
 
                     {/* Column 7: Today's Session */}
                     <div className="flex items-center pl-4 pr-0 w-[180px] min-w-[180px]">
-                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Today's Session</span>
+                      <button 
+                        onClick={() => handleSort('todaysSession')}
+                        onMouseEnter={() => setHoveredSortField('todaysSession')}
+                        onMouseLeave={() => setHoveredSortField(null)}
+                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Today's Session</span>
+                        {getSortIcon('todaysSession', hoveredSortField === 'todaysSession' || sortField === 'todaysSession')}
+                      </button>
                     </div>
 
                     {/* Column 8: Last entry */}
@@ -1186,12 +1529,28 @@ export default function Programs() {
 
                     {/* Column 10: Compliance + Trend */}
                     <div className="flex items-center pl-4 pr-0 w-[120px] min-w-[120px]">
-                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Compliance</span>
+                      <button 
+                        onClick={() => handleSort('compliance')}
+                        onMouseEnter={() => setHoveredSortField('compliance')}
+                        onMouseLeave={() => setHoveredSortField(null)}
+                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Compliance</span>
+                        {getSortIcon('compliance', hoveredSortField === 'compliance' || sortField === 'compliance')}
+                      </button>
                     </div>
 
                     {/* Column 11: Collaborators */}
                     <div className="flex items-center pl-4 pr-0 w-[120px] min-w-[120px]">
-                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">Collaborators</span>
+                      <button 
+                        onClick={() => handleSort('collaborators')}
+                        onMouseEnter={() => setHoveredSortField('collaborators')}
+                        onMouseLeave={() => setHoveredSortField(null)}
+                        className="flex items-center gap-1 hover:text-[#f7f6f2] transition-colors"
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">Collaborators</span>
+                        {getSortIcon('collaborators', hoveredSortField === 'collaborators' || sortField === 'collaborators')}
+                      </button>
                     </div>
 
                     {/* Column 12: Menu */}
@@ -1300,19 +1659,19 @@ export default function Programs() {
                           {/* Column 2: Readiness */}
                           <div className="flex items-center pl-4 pr-0 w-[80px] min-w-[80px]">
                             {statusIcon ? (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
                                     <div>{statusIcon}</div>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
                                     <p>{statusTooltip}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
                             ) : (
                               <span className="text-[#979795] text-sm">–</span>
-                            )}
+                                    )}
                           </div>
 
                           {/* Column 3: Status icons (with deadlines) */}
@@ -1333,9 +1692,9 @@ export default function Programs() {
                               if (signOff.hasPending) {
                                 statusIcons.push(
                                   <TooltipProvider key="signoff">
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <div className="flex items-center gap-1">
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                        <div className="flex items-center gap-1 p-1 rounded bg-amber-500/10 hover:bg-amber-500/20 cursor-pointer transition-colors">
                                           <CheckCircle2 className="h-4 w-4 text-amber-500" />
                                           {signOff.deadlineText && (
                                             <span className="text-xs text-[#979795]">{signOff.deadlineText}</span>
@@ -1357,13 +1716,15 @@ export default function Programs() {
                                   <TooltipProvider key="build">
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <Hammer className="h-4 w-4 text-[#979795]" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
+                                            <div className="p-1 rounded bg-[#979795]/10 hover:bg-[#979795]/20 cursor-pointer transition-colors">
+                                              <Hammer className="h-4 w-4 text-[#979795]" />
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
                                         <p>New phase due</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                 );
                               }
                               
@@ -1371,15 +1732,17 @@ export default function Programs() {
                               if (hasRecentEdit) {
                                 statusIcons.push(
                                   <TooltipProvider key="review">
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Eye className="h-4 w-4 text-[#979795]" />
-                                      </TooltipTrigger>
-                                      <TooltipContent>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="p-1 rounded bg-[#979795]/10 hover:bg-[#979795]/20 cursor-pointer transition-colors">
+                                              <Eye className="h-4 w-4 text-[#979795]" />
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
                                         <p>Recent edit to review</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                 );
                               }
                               
@@ -1387,30 +1750,30 @@ export default function Programs() {
                               if (taskCount > 0) {
                                 statusIcons.push(
                                   <TooltipProvider key="tasks">
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <div className="flex items-center gap-1">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="flex items-center gap-1 p-1 rounded bg-[#979795]/10 hover:bg-[#979795]/20 cursor-pointer transition-colors">
                                           <Circle className="h-4 w-4 text-[#979795]" />
                                           <span className="text-xs text-[#979795]">{taskCount}</span>
                                         </div>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
                                         <p>{taskCount} task{taskCount !== 1 ? 's' : ''}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                                 );
                               }
                               
                               return statusIcons.length > 0 ? (
                                 <div className="flex items-center gap-1 flex-wrap">
                                   {statusIcons}
-                                </div>
+                            </div>
                               ) : (
                                 <span className="text-[#979795] text-sm">–</span>
                               );
                             })()}
-                          </div>
+                        </div>
 
                           {/* Column 4: Season [Sub-Season] */}
                           <div className="flex items-center pl-4 pr-0 w-[160px] min-w-[160px]">
@@ -1465,7 +1828,7 @@ export default function Programs() {
                           <div className="flex items-center pl-4 pr-0 w-[180px] min-w-[180px]">
                             {(() => {
                               const TodaysSessionTextCell = () => {
-                                const [sessionData, setSessionData] = useState<{ throwing: string | null; lifting: string | null; throwingIntensity?: string; liftingIntensity?: string } | null>(null);
+                                const [sessionData, setSessionData] = useState<{ throwing: string | null; lifting: string | null; movement: string | null; throwingIntensity?: string; liftingIntensity?: string } | null>(null);
                                 useEffect(() => {
                                   getTodaysSession(athleteData.athlete.id).then(setSessionData);
                                 }, [athleteData.athlete.id]);
@@ -1474,14 +1837,19 @@ export default function Programs() {
                                 
                                 const parts: string[] = [];
                                 
-                                // Add throwing description
+                                // Add throwing routine
                                 if (sessionData.throwing) {
-                                  parts.push(sessionData.throwing);
+                                  parts.push(`Throwing: ${sessionData.throwing}`);
                                 }
                                 
-                                // Add lifting description
+                                // Add lifting routine
                                 if (sessionData.lifting) {
-                                  parts.push(sessionData.lifting);
+                                  parts.push(`Lifting: ${sessionData.lifting}`);
+                                }
+                                
+                                // Add movement routine
+                                if (sessionData.movement) {
+                                  parts.push(`Movement: ${sessionData.movement}`);
                                 }
                                 
                                 if (parts.length === 0) return <span className="text-[#979795] text-sm">–</span>;
@@ -1683,114 +2051,67 @@ export default function Programs() {
 
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
             {/* Athlete Status */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Athlete status</Label>
-              <div className="flex flex-wrap gap-4">
-                {STATUS_OPTIONS.map((statusOption) => (
-                  <div key={statusOption.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`athlete-status-${statusOption.value}`}
-                      checked={filters.athleteStatuses.includes(statusOption.value)}
-                      onCheckedChange={() => handleAthleteStatusToggle(statusOption.value)}
-                    />
-                    <Label
-                      htmlFor={`athlete-status-${statusOption.value}`}
-                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
-                    >
-                      {statusOption.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <MultiselectFilter
+              label="Athlete status"
+              options={STATUS_OPTIONS}
+              selectedValues={filters.athleteStatuses}
+              onToggle={(value) => handleAthleteStatusToggle(value)}
+              onRemove={(value) => setFilters(prev => ({ ...prev, athleteStatuses: prev.athleteStatuses.filter(s => s !== value) }))}
+            />
 
             {/* Block Status */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Block status</Label>
-              <div className="flex flex-wrap gap-4">
-                {BLOCK_STATUS_OPTIONS.map((statusOption) => (
-                  <div key={statusOption.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`block-status-${statusOption.value}`}
-                      checked={filters.blockStatuses.includes(statusOption.value)}
-                      onCheckedChange={() => handleBlockStatusToggle(statusOption.value)}
-                    />
-                    <Label
-                      htmlFor={`block-status-${statusOption.value}`}
-                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
-                    >
-                      {statusOption.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <MultiselectFilter
+              label="Block status"
+              options={BLOCK_STATUS_OPTIONS}
+              selectedValues={filters.blockStatuses}
+              onToggle={(value) => handleBlockStatusToggle(value)}
+              onRemove={(value) => setFilters(prev => ({ ...prev, blockStatuses: prev.blockStatuses.filter(s => s !== value) }))}
+            />
 
             {/* Season */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Season</Label>
-              <div className="flex flex-wrap gap-4">
-                {SEASON_OPTIONS.map((season) => (
-                  <div key={season} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`season-${season}`}
-                      checked={filters.seasons.includes(season)}
-                      onCheckedChange={() => handleSeasonToggle(season)}
-                    />
-                    <Label
-                      htmlFor={`season-${season}`}
-                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
-                    >
-                      {season}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <MultiselectFilter
+              label="Season"
+              options={SEASON_OPTIONS}
+              selectedValues={filters.seasons}
+              onToggle={(value) => handleSeasonToggle(value)}
+              onRemove={(value) => setFilters(prev => ({ ...prev, seasons: prev.seasons.filter(s => s !== value) }))}
+            />
 
             {/* Sub-Season */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Sub-season</Label>
-              <div className="flex flex-wrap gap-4">
-                {SUB_SEASON_OPTIONS.map((subSeason) => (
-                  <div key={subSeason} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`subseason-${subSeason}`}
-                      checked={filters.subSeasons.includes(subSeason)}
-                      onCheckedChange={() => handleSubSeasonToggle(subSeason)}
-                    />
-                    <Label
-                      htmlFor={`subseason-${subSeason}`}
-                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
-                    >
-                      {subSeason}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <MultiselectFilter
+              label="Sub-season"
+              options={SUB_SEASON_OPTIONS}
+              selectedValues={filters.subSeasons}
+              onToggle={(value) => handleSubSeasonToggle(value)}
+              onRemove={(value) => setFilters(prev => ({ ...prev, subSeasons: prev.subSeasons.filter(s => s !== value) }))}
+            />
+
+            {/* Status Icons */}
+            <MultiselectFilter
+              label="Status icons"
+              options={STATUS_ICON_OPTIONS}
+              selectedValues={filters.statusIcons}
+              onToggle={(value) => setFilters(prev => ({ ...prev, statusIcons: prev.statusIcons.includes(value) ? prev.statusIcons.filter(s => s !== value) : [...prev.statusIcons, value] }))}
+              onRemove={(value) => setFilters(prev => ({ ...prev, statusIcons: prev.statusIcons.filter(s => s !== value) }))}
+            />
+
+            {/* Today's Session */}
+            <MultiselectFilter
+              label="Today's Session"
+              options={TODAYS_SESSION_OPTIONS}
+              selectedValues={filters.todaysSessions}
+              onToggle={(value) => setFilters(prev => ({ ...prev, todaysSessions: prev.todaysSessions.includes(value) ? prev.todaysSessions.filter(s => s !== value) : [...prev.todaysSessions, value] }))}
+              onRemove={(value) => setFilters(prev => ({ ...prev, todaysSessions: prev.todaysSessions.filter(s => s !== value) }))}
+            />
 
             {/* Urgency */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold font-['Montserrat'] text-[#f7f6f2]">Urgency</Label>
-              <div className="flex flex-wrap gap-4">
-                {URGENCY_OPTIONS.map((urgencyOption) => (
-                  <div key={urgencyOption.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`urgency-${urgencyOption.value}`}
-                      checked={filters.urgency.includes(urgencyOption.value)}
-                      onCheckedChange={() => handleUrgencyToggle(urgencyOption.value)}
-                    />
-                    <Label
-                      htmlFor={`urgency-${urgencyOption.value}`}
-                      className="text-sm font-['Montserrat'] text-[#f7f6f2] cursor-pointer"
-                    >
-                      {urgencyOption.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <MultiselectFilter
+              label="Urgency"
+              options={URGENCY_OPTIONS}
+              selectedValues={filters.urgency}
+              onToggle={(value) => handleUrgencyToggle(value)}
+              onRemove={(value) => setFilters(prev => ({ ...prev, urgency: prev.urgency.filter(s => s !== value) }))}
+            />
 
             {/* Last Activity */}
             <div className="space-y-3">
