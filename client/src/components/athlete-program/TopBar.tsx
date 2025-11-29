@@ -27,15 +27,6 @@ export default function TopBar({
 	athleteName,
 	programPosition,
 }: TopBarProps) {
-	const displayPhaseTitle = phaseTitle?.replace(/[()]/g, "").trim();
-	const phasePrimaryMatch = displayPhaseTitle?.match(/^(Phase\s*\d+)/i);
-	const phasePrimaryText = phasePrimaryMatch?.[0]?.trim() ?? (displayPhaseTitle || "");
-	const phaseSecondaryText = phasePrimaryMatch
-		? displayPhaseTitle?.slice(phasePrimaryMatch[0].length).trim()
-		: "";
-	
-	const sidebarWidth = 320;
-	const minimizeButtonLeft = athleteDetailsOpen ? sidebarWidth : 0;
 	
 	return (
 		<div 
@@ -52,7 +43,7 @@ export default function TopBar({
 			}}
 		>
 			<div className="h-14 flex items-center px-4 relative">
-				{/* Left: Back + Profile + Athlete Name + Program Position */}
+				{/* Left: Back + Minimize + Athlete Name + Program Position */}
 				<div className="flex items-center gap-3">
 					<Button
 						variant="ghost"
@@ -64,13 +55,12 @@ export default function TopBar({
 						<ArrowLeft className="h-4 w-4" />
 					</Button>
 					
-					{/* Minimize button positioned on sidebar divider */}
+					{/* Minimize button next to back button */}
 					{onOpenAthleteDetails && (
 						<Button
 							variant="ghost"
 							size="icon"
-							className="h-8 w-8 text-[#979795] hover:text-[#f7f6f2] absolute"
-							style={{ left: `${minimizeButtonLeft}px` }}
+							className="h-8 w-8 text-[#979795] hover:text-[#f7f6f2]"
 							onClick={onOpenAthleteDetails}
 							aria-label={athleteDetailsOpen ? "Hide athlete details" : "Open athlete details"}
 							aria-pressed={athleteDetailsOpen}
@@ -85,7 +75,7 @@ export default function TopBar({
 					
 					{/* Athlete Name - always visible */}
 					{athleteName && (
-						<div className="flex items-center gap-2 ml-12">
+						<div className="flex items-center gap-2">
 							<span className="text-sm font-semibold text-[#f7f6f2] font-['Montserrat']">
 								{athleteName}
 							</span>
@@ -93,21 +83,6 @@ export default function TopBar({
 								<Badge variant="outline" className="text-xs font-mono text-[#979795] bg-[#171716] border-[#292928]">
 									Program {programPosition.phase}.{programPosition.block}.{programPosition.week}.{programPosition.day}
 								</Badge>
-							)}
-						</div>
-					)}
-					
-					{displayPhaseTitle && (
-						<div className="flex items-baseline gap-2">
-							{phasePrimaryText && (
-								<span className="text-sm text-primary font-semibold">
-									{phasePrimaryText}
-								</span>
-							)}
-							{phaseSecondaryText && (
-								<span className="text-sm text-[#979795] font-medium">
-									{phaseSecondaryText}
-								</span>
 							)}
 						</div>
 					)}
